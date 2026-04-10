@@ -19,7 +19,7 @@ from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 OPENAI_AVAILABLE = True
 
-from vedic_engine import build_vedic_bundle, format_guru_context, guru_reply_rule_based
+from vedic_engine import build_vedic_bundle, format_guru_context, get_horoscope_for_sign, generate_kundli_chart_from_birth
 
 # Load environment variables from .env file
 load_dotenv()
@@ -1234,25 +1234,37 @@ def api_chat():
     }
     merged_sections.update({k: str(v) for k, v in vedic_sections.items()})
 
+    # Check if API is available (Groq or OpenAI)
+    groq_key = os.environ.get("GROQ_API_KEY", "").strip()
+    openai_key = os.environ.get("OPENAI_API_KEY", "").strip()
+    
+    if not (groq_key or openai_key):
+        return jsonify({
+            "success": False,
+            "error": "Chat service is currently offline. Please configure GROQ_API_KEY or OPENAI_API_KEY."
+        }), 503
+    
     ctx = format_guru_context(row["full_name"], profile, vedic, blueprint)
-    rule_reply = guru_reply_rule_based(message, ctx, vedic, merged_sections)
-
-    ai_reply = None
-    if os.environ.get("GROQ_API_KEY", "").strip() or os.environ.get("OPENAI_API_KEY", "").strip():
-        system = (
-            "You are a compassionate, accurate Vedic-inspired astrologer chat guide. "
-            "Use the structured CONTEXT; do not invent precise astronomical facts not in context. "
-            "Refuse medical/legal claims; encourage professional human advice. "
-            "Tone: warm, mystical, empowering."
-        )
-        user_blob = f"CONTEXT:\n{ctx}\n\nUSER QUESTION:\n{message}"
-        ai_reply = openai_guru_reply(system, user_blob)
+    system = (
+        "You are a compassionate, accurate Vedic-inspired astrologer chat guide. "
+        "Use the structured CONTEXT; do not invent precise astronomical facts not in context. "
+        "Refuse medical/legal claims; encourage professional human advice. "
+        "Tone: warm, mystical, empowering."
+    )
+    user_blob = f"CONTEXT:\n{ctx}\n\nUSER QUESTION:\n{message}"
+    ai_reply = openai_guru_reply(system, user_blob)
+    
+    if ai_reply is None:
+        return jsonify({
+            "success": False,
+            "error": "Chat service is temporarily unavailable. Please try again later."
+        }), 503
 
     return jsonify(
         {
             "success": True,
-            "reply": ai_reply or rule_reply,
-            "source": "ai" if ai_reply else "rules",
+            "reply": ai_reply,
+            "source": "ai",
         }
     )
 
@@ -1313,7 +1325,6 @@ def api_horoscope():
         return jsonify({"success": False, "error": "Invalid zodiac sign"}), 400
     
     # This would fetch from vedic engine or saved horoscopes
-    from vedic_engine import get_horoscope_for_sign
     horoscope = get_horoscope_for_sign(sign)
     
     return jsonify({
@@ -1335,9 +1346,7 @@ def api_kundli_chart():
         return jsonify({"success": False, "error": "birth_date and birth_time required"}), 400
     
     try:
-        from vedic_engine import generate_kundli_chart_from_birth
-        
-        # Try to get coordinates forbirthplace (simplified - just use None for now)
+        # Try to get coordinates for birthplace (simplified - just use None for now)
         # In production, you'd use a geolocation API
         result = generate_kundli_chart_from_birth(birth_date, birth_time)
         
