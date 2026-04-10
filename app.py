@@ -44,6 +44,36 @@ app.config["SESSION_COOKIE_HTTPONLY"] = True
 app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
 app.config["PREFERRED_URL_SCHEME"] = "https" if not app.config["DEBUG"] else "http"
 
+# Production hardening (safe defaults)
+app.config["SESSION_COOKIE_NAME"] = os.environ.get("SESSION_COOKIE_NAME", "celestial_arc")
+app.config["TEMPLATES_AUTO_RELOAD"] = False
+
+
+@app.after_request
+def add_security_headers(resp):
+    """
+    Add baseline security headers.
+    Kept lightweight to avoid breaking the current inline/Tailwind CDN usage.
+    """
+    resp.headers.setdefault("X-Content-Type-Options", "nosniff")
+    resp.headers.setdefault("Referrer-Policy", "strict-origin-when-cross-origin")
+    resp.headers.setdefault("X-Frame-Options", "DENY")
+    # HSTS only when behind HTTPS (Render uses HTTPS). Safe if app is served over HTTPS.
+    if not app.config["DEBUG"]:
+        resp.headers.setdefault("Strict-Transport-Security", "max-age=31536000; includeSubDomains")
+    # Minimal CSP to avoid breaking Tailwind CDN and inline scripts in templates.
+    resp.headers.setdefault(
+        "Content-Security-Policy",
+        "default-src 'self'; "
+        "img-src 'self' data: blob:; "
+        "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.tailwindcss.com; "
+        "font-src 'self' https://fonts.gstatic.com data:; "
+        "script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com; "
+        "connect-src 'self' https://photon.komoot.io https://timeapi.io https://api.groq.com https://api.openai.com; "
+        "base-uri 'self'; form-action 'self'"
+    )
+    return resp
+
 PHOTON_BASE_URL = os.environ.get("PHOTON_BASE_URL", "https://photon.komoot.io/api/").strip()
 TIMEAPI_BASE_URL = os.environ.get("TIMEAPI_BASE_URL", "https://timeapi.io/api/v1").strip()
 
@@ -1024,7 +1054,10 @@ def analyze():
             "palm_analysis": palm_text,
             "report_html": report_html,
             "created_at": created_at,
-            "ai_chat_available": bool(os.environ.get("OPENAI_API_KEY", "").strip()),
+            "ai_chat_available": bool(
+                os.environ.get("GROQ_API_KEY", "").strip()
+                or os.environ.get("OPENAI_API_KEY", "").strip()
+            ),
         }
     )
 
@@ -1093,7 +1126,7 @@ def api_chat():
     rule_reply = guru_reply_rule_based(message, ctx, vedic, merged_sections)
 
     ai_reply = None
-    if os.environ.get("OPENAI_API_KEY", "").strip():
+    if os.environ.get("GROQ_API_KEY", "").strip() or os.environ.get("OPENAI_API_KEY", "").strip():
         system = (
             "You are a compassionate, accurate Vedic-inspired astrologer chat guide. "
             "Use the structured CONTEXT; do not invent precise astronomical facts not in context. "
@@ -1107,7 +1140,7 @@ def api_chat():
         {
             "success": True,
             "reply": ai_reply or rule_reply,
-            "source": "openai" if ai_reply else "rules",
+            "source": "ai" if ai_reply else "rules",
         }
     )
 
