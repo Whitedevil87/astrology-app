@@ -814,23 +814,44 @@ def openai_guru_reply(system: str, user: str) -> Optional[str]:
     Optional cloud AI — uses an OpenAI-compatible Chat Completions endpoint.
 
     Recommended for free-tier online chat: set GROQ_API_KEY and GROQ_MODEL.
-    Falls back to rule-based replies if no key is configured.
+    Falls back to returning None if API fails for proper error handling in endpoint.
     """
     groq_key = os.environ.get("GROQ_API_KEY", "").strip()
     openai_key = os.environ.get("OPENAI_API_KEY", "").strip()
     api_key = groq_key or openai_key
-    if not api_key or not OPENAI_AVAILABLE:
+    
+    logger.info(f"Chat attempt: groq_key_set={bool(groq_key)}, openai_key_set={bool(openai_key)}")
+    
+    if not api_key:
+        logger.error("❌ No API key available (GROQ_API_KEY or OPENAI_API_KEY not set)")
+        return None
+    
+    # Validate API key format
+    if len(api_key) < 10:
+        logger.error(f"❌ API key too short ({len(api_key)} chars). Check environment variables.")
+        return None
+    
+    if not OPENAI_AVAILABLE:
+        logger.error("❌ OPENAI_AVAILABLE flag is False")
         return None
 
     if os.environ.get("AI_CHAT_BASE_URL", "").strip():
         base_url = os.environ["AI_CHAT_BASE_URL"].strip().rstrip("/")
+        provider = "CustomURL"
     else:
-        base_url = "https://api.groq.com/openai/v1" if groq_key else "https://api.openai.com/v1"
+        if groq_key:
+            base_url = "https://api.groq.com/openai/v1"
+            provider = "Groq"
+        else:
+            base_url = "https://api.openai.com/v1"
+            provider = "OpenAI"
 
     if groq_key:
         model = os.environ.get("GROQ_MODEL", "").strip() or "llama-3.1-8b-instant"
     else:
         model = os.environ.get("OPENAI_MODEL", "").strip() or "gpt-4o-mini"
+
+    logger.info(f"🔄 Using {provider} with model '{model}' at {base_url}/chat/completions")
 
     payload = {
         "model": model,
@@ -841,6 +862,7 @@ def openai_guru_reply(system: str, user: str) -> Optional[str]:
         "temperature": 0.65,
         "max_tokens": 900,
     }
+    
     req = urllib.request.Request(
         f"{base_url}/chat/completions",
         data=json.dumps(payload).encode("utf-8"),
@@ -850,21 +872,54 @@ def openai_guru_reply(system: str, user: str) -> Optional[str]:
         },
         method="POST",
     )
+    
     try:
         with urllib.request.urlopen(req, timeout=60) as resp:
-            data = json.loads(resp.read().decode("utf-8", errors="replace"))
-        return str(data["choices"][0]["message"]["content"]).strip()
+            response_text = resp.read().decode("utf-8", errors="replace")
+            data = json.loads(response_text)
+        
+        if "choices" not in data or not data["choices"]:
+            logger.error(f"❌ Invalid response structure from {provider}: {response_text[:300]}")
+            return None
+        
+        result = str(data["choices"][0]["message"]["content"]).strip()
+        logger.info(f"✅ AI chat success from {provider} ({len(result)} chars)")
+        return result
+        
     except urllib.error.HTTPError as e:
-        # Try to capture provider error body (truncated) for debugging in logs.
-        body = ""
+        error_body = ""
         try:
-            body = e.read().decode("utf-8", errors="replace")
+            error_body = e.read().decode("utf-8", errors="replace")
         except Exception:
-            body = ""
-        logger.warning("AI chat HTTPError: %s body=%s", e, body[:800])
+            pass
+        
+        status_code = e.code
+        if status_code == 401:
+            logger.error(f"❌ 401 Unauthorized from {provider} - Invalid API key? Check GROQ_API_KEY")
+        elif status_code == 403:
+            logger.error(f"❌ 403 Forbidden from {provider} - Check API key permissions")
+        elif status_code == 429:
+            logger.error(f"❌ 429 Rate Limited from {provider} - Too many requests. Wait before retrying.")
+        elif status_code == 500:
+            logger.error(f"❌ 500 Server Error from {provider} - Provider service issue")
+        else:
+            logger.error(f"❌ HTTP {status_code} from {provider}")
+        
+        if error_body:
+            logger.error(f"   Response: {error_body[:400]}")
         return None
-    except (urllib.error.URLError, TimeoutError, KeyError, json.JSONDecodeError) as e:
-        logger.warning("AI chat API error: %s", e)
+        
+    except urllib.error.URLError as e:
+        logger.error(f"❌ URLError from {provider}: {e} - Check internet connection or endpoint URL")
+        return None
+    except TimeoutError as e:
+        logger.error(f"❌ Timeout from {provider} after 60s: {e}")
+        return None
+    except (KeyError, json.JSONDecodeError) as e:
+        logger.error(f"❌ Response parsing error from {provider}: {e}")
+        return None
+    except Exception as e:
+        logger.error(f"❌ Unexpected error in {provider} call: {type(e).__name__}: {e}")
         return None
 
 
@@ -1176,16 +1231,55 @@ def analyze():
 
 @app.route("/api/config", methods=["GET"])
 def api_config():
-    key = (
-        os.environ.get("GROQ_API_KEY", "").strip()
-        or os.environ.get("OPENAI_API_KEY", "").strip()
-    )
+    groq_key = os.environ.get("GROQ_API_KEY", "").strip()
+    openai_key = os.environ.get("OPENAI_API_KEY", "").strip()
+    key = groq_key or openai_key
     return jsonify(
         {
             "ai_chat": bool(key),
-            "hint": "Guru chat works offline with rule-based replies. Set GROQ_API_KEY (recommended) or OPENAI_API_KEY for online AI answers.",
+            "provider": "groq" if groq_key else ("openai" if openai_key else "none"),
+            "hint": "Chat requires GROQ_API_KEY (recommended) or OPENAI_API_KEY to be set.",
         }
     )
+
+
+@app.route("/api/debug/chat-config", methods=["GET"])
+def debug_chat_config():
+    """Debug endpoint to check chat configuration. Redacts sensitive values."""
+    groq_key = os.environ.get("GROQ_API_KEY", "").strip()
+    openai_key = os.environ.get("OPENAI_API_KEY", "").strip()
+    groq_model = os.environ.get("GROQ_MODEL", "").strip()
+    openai_model = os.environ.get("OPENAI_MODEL", "").strip()
+    
+    def redact(key: str) -> str:
+        if not key:
+            return "[NOT SET]"
+        if len(key) < 10:
+            return f"[TOO SHORT: {len(key)} chars]"
+        return f"[SET: {key[:10]}...{key[-5:]}]"
+    
+    return jsonify({
+        "groq": {
+            "api_key": redact(groq_key),
+            "model": groq_model or "[DEFAULT: llama-3.1-8b-instant]",
+            "endpoint": "https://api.groq.com/openai/v1",
+            "status": "✅ READY" if groq_key and groq_model else "❌ MISSING"
+        },
+        "openai": {
+            "api_key": redact(openai_key),
+            "model": openai_model or "[DEFAULT: gpt-4o-mini]",
+            "endpoint": "https://api.openai.com/v1",
+            "status": "✅ READY" if openai_key else "❌ MISSING"
+        },
+        "active_provider": "Groq" if groq_key else ("OpenAI" if openai_key else "NONE"),
+        "custom_base_url": os.environ.get("AI_CHAT_BASE_URL", "[NOT SET]"),
+        "openai_available_flag": OPENAI_AVAILABLE,
+        "recommendations": [
+            "Ensure GROQ_API_KEY is set on Render" if not groq_key else "✅ GROQ_API_KEY is set",
+            "Set GROQ_MODEL to 'llama-3.1-8b-instant'" if not groq_model else f"✅ GROQ_MODEL = {groq_model}",
+            "API key must be at least 20 characters" if groq_key and len(groq_key) < 20 else "✅ API key length OK"
+        ]
+    })
 
 
 @app.route("/api/chat", methods=["POST"])
@@ -1239,34 +1333,62 @@ def api_chat():
     openai_key = os.environ.get("OPENAI_API_KEY", "").strip()
     
     if not (groq_key or openai_key):
+        logger.error("❌ Chat API called but NO API keys configured")
+        logger.error("   Missing: GROQ_API_KEY and OPENAI_API_KEY")
         return jsonify({
             "success": False,
-            "error": "Chat service is currently offline. Please configure GROQ_API_KEY or OPENAI_API_KEY."
+            "error": "Chat service is offline. Configure GROQ_API_KEY or OPENAI_API_KEY to enable chat."
         }), 503
     
-    ctx = format_guru_context(row["full_name"], profile, vedic, blueprint)
-    system = (
-        "You are a compassionate, accurate Vedic-inspired astrologer chat guide. "
-        "Use the structured CONTEXT; do not invent precise astronomical facts not in context. "
-        "Refuse medical/legal claims; encourage professional human advice. "
-        "Tone: warm, mystical, empowering."
-    )
-    user_blob = f"CONTEXT:\n{ctx}\n\nUSER QUESTION:\n{message}"
-    ai_reply = openai_guru_reply(system, user_blob)
+    logger.info(f"📨 Chat message received for report {rid} - Provider: {'Groq' if groq_key else 'OpenAI'}")
     
-    if ai_reply is None:
-        return jsonify({
-            "success": False,
-            "error": "Chat service is temporarily unavailable. Please try again later."
-        }), 503
+    try:
+        ctx = format_guru_context(row["full_name"], profile, vedic, blueprint)
+        system = (
+            "You are a compassionate, accurate Vedic-inspired astrologer chat guide. "
+            "Use the structured CONTEXT; do not invent precise astronomical facts not in context. "
+            "Refuse medical/legal claims; encourage professional human advice. "
+            "Tone: warm, mystical, empowering."
+        )
+        user_blob = f"CONTEXT:\n{ctx}\n\nUSER QUESTION:\n{message}"
+        logger.info(f"   Calling AI endpoint...")
+        ai_reply = openai_guru_reply(system, user_blob)
+        
+        if ai_reply is None:
+            logger.error(f"❌ AI chat returned None for report {rid}")
+            return jsonify({
+                "success": False,
+                "error": "Chat service failed to generate response. Check Render logs for details."
+            }), 503
 
-    return jsonify(
-        {
-            "success": True,
-            "reply": ai_reply,
-            "source": "ai",
-        }
-    )
+        logger.info(f"✅ Chat response generated ({len(ai_reply)} chars)")
+        return jsonify(
+            {
+                "success": True,
+                "reply": ai_reply,
+                "source": "ai",
+            }
+        )
+    except Exception as e:
+        logger.error(f"❌ Chat endpoint error: {type(e).__name__}: {e}")
+        return jsonify({
+            "success": False,
+            "error": "An error occurred while processing your message."
+        }), 500
+
+        return jsonify(
+            {
+                "success": True,
+                "reply": ai_reply,
+                "source": "ai",
+            }
+        )
+    except Exception as e:
+        logger.error(f"Chat endpoint error: {type(e).__name__}: {e}")
+        return jsonify({
+            "success": False,
+            "error": "An error occurred while processing your message."
+        }), 500
 
 
 @app.route("/api/locations", methods=["GET"])
