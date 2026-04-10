@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Celestial Arc · Futuristic Astrology</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        display: ["ui-sans-serif", "system-ui", "Segoe UI", "Inter", "Arial", "sans-serif"],
+                        sans: ["ui-sans-serif", "system-ui", "Segoe UI", "Inter", "Arial", "sans-serif"]
+                    },
+                    boxShadow: {
+                        aura: "0 0 50px rgba(34,211,238,.18), 0 0 90px rgba(168,85,247,.12)"
+                    }
+                }
+            }
+        };
+    </script>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+</head>
+<body class="neo-body text-white min-h-screen font-sans">
+    <div class="neo-bg" aria-hidden="true">
+        <div class="neo-grid"></div>
+        <div class="neo-orb neo-orb-a"></div>
+        <div class="neo-orb neo-orb-b"></div>
+        <div class="neo-orb neo-orb-c"></div>
+        <div class="neo-noise"></div>
+    </div>
+
+    <div class="container mx-auto px-4 py-10 max-w-6xl relative z-10">
+        <header class="neo-hero">
+            <div class="neo-hero-top">
+                <div class="neo-brand">
+                    <span class="neo-mark" aria-hidden="true"></span>
+                    <span class="neo-brand-title">Celestial Arc</span>
+                </div>
+                <div class="neo-badges">
+                    <span class="neo-badge">Horoscope</span>
+                    <span class="neo-badge">Birth Chart</span>
+                    <span class="neo-badge">Moon · Ascendant</span>
+                    <span class="neo-badge">Palm (optional)</span>
+                </div>
+            </div>
+
+            <div class="neo-hero-main">
+                <h1 class="neo-title">Futuristic astrology, built from your exact birth data.</h1>
+                <p class="neo-subtitle">
+                    Enter your name, date, time, and place. Get a modern cosmic brief with Big Three, timing cues,
+                    compatibility notes, and an optional palm layer.
+                </p>
+            </div>
+        </header>
+
+        <section class="neo-panel mt-10 p-6 md:p-9 relative overflow-hidden">
+            <div class="neo-panel-glow" aria-hidden="true"></div>
+
+            <div id="errorBox" class="hidden mb-5 rounded-xl border border-red-500/45 bg-red-950/40 px-4 py-3 text-sm text-red-100"></div>
+
+            <nav class="neo-step-track mb-8" aria-label="Steps">
+                <div class="neo-step-pill">
+                    <span id="track1" class="neo-step neo-step-active">1</span>
+                    <span class="neo-step-label">Details</span>
+                </div>
+                <div class="neo-step-pill">
+                    <span id="track2" class="neo-step">2</span>
+                    <span class="neo-step-label">Palm?</span>
+                </div>
+                <div class="neo-step-pill">
+                    <span id="track3" class="neo-step">3</span>
+                    <span class="neo-step-label">Upload</span>
+                </div>
+                <div class="neo-step-pill">
+                    <span id="track4" class="neo-step">4</span>
+                    <span class="neo-step-label">Reading</span>
+                </div>
+            </nav>
+
+            <form id="astroForm" enctype="multipart/form-data" novalidate>
+                <input type="hidden" name="palm_enabled" id="palmEnabled" value="no">
+                <input type="hidden" name="birth_date" id="birthDateHidden" value="">
+                <input type="hidden" name="place_lat" id="placeLat" value="">
+                <input type="hidden" name="place_lon" id="placeLon" value="">
+                <input type="hidden" name="place_label" id="placeLabel" value="">
+                <input type="hidden" name="place_tz" id="placeTz" value="">
+
+                <div id="step1" class="step">
+                    <h2 class="text-2xl md:text-3xl font-display font-semibold text-white">Step 1 · Input your birth data</h2>
+                    <p class="text-purple-200/85 mt-2 text-sm md:text-base">For accuracy: enter your exact date, time, and place.</p>
+
+                    <div class="mt-6 grid md:grid-cols-2 gap-5">
+                        <label class="input-card">Full name
+                            <input class="neo-input" type="text" name="full_name" autocomplete="name" placeholder="e.g. Aarya Sharma" required>
+                        </label>
+
+                        <label class="input-card">Date of birth (manual)
+                            <input class="neo-input" type="text" id="birthDateText" inputmode="numeric" autocomplete="bday" placeholder="YYYY-MM-DD (e.g. 1996-07-28)" required>
+                            <span class="neo-help">Tip: You can paste. We’ll validate and normalize for the report.</span>
+                        </label>
+
+                        <label class="input-card">Time of birth
+                            <input class="neo-input" type="time" name="birth_time" required>
+                        </label>
+
+                        <div class="input-card">
+                            <span>Place of birth (with suggestions)</span>
+                            <div class="neo-autocomplete">
+                                <input class="neo-input" type="text" id="birthPlace" name="birth_place" placeholder="Start typing… (e.g. Delhi, India)" autocomplete="off" required>
+                                <div id="placeDropdown" class="neo-dropdown hidden" role="listbox" aria-label="Place suggestions"></div>
+                            </div>
+                            <span class="neo-help">Pick a suggestion for best accuracy (lat/lon + timezone).</span>
+                        </div>
+
+                        <div class="input-card md:col-span-2">
+                            <span>Additional birth chart details (optional)</span>
+                            <p class="text-xs text-purple-300/75 mt-1">Upload your kundli chart or paste key planetary positions if available.</p>
+                            <label class="mt-2 block text-sm text-purple-200/90">Chart image
+                                <input type="file" name="kundli_chart" id="kundliChart" class="neo-input mt-1 pt-2 file:mr-3 file:rounded file:border-0 file:bg-cyan-400/10 file:px-3 file:py-1.5 file:text-sm file:text-cyan-50" accept=".png,.jpg,.jpeg,.webp,image/png,image/jpeg,image/webp">
+                            </label>
+                            <label class="mt-3 block text-sm text-purple-200/90">Planetary positions
+                                <textarea name="kundli_notes" id="kundliNotes" class="neo-input mt-1 min-h-[60px] resize-y" placeholder="e.g. Lagna Leo, Sun 10, Moon 4, Mars 8..."></textarea>
+                            </label>
+                        </div>
+                    </div>
+                    <div class="text-right mt-8">
+                        <button type="button" id="goStep2" class="btn-primary">Continue →</button>
+                    </div>
+                </div>
+
+                <div id="step2" class="step hidden">
+                    <h2 class="text-2xl md:text-3xl font-display font-semibold">Step 2 · Palm symbolism</h2>
+                    <p class="text-purple-200/90 mt-3 text-lg">Do you want more accurate prediction using palm reading?</p>
+                    <div class="mt-8 grid sm:grid-cols-2 gap-4">
+                        <button type="button" id="palmYes" class="choice-tile text-left">
+                            <span class="choice-emoji">✋</span>
+                            <strong>Yes — add palm insight</strong>
+                            <span class="choice-sub">Upload a clear palm photo + choose hand.</span>
+                        </button>
+                        <button type="button" id="palmNo" class="choice-tile text-left">
+                            <span class="choice-emoji">☽</span>
+                            <strong>No — stars only</strong>
+                            <span class="choice-sub">Skip upload; full chart reading from birth data.</span>
+                        </button>
+                    </div>
+                </div>
+
+                <div id="step3" class="step hidden">
+                    <h2 class="text-2xl md:text-3xl font-display font-semibold">Step 3 · Palm capture</h2>
+                    <div class="overlay-note mt-5">
+                        <p class="font-semibold text-purple-100">Photo ritual (for best symbolic clarity)</p>
+                        <ul class="list-disc list-inside text-sm text-purple-200/80 mt-2 space-y-1">
+                            <li>Bright, even light — reduce harsh shadows</li>
+                            <li>Fingers relaxed, lines readable, no motion blur</li>
+                            <li>Plain background; center the palm in frame</li>
+                        </ul>
+                    </div>
+                    <div class="grid md:grid-cols-2 gap-5 mt-6">
+                        <label class="input-card">Hand for reading
+                            <select name="hand_choice" id="handChoice" class="neo-input">
+                                <option value="">Select</option>
+                                <option value="left">Left hand</option>
+                                <option value="right">Right hand</option>
+                            </select>
+                        </label>
+                        <label class="input-card">Palm image
+                            <input type="file" name="palm_image" id="palmImage" class="neo-input pt-2 file:mr-3 file:rounded file:border-0 file:bg-cyan-400/10 file:px-3 file:py-1.5 file:text-sm file:text-cyan-50" accept=".png,.jpg,.jpeg,.webp,image/png,image/jpeg,image/webp">
+                        </label>
+                    </div>
+                    <p class="text-xs text-purple-300/75 mt-4">Image is optional but recommended if you enabled palm mode — otherwise symbolism stays astrology-first.</p>
+                    <div class="text-right mt-8">
+                        <button type="button" id="submitBtn" class="btn-primary">Reveal my reading ✦</button>
+                    </div>
+                </div>
+            </form>
+
+            <div id="processing" class="hidden text-center py-14">
+                <div class="loader mx-auto"></div>
+                <p class="mt-6 text-xl font-display shimmer-text">Analyzing your destiny...</p>
+                <div class="progress-shell mt-8 max-w-md mx-auto">
+                    <div id="progressBar" class="progress-fill"></div>
+                </div>
+                <p id="progressText" class="text-sm text-purple-200/90 mt-3">0%</p>
+            </div>
+
+            <div id="results" class="hidden mt-4">
+                <div class="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
+                    <div>
+                        <p class="text-xs uppercase tracking-[0.28em] text-fuchsia-300/90">Your cosmic brief</p>
+                        <h2 id="resultTitle" class="text-3xl md:text-4xl font-display font-semibold mt-2 text-white">Personalized report</h2>
+                        <p id="resultMeta" class="text-purple-200/85 mt-2 text-sm"></p>
+                    </div>
+                    <div class="flex flex-wrap gap-2">
+                        <button type="button" id="downloadPdf" class="btn-secondary">Download PDF</button>
+                        <button type="button" id="tryAgain" class="btn-ghost">Try again</button>
+                    </div>
+                </div>
+
+                <div id="blueprintChips" class="mt-6 flex flex-wrap gap-2"></div>
+
+                <div id="profileCards" class="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 mt-6"></div>
+
+                <div id="kundliChartContainer" class="mt-8 text-center hidden">
+                    <h3 class="text-xl font-display font-semibold text-white mb-4">Your Birth Chart (Kundli)</h3>
+                    <div id="kundliChart" class="inline-block"></div>
+                </div>
+
+                <div id="horoscopeContainer" class="mt-8 hidden">
+                    <h3 class="text-xl font-display font-semibold text-white mb-4">Today's Horoscope</h3>
+                    <div id="horoscopeContent" class="bg-purple-950/30 rounded-lg p-6 border border-purple-500/30"></div>
+                </div>
+
+                <div id="reportSections" class="space-y-4 mt-8"></div>
+
+                <div id="guruChat" class="guru-chat mt-10">
+                    <h3 class="text-xl font-display font-semibold text-white">Ask the Guru</h3>
+                    <p id="chatHint" class="text-xs text-purple-300/85 mt-2"></p>
+                    <div id="chatLog" class="chat-log mt-4" aria-live="polite"></div>
+                    <div class="mt-3 flex flex-col sm:flex-row gap-2">
+                        <input type="text" id="chatInput" class="mystic-input flex-1" placeholder="e.g. How does my Rahu affect career? Remedies for marriage timing?" autocomplete="off">
+                        <button type="button" id="chatSend" class="btn-primary shrink-0">Send</button>
+                    </div>
+                </div>
+
+                <div id="reportPrintBlock" class="print-only hidden print:block mt-8"></div>
+            </div>
+        </section>
+    </div>
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>

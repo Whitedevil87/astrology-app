@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Celestial Arc - Cosmic Blueprint Generator. Discover your Big Three, compatibility, and seasonal timing.">
+    <meta name="theme-color" content="#0f0520">
+    <title>Celestial Arc · Cosmic Blueprint Generator</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Space+Mono:wght@400;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/landing.css') }}">
+</head>
+<body>
+    <!-- Cosmic Background -->
+    <div class="cosmic-bg">
+        <div class="cosmic-gradient"></div>
+        <div class="nebula nebula-1"></div>
+        <div class="nebula nebula-2"></div>
+        <div class="ambient-glow"></div>
+    </div>
+
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <a href="/" class="logo">
+                <svg class="logo-icon" viewBox="0 0 24 24" width="24" height="24">
+                    <circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" stroke-width="1.5" opacity="0.6"/>
+                    <circle cx="12" cy="12" r="8" fill="none" stroke="currentColor" stroke-width="1" opacity="0.4"/>
+                    <circle cx="12" cy="12" r="3" fill="currentColor" opacity="0.8"/>
+                </svg>
+                <span class="logo-text">CELESTIAL ARC</span>
+            </a>
+            <button class="cta-nav-btn" onclick="scrollToApp()">Get Started</button>
+        </div>
+    </nav>
+
+    <!-- Hero Section with Planets -->
+    <section class="hero">
+        <div class="hero-background">
+            <!-- Animated Planets -->
+            <div class="planets-container">
+                <div class="planet planet-1" data-zodiac="Aries">
+                    <div class="planet-core" style="background: linear-gradient(135deg, #ff6b6b, #ee5a6f);"></div>
+                    <div class="planet-glow"></div>
+                    <div class="zodiac-label">♈</div>
+                </div>
+                <div class="planet planet-2" data-zodiac="Taurus">
+                    <div class="planet-core" style="background: linear-gradient(135deg, #4f9ff0, #2d8659);"></div>
+                    <div class="planet-glow"></div>
+                    <div class="zodiac-label">♉</div>
+                </div>
+                <div class="planet planet-3" data-zodiac="Gemini">
+                    <div class="planet-core" style="background: linear-gradient(135deg, #ffd93d, #ff8c42);"></div>
+                    <div class="planet-glow"></div>
+                    <div class="zodiac-label">♊</div>
+                </div>
+                <div class="planet planet-4" data-zodiac="Cancer">
+                    <div class="planet-core" style="background: linear-gradient(135deg, #a8edea, #fed6e3);"></div>
+                    <div class="planet-glow"></div>
+                    <div class="zodiac-label">♋</div>
+                </div>
+            </div>
+
+            <!-- Starfield -->
+            <div class="starfield"></div>
+        </div>
+
+        <div class="hero-content">
+            <div class="hero-text">
+                <span class="hero-label">Discover Your Cosmic Destiny</span>
+                <h1 class="hero-title">Your Cosmic<br/>Blueprint Awaits</h1>
+                <p class="hero-subtitle">Explore the Big Three, compatibility insights, and your place in the cosmic timeline.</p>
+            </div>
+
+            <!-- CTA Button -->
+            <button class="cta-button primary-cta" onclick="scrollToApp()">
+                <span class="cta-text">Start Your Journey</span>
+                <svg class="cta-icon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                    <polyline points="12 5 19 12 12 19"></polyline>
+                </svg>
+            </button>
+
+            <div class="feature-chips">
+                <div class="chip">✦ Big Three</div>
+                <div class="chip">♥ Compatibility</div>
+                <div class="chip">◎ Seasonal Energy</div>
+            </div>
+        </div>
+    </section>
+
+    <!-- How It Works Section -->
+    <section class="how-it-works section-padding">
+        <div class="section-container">
+            <div class="section-header">
+                <h2 class="section-title">How It Works</h2>
+                <p class="section-subtitle">Three simple steps to discover your cosmic blueprint</p>
+            </div>
+            
+            <div class="steps-grid">
+                <div class="step-card">
+                    <div class="step-number">01</div>
+                    <h3>Share Your Birth Data</h3>
+                    <p>Enter your birth date, time, and location—the cosmic coordinates of your existence.</p>
+                </div>
+
+                <div class="step-card">
+                    <div class="step-number">02</div>
+                    <h3>Optional Palm Insight</h3>
+                    <p>Upload your palm image for deeper symbolic meaning and personal resonance.</p>
+                </div>
+
+                <div class="step-card">
+                    <div class="step-number">03</div>
+                    <h3>Receive Your Blueprint</h3>
+                    <p>Get personalized readings on personality, career, love, and your cosmic destiny.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Features Grid Section -->
+    <section class="features-showcase section-padding">
+        <div class="section-container">
+            <div class="section-header">
+                <h2 class="section-title">Unlock Your Cosmic Secrets</h2>
+                <p class="section-subtitle">Explore the depths of your astrological profile</p>
+            </div>
+
+            <div class="features-bento">
+                <div class="feature-bento-item large">
+                    <div class="feature-icon-large">☀</div>
+                    <h3>Sun Sign</h3>
+                    <p>Your core identity, essence, and life purpose. The foundation of who you are.</p>
+                </div>
+
+                <div class="feature-bento-item">
+                    <div class="feature-icon">☽</div>
+                    <h3>Moon Sign</h3>
+                    <p>Your emotional world and inner landscape.</p>
+                </div>
+
+                <div class="feature-bento-item">
+                    <div class="feature-icon">◑</div>
+                    <h3>Ascendant</h3>
+                    <p>How others perceive you at first glance.</p>
+                </div>
+
+                <div class="feature-bento-item large-horizontal">
+                    <div class="feature-icon-large">♥</div>
+                    <h3>Compatibility Matrix</h3>
+                    <p>Harmony patterns and growth dynamics in your relationships with all signs.</p>
+                </div>
+
+                <div class="feature-bento-item">
+                    <div class="feature-icon">✦</div>
+                    <h3>Strengths</h3>
+                    <p>Your unique superpowers and gifts.</p>
+                </div>
+
+                <div class="feature-bento-item">
+                    <div class="feature-icon">◎</div>
+                    <h3>Growth Edges</h3>
+                    <p>Opportunities for personal transformation.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- FAQ Section -->
+    <section class="faq-section section-padding">
+        <div class="section-container">
+            <div class="section-header">
+                <h2 class="section-title">Questions? We Have Answers</h2>
+            </div>
+            
+            <div class="faq-grid">
+                <div class="faq-card">
+                    <button class="faq-header" onclick="toggleFAQ(this)">
+                        <h3>How accurate is this?</h3>
+                        <span class="faq-toggle">+</span>
+                    </button>
+                    <div class="faq-content">
+                        <p>This is a beginner-friendly, rule-based reading designed for reflection and entertainment. We use traditional astrological principles blended with modern psychology.</p>
+                    </div>
+                </div>
+
+                <div class="faq-card">
+                    <button class="faq-header" onclick="toggleFAQ(this)">
+                        <h3>Is my data private?</h3>
+                        <span class="faq-toggle">+</span>
+                    </button>
+                    <div class="faq-content">
+                        <p>Absolutely. Your data is stored locally and never shared. We don't sell your information or use it for advertising.</p>
+                    </div>
+                </div>
+
+                <div class="faq-card">
+                    <button class="faq-header" onclick="toggleFAQ(this)">
+                        <h3>What if I don't know my birth time?</h3>
+                        <span class="faq-toggle">+</span>
+                    </button>
+                    <div class="faq-content">
+                        <p>We'll use noon as an approximation. Your Sun and Moon signs will be accurate, but your Ascendant may be less precise.</p>
+                    </div>
+                </div>
+
+                <div class="faq-card">
+                    <button class="faq-header" onclick="toggleFAQ(this)">
+                        <h3>About the palm reading?</h3>
+                        <span class="faq-toggle">+</span>
+                    </button>
+                    <div class="faq-content">
+                        <p>It's a symbolic, simulated addition inspired by traditional palmistry—meant for fun and deeper self-reflection.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Final CTA -->
+    <section class="final-cta section-padding">
+        <div class="cta-content">
+            <h2>Your Cosmic Blueprint Awaits</h2>
+            <p>Begin your journey into the stars</p>
+            <button class="cta-button primary-cta large" onclick="scrollToApp()">
+                <span class="cta-text">Explore Now</span>
+                <svg class="cta-icon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                    <polyline points="12 5 19 12 12 19"></polyline>
+                </svg>
+            </button>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="footer-content">
+            <p>© 2026 Celestial Arc. Crafted with cosmic curiosity.</p>
+            <p class="disclaimer">For entertainment. Always consult professionals for important decisions.</p>
+        </div>
+    </footer>
+
+    <script src="{{ url_for('static', filename='js/landing.js') }}"></script>
+</body>
+</html>

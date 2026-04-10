@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Daily Horoscope · Celestial Arc</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { display: ["Georgia", "ui-serif", "serif"], sans: ["system-ui", "sans-serif"] },
+                    boxShadow: { aura: "0 0 40px rgba(168,85,247,.35)" }
+                }
+            }
+        };
+    </script>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+</head>
+<body class="mystic-body text-white min-h-screen font-sans">
+    <div class="stars" aria-hidden="true"></div>
+    <div class="container mx-auto px-4 py-10 max-w-6xl relative z-10">
+        <header class="text-center mb-12">
+            <p class="text-xs uppercase tracking-[0.35em] text-purple-300/90 mb-3">Daily Guidance</p>
+            <h1 class="text-4xl md:text-5xl font-display font-semibold glow-title">Horoscope</h1>
+            <p class="text-purple-200/90 mt-4 max-w-2xl mx-auto leading-relaxed">
+                Daily cosmic guidance for each zodiac sign. Find your sign and discover today's energy.
+            </p>
+        </header>
+
+        <section class="mystic-panel p-6 md:p-9 relative overflow-hidden">
+            <div class="panel-glow" aria-hidden="true"></div>
+
+            <div id="horoscopeGrid" class="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                <!-- Horoscope cards will be inserted here -->
+            </div>
+
+            <div class="mt-8 text-center">
+                <a href="{{ url_for('main') }}" class="btn-primary">Get Full Reading ✦</a>
+            </div>
+        </section>
+    </div>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            const zodiacSigns = [
+                "Aries", "Taurus", "Gemini", "Cancer", "Leo", "Virgo",
+                "Libra", "Scorpio", "Sagittarius", "Capricorn", "Aquarius", "Pisces"
+            ];
+            
+            const zodiacGlyphs = {
+                "Aries": "♈", "Taurus": "♉", "Gemini": "♊", "Cancer": "♋",
+                "Leo": "♌", "Virgo": "♍", "Libra": "♎", "Scorpio": "♏",
+                "Sagittarius": "♐", "Capricorn": "♑", "Aquarius": "♒", "Pisces": "♓"
+            };
+
+            const grid = document.getElementById("horoscopeGrid");
+
+            zodiacSigns.forEach(function (sign) {
+                fetch("/api/horoscope?sign=" + encodeURIComponent(sign))
+                    .then(function (r) { return r.json(); })
+                    .then(function (data) {
+                        if (data.success) {
+                            const card = document.createElement("div");
+                            card.className = "horoscope-card mystic-card p-6 rounded-lg border border-purple-500/30 bg-purple-950/20 hover:border-fuchsia-400/50 transition-all cursor-pointer";
+                            card.innerHTML = `
+                                <div class="flex items-center gap-3 mb-3">
+                                    <span class="text-3xl">${zodiacGlyphs[sign]}</span>
+                                    <h3 class="text-xl font-display font-semibold">${sign}</h3>
+                                </div>
+                                <p class="text-sm text-purple-200/80 leading-relaxed">${data.horoscope}</p>
+                            `;
+                            grid.appendChild(card);
+                        }
+                    })
+                    .catch(function (err) {
+                        console.error("Failed to load horoscope for " + sign);
+                    });
+            });
+        });
+    </script>
+</body>
+</html>
