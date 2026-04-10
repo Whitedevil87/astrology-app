@@ -96,10 +96,21 @@
                             <input class="neo-input" type="text" name="full_name" autocomplete="name" placeholder="e.g. Aarya Sharma" required>
                         </label>
 
-                        <label class="input-card">Date of birth (manual)
-                            <input class="neo-input" type="text" id="birthDateText" inputmode="numeric" autocomplete="bday" placeholder="YYYY-MM-DD (e.g. 1996-07-28)" required>
-                            <span class="neo-help">Tip: You can paste. We’ll validate and normalize for the report.</span>
-                        </label>
+                        <div class="input-card">
+                            <span>Date of birth</span>
+                            <div class="neo-dob-grid" aria-label="Date of birth">
+                                <select id="birthYear" class="neo-input" aria-label="Birth year" required>
+                                    <option value="">Year</option>
+                                </select>
+                                <select id="birthMonth" class="neo-input" aria-label="Birth month" required>
+                                    <option value="">Month</option>
+                                </select>
+                                <select id="birthDay" class="neo-input" aria-label="Birth day" required>
+                                    <option value="">Day</option>
+                                </select>
+                            </div>
+                            <span class="neo-help">Select year → month → day. We auto-handle month length/leap years.</span>
+                        </div>
 
                         <label class="input-card">Time of birth
                             <input class="neo-input" type="time" name="birth_time" required>

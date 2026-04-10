@@ -20,8 +20,10 @@ document.addEventListener("DOMContentLoaded", function () {
     const palmEnabled = document.getElementById("palmEnabled");
     const handChoice = document.getElementById("handChoice");
 
-    const birthDateText = document.getElementById("birthDateText");
     const birthDateHidden = document.getElementById("birthDateHidden");
+    const birthYear = document.getElementById("birthYear");
+    const birthMonth = document.getElementById("birthMonth");
+    const birthDay = document.getElementById("birthDay");
 
     const track1 = document.getElementById("track1");
     const track2 = document.getElementById("track2");
@@ -109,51 +111,82 @@ document.addEventListener("DOMContentLoaded", function () {
         if (placeTz) placeTz.value = "";
     }
 
-    function normalizeBirthDateText(raw) {
-        const value = String(raw || "").trim();
-        if (!value) return "";
-
-        // Accept YYYY-MM-DD or DD-MM-YYYY (and / separators).
-        const cleaned = value.replace(/\//g, "-");
-        const iso = cleaned.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
-        const dmy = cleaned.match(/^(\d{1,2})-(\d{1,2})-(\d{4})$/);
-
-        let y, m, d;
-        if (iso) {
-            y = parseInt(iso[1], 10);
-            m = parseInt(iso[2], 10);
-            d = parseInt(iso[3], 10);
-        } else if (dmy) {
-            d = parseInt(dmy[1], 10);
-            m = parseInt(dmy[2], 10);
-            y = parseInt(dmy[3], 10);
-        } else {
-            return "";
-        }
-
-        if (!(y >= 1900 && y <= 2100)) return "";
-        if (!(m >= 1 && m <= 12)) return "";
-        if (!(d >= 1 && d <= 31)) return "";
-
-        // Validate actual calendar date.
-        const dt = new Date(Date.UTC(y, m - 1, d));
-        if (
-            dt.getUTCFullYear() !== y ||
-            dt.getUTCMonth() !== (m - 1) ||
-            dt.getUTCDate() !== d
-        ) {
-            return "";
-        }
-
-        const mm = m < 10 ? "0" + m : String(m);
-        const dd = d < 10 ? "0" + d : String(d);
-        return y + "-" + mm + "-" + dd;
-    }
-
     function syncHiddenBirthDate() {
         if (!birthDateHidden) return;
-        const normalized = normalizeBirthDateText(birthDateText ? birthDateText.value : "");
-        birthDateHidden.value = normalized;
+        const y = parseInt((birthYear && birthYear.value) || "", 10);
+        const m = parseInt((birthMonth && birthMonth.value) || "", 10);
+        const d = parseInt((birthDay && birthDay.value) || "", 10);
+        if (!y || !m || !d) {
+            birthDateHidden.value = "";
+            return;
+        }
+        const dt = new Date(Date.UTC(y, m - 1, d));
+        if (dt.getUTCFullYear() !== y || dt.getUTCMonth() !== (m - 1) || dt.getUTCDate() !== d) {
+            birthDateHidden.value = "";
+            return;
+        }
+        const mm = m < 10 ? "0" + m : String(m);
+        const dd = d < 10 ? "0" + d : String(d);
+        birthDateHidden.value = String(y) + "-" + mm + "-" + dd;
+    }
+
+    function daysInMonth(y, m) {
+        return new Date(y, m, 0).getDate();
+    }
+
+    function initDobSelectors() {
+        if (!birthYear || !birthMonth || !birthDay) return;
+
+        const nowY = new Date().getFullYear();
+        birthYear.innerHTML = '<option value="">Year</option>';
+        for (let y = nowY; y >= 1940; y -= 1) {
+            const opt = document.createElement("option");
+            opt.value = String(y);
+            opt.textContent = String(y);
+            birthYear.appendChild(opt);
+        }
+
+        const monthNames = [
+            "January", "February", "March", "April", "May", "June",
+            "July", "August", "September", "October", "November", "December"
+        ];
+        birthMonth.innerHTML = '<option value="">Month</option>';
+        monthNames.forEach(function (name, idx) {
+            const opt = document.createElement("option");
+            opt.value = String(idx + 1);
+            opt.textContent = name;
+            birthMonth.appendChild(opt);
+        });
+
+        birthDay.innerHTML = '<option value="">Day</option>';
+
+        function refillDays() {
+            const y = parseInt(birthYear.value || "", 10);
+            const m = parseInt(birthMonth.value || "", 10);
+            const prev = birthDay.value;
+            birthDay.innerHTML = '<option value="">Day</option>';
+            if (!y || !m) return;
+            const max = daysInMonth(y, m);
+            for (let d = 1; d <= max; d += 1) {
+                const opt = document.createElement("option");
+                opt.value = String(d);
+                opt.textContent = String(d);
+                birthDay.appendChild(opt);
+            }
+            if (prev && parseInt(prev, 10) <= max) birthDay.value = prev;
+        }
+
+        birthYear.addEventListener("change", function () {
+            refillDays();
+            syncHiddenBirthDate();
+        });
+        birthMonth.addEventListener("change", function () {
+            refillDays();
+            syncHiddenBirthDate();
+        });
+        birthDay.addEventListener("change", function () {
+            syncHiddenBirthDate();
+        });
     }
 
     function validateRequired() {
@@ -582,8 +615,10 @@ document.addEventListener("DOMContentLoaded", function () {
     tryAgain.addEventListener("click", function () {
         form.reset();
         palmEnabled.value = "no";
-        if (birthDateText) birthDateText.value = "";
         if (birthDateHidden) birthDateHidden.value = "";
+        if (birthYear) birthYear.value = "";
+        if (birthMonth) birthMonth.value = "";
+        if (birthDay) birthDay.innerHTML = '<option value="">Day</option>';
         clearPlaceSelection();
         hidePlaceDropdown();
         clearError();
@@ -594,17 +629,7 @@ document.addEventListener("DOMContentLoaded", function () {
         onlyStep(step1, 1);
     });
 
-    if (birthDateText) {
-        birthDateText.addEventListener("input", function () {
-            syncHiddenBirthDate();
-        });
-        birthDateText.addEventListener("blur", function () {
-            syncHiddenBirthDate();
-            if (birthDateHidden && birthDateHidden.value) {
-                birthDateText.value = birthDateHidden.value;
-            }
-        });
-    }
+    initDobSelectors();
 
     if (birthPlace) {
         birthPlace.addEventListener("input", function () {
