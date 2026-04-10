@@ -854,9 +854,52 @@ def openai_guru_reply(system: str, user: str) -> Optional[str]:
         with urllib.request.urlopen(req, timeout=60) as resp:
             data = json.loads(resp.read().decode("utf-8", errors="replace"))
         return str(data["choices"][0]["message"]["content"]).strip()
-    except (urllib.error.URLError, urllib.error.HTTPError, TimeoutError, KeyError, json.JSONDecodeError) as e:
+    except urllib.error.HTTPError as e:
+        # Try to capture provider error body (truncated) for debugging in logs.
+        body = ""
+        try:
+            body = e.read().decode("utf-8", errors="replace")
+        except Exception:
+            body = ""
+        logger.warning("AI chat HTTPError: %s body=%s", e, body[:800])
+        return None
+    except (urllib.error.URLError, TimeoutError, KeyError, json.JSONDecodeError) as e:
         logger.warning("AI chat API error: %s", e)
         return None
+
+
+@app.route("/api/ai/status", methods=["GET"])
+def api_ai_status():
+    """
+    Lightweight health check for AI provider connectivity.
+    Does NOT return any secrets.
+    """
+    groq_key = os.environ.get("GROQ_API_KEY", "").strip()
+    openai_key = os.environ.get("OPENAI_API_KEY", "").strip()
+    provider = "groq" if groq_key else ("openai" if openai_key else "none")
+    model = (
+        os.environ.get("GROQ_MODEL", "").strip()
+        if provider == "groq"
+        else os.environ.get("OPENAI_MODEL", "").strip()
+    )
+    enabled = bool(groq_key or openai_key)
+    if not enabled:
+        return jsonify({"success": True, "enabled": False, "provider": "none"})
+
+    # Make a tiny request through the same code path used by /api/chat.
+    probe = openai_guru_reply(
+        system="You are a diagnostics endpoint. Reply with exactly: OK",
+        user="OK",
+    )
+    return jsonify(
+        {
+            "success": True,
+            "enabled": True,
+            "provider": provider,
+            "model": model or None,
+            "ok": bool(probe),
+        }
+    )
 
 
 def fetch_report_row(report_id: int) -> Optional[sqlite3.Row]:
