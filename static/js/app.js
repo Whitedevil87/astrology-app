@@ -56,6 +56,20 @@ document.addEventListener("DOMContentLoaded", function () {
     let placeTimeout = null;
     let lastPlaceQuery = "";
     let activePlaceIndex = -1;
+    let csrfToken = "";
+
+    function fetchCsrfToken() {
+        return fetch("/api/csrf")
+            .then(function (r) { return r.json(); })
+            .then(function (data) {
+                if (data && data.success && data.csrf_token) {
+                    csrfToken = String(data.csrf_token);
+                }
+            })
+            .catch(function () {
+                csrfToken = "";
+            });
+    }
 
     function fetchChatHint() {
         fetch("/api/config")
@@ -455,7 +469,10 @@ document.addEventListener("DOMContentLoaded", function () {
         chatSend.disabled = true;
         fetch("/api/chat", {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
+            headers: Object.assign(
+                { "Content-Type": "application/json" },
+                csrfToken ? { "X-CSRF-Token": csrfToken } : {}
+            ),
             body: JSON.stringify({ report_id: lastReportId, message: text })
         })
             .then(function (res) {
@@ -465,7 +482,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 });
             })
             .then(function (json) {
-                const meta = json.source === "openai" ? "Guru · AI" : "Guru · rules";
+                const meta = json.source === "ai" ? "Guru · AI" : "Guru · rules";
                 appendChatBubble("guru", json.reply || "", meta);
             })
             .catch(function (err) {
@@ -496,6 +513,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
         fetch("/api/analyze", {
             method: "POST",
+            headers: csrfToken ? { "X-CSRF-Token": csrfToken } : {},
             body: new FormData(form)
         })
             .then(function (res) {
@@ -522,6 +540,7 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     fetchChatHint();
+    fetchCsrfToken();
 
     if (chatSend) {
         chatSend.addEventListener("click", sendChat);

@@ -3,6 +3,8 @@ import logging
 import os
 import sqlite3
 import math
+import secrets
+import time as time_mod
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -11,7 +13,7 @@ from datetime import date, datetime, time, timezone
 from html import escape
 from typing import Any, Dict, Optional, Tuple
 
-from flask import Flask, jsonify, render_template, request
+from flask import Flask, jsonify, render_template, request, session
 from dotenv import load_dotenv
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
@@ -73,6 +75,73 @@ def add_security_headers(resp):
         "base-uri 'self'; form-action 'self'"
     )
     return resp
+
+
+# --- Basic request protections (CSRF + light rate limiting) ---
+_RATE_BUCKETS: Dict[str, list[float]] = {}
+
+
+def _client_ip() -> str:
+    # Render sets X-Forwarded-For. We only need a best-effort IP for rate limiting.
+    fwd = (request.headers.get("X-Forwarded-For") or "").split(",")[0].strip()
+    return fwd or (request.remote_addr or "unknown")
+
+
+def _rate_limit(key: str, limit: int, window_s: int) -> bool:
+    """Return True if allowed, False if rate-limited."""
+    now = time_mod.time()
+    bucket = _RATE_BUCKETS.get(key, [])
+    cutoff = now - window_s
+    bucket = [t for t in bucket if t >= cutoff]
+    if len(bucket) >= limit:
+        _RATE_BUCKETS[key] = bucket
+        return False
+    bucket.append(now)
+    _RATE_BUCKETS[key] = bucket
+    return True
+
+
+def _ensure_csrf() -> str:
+    token = session.get("csrf_token")
+    if not token:
+        token = secrets.token_urlsafe(32)
+        session["csrf_token"] = token
+    return str(token)
+
+
+@app.route("/healthz", methods=["GET"])
+def healthz():
+    return jsonify({"ok": True})
+
+
+@app.route("/api/csrf", methods=["GET"])
+def api_csrf():
+    return jsonify({"success": True, "csrf_token": _ensure_csrf()})
+
+
+@app.before_request
+def protect_requests():
+    # Rate limiting for expensive endpoints
+    ip = _client_ip()
+    if request.path == "/api/analyze" and request.method == "POST":
+        if not _rate_limit(f"{ip}:analyze", limit=20, window_s=60):
+            return jsonify({"success": False, "error": "Too many requests. Please wait a minute and try again."}), 429
+    if request.path == "/api/chat" and request.method == "POST":
+        if not _rate_limit(f"{ip}:chat", limit=40, window_s=60):
+            return jsonify({"success": False, "error": "Too many chat messages. Please slow down."}), 429
+    if request.path == "/api/places" and request.method == "GET":
+        if not _rate_limit(f"{ip}:places", limit=60, window_s=60):
+            return jsonify({"success": False, "places": []}), 429
+
+    # CSRF protection for browser-origin POSTs
+    if request.method == "POST" and request.path in {"/api/analyze", "/api/chat"}:
+        expected = session.get("csrf_token")
+        provided = (request.headers.get("X-CSRF-Token") or "").strip()
+        if not expected:
+            _ensure_csrf()
+            expected = session.get("csrf_token")
+        if not provided or provided != expected:
+            return jsonify({"success": False, "error": "CSRF token missing/invalid. Refresh the page and try again."}), 403
 
 PHOTON_BASE_URL = os.environ.get("PHOTON_BASE_URL", "https://photon.komoot.io/api/").strip()
 TIMEAPI_BASE_URL = os.environ.get("TIMEAPI_BASE_URL", "https://timeapi.io/api/v1").strip()
@@ -1147,7 +1216,13 @@ def api_chat():
 
 @app.route("/api/locations", methods=["GET"])
 def api_locations():
-    """Location autocomplete using geonames API."""
+    """Legacy location autocomplete (disabled by default)."""
+    # This endpoint is not used by the current UI (we use /api/places).
+    # Keep it disabled unless explicitly configured.
+    geonames_user = os.environ.get("GEONAMES_USERNAME", "").strip()
+    if not geonames_user:
+        return jsonify({"success": False, "error": "Disabled"}), 404
+
     query = request.args.get("query", "").strip()
     if len(query) < 2:
         return jsonify({"success": False, "locations": []}), 400
@@ -1158,7 +1233,7 @@ def api_locations():
             "name_startsWith": query,
             "featureClass": "P",  # Only cities/places
             "maxRows": 10,
-            "username": "demo",  # Free demo account - replace with proper setup in production
+            "username": geonames_user,
         }
         url = "http://api.geonames.org/searchJSON"
         
