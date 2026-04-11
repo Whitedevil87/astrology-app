@@ -531,10 +531,10 @@ document.addEventListener("DOMContentLoaded", function () {
             var asc = (data.profile || {}).ascendant || (data.vedic || {}).lagna_sign || "Aries";
             var hp = _invertHouseMap(data.vedic.houses);
             _buildKundliSVG(kundliChartDiv, asc, hp, true);
-            kundliChartDiv.querySelectorAll(".chart-line").forEach(function(el) {
+            kundliChartDiv.querySelectorAll(".chart-line").forEach(function (el) {
                 el.style.strokeDashoffset = "0";
             });
-            kundliChartDiv.querySelectorAll(".kundli-house-num-text, .kundli-sign-label, .kundli-planet-glyph").forEach(function(el) {
+            kundliChartDiv.querySelectorAll(".kundli-house-num-text, .kundli-sign-label, .kundli-planet-glyph").forEach(function (el) {
                 el.classList.add("visible");
             });
             kundliChartContainer.classList.remove("hidden");
@@ -549,38 +549,38 @@ document.addEventListener("DOMContentLoaded", function () {
     // ============================================
 
     var _KUNDLI_HOUSES = [
-        { id:1,  pts:"250,50 350,150 250,250 150,150", cx:250, cy:150 },
-        { id:2,  pts:"250,50 450,50 350,150",          cx:350, cy:83  },
-        { id:3,  pts:"450,50 450,250 350,150",          cx:417, cy:150 },
-        { id:4,  pts:"350,150 450,250 350,350 250,250", cx:350, cy:250 },
-        { id:5,  pts:"450,250 450,450 350,350",          cx:417, cy:350 },
-        { id:6,  pts:"450,450 250,450 350,350",          cx:350, cy:417 },
-        { id:7,  pts:"350,350 250,450 150,350 250,250", cx:250, cy:350 },
-        { id:8,  pts:"250,450 50,450 150,350",           cx:150, cy:417 },
-        { id:9,  pts:"50,450 50,250 150,350",            cx:83,  cy:350 },
-        { id:10, pts:"150,350 50,250 150,150 250,250",   cx:150, cy:250 },
-        { id:11, pts:"50,250 50,50 150,150",             cx:83,  cy:150 },
-        { id:12, pts:"50,50 250,50 150,150",             cx:150, cy:83  }
+        { id: 1, pts: "250,50 350,150 250,250 150,150", cx: 250, cy: 150 },
+        { id: 2, pts: "250,50 450,50 350,150", cx: 350, cy: 83 },
+        { id: 3, pts: "450,50 450,250 350,150", cx: 417, cy: 150 },
+        { id: 4, pts: "350,150 450,250 350,350 250,250", cx: 350, cy: 250 },
+        { id: 5, pts: "450,250 450,450 350,350", cx: 417, cy: 350 },
+        { id: 6, pts: "450,450 250,450 350,350", cx: 350, cy: 417 },
+        { id: 7, pts: "350,350 250,450 150,350 250,250", cx: 250, cy: 350 },
+        { id: 8, pts: "250,450 50,450 150,350", cx: 150, cy: 417 },
+        { id: 9, pts: "50,450 50,250 150,350", cx: 83, cy: 350 },
+        { id: 10, pts: "150,350 50,250 150,150 250,250", cx: 150, cy: 250 },
+        { id: 11, pts: "50,250 50,50 150,150", cx: 83, cy: 150 },
+        { id: 12, pts: "50,50 250,50 150,150", cx: 150, cy: 83 }
     ];
 
     var _HOUSE_MEANINGS = {
-        1:"Self, Identity & Life Path", 2:"Wealth, Speech & Family",
-        3:"Courage, Siblings & Skills", 4:"Home, Mother & Inner Peace",
-        5:"Creativity, Children & Romance", 6:"Health, Service & Competition",
-        7:"Marriage, Partnerships & Desires", 8:"Transformation & Hidden Forces",
-        9:"Fortune, Wisdom & Higher Truth", 10:"Career, Status & Public Life",
-        11:"Gains, Aspirations & Networks", 12:"Liberation, Dreams & Solitude"
+        1: "Self, Identity & Life Path", 2: "Wealth, Speech & Family",
+        3: "Courage, Siblings & Skills", 4: "Home, Mother & Inner Peace",
+        5: "Creativity, Children & Romance", 6: "Health, Service & Competition",
+        7: "Marriage, Partnerships & Desires", 8: "Transformation & Hidden Forces",
+        9: "Fortune, Wisdom & Higher Truth", 10: "Career, Status & Public Life",
+        11: "Gains, Aspirations & Networks", 12: "Liberation, Dreams & Solitude"
     };
 
-    var _PLANET_GLYPHS = { sun:"\u2609",moon:"\u263D",mars:"\u2642",mercury:"\u263F",venus:"\u2640",jupiter:"\u2643",saturn:"\u2644",rahu:"\u260A",ketu:"\u260B" };
-    var _PLANET_NAMES = { sun:"Sun",moon:"Moon",mars:"Mars",mercury:"Mercury",venus:"Venus",jupiter:"Jupiter",saturn:"Saturn",rahu:"Rahu",ketu:"Ketu" };
-    var _ZODIAC_LIST = ["Aries","Taurus","Gemini","Cancer","Leo","Virgo","Libra","Scorpio","Sagittarius","Capricorn","Aquarius","Pisces"];
-    var _ZODIAC_GLYPHS = { Aries:"\u2648",Taurus:"\u2649",Gemini:"\u264A",Cancer:"\u264B",Leo:"\u264C",Virgo:"\u264D",Libra:"\u264E",Scorpio:"\u264F",Sagittarius:"\u2650",Capricorn:"\u2651",Aquarius:"\u2652",Pisces:"\u2653" };
+    var _PLANET_GLYPHS = { sun: "\u2609", moon: "\u263D", mars: "\u2642", mercury: "\u263F", venus: "\u2640", jupiter: "\u2643", saturn: "\u2644", rahu: "\u260A", ketu: "\u260B" };
+    var _PLANET_NAMES = { sun: "Sun", moon: "Moon", mars: "Mars", mercury: "Mercury", venus: "Venus", jupiter: "Jupiter", saturn: "Saturn", rahu: "Rahu", ketu: "Ketu" };
+    var _ZODIAC_LIST = ["Aries", "Taurus", "Gemini", "Cancer", "Leo", "Virgo", "Libra", "Scorpio", "Sagittarius", "Capricorn", "Aquarius", "Pisces"];
+    var _ZODIAC_GLYPHS = { Aries: "\u2648", Taurus: "\u2649", Gemini: "\u264A", Cancer: "\u264B", Leo: "\u264C", Virgo: "\u264D", Libra: "\u264E", Scorpio: "\u264F", Sagittarius: "\u2650", Capricorn: "\u2651", Aquarius: "\u2652", Pisces: "\u2653" };
 
     function _invertHouseMap(houses) {
         var r = {}; for (var h = 1; h <= 12; h++) r[h] = [];
         if (!houses) return r;
-        Object.keys(houses).forEach(function(p) { var hh = houses[p]; if (r[hh]) r[hh].push(p); });
+        Object.keys(houses).forEach(function (p) { var hh = houses[p]; if (r[hh]) r[hh].push(p); });
         return r;
     }
 
@@ -598,10 +598,10 @@ document.addEventListener("DOMContentLoaded", function () {
         // Glow filter
         var defs = document.createElementNS(ns, "defs");
         var filt = document.createElementNS(ns, "filter"); filt.id = "kGlow";
-        var blur = document.createElementNS(ns, "feGaussianBlur"); blur.setAttribute("stdDeviation","3"); blur.setAttribute("result","g");
+        var blur = document.createElementNS(ns, "feGaussianBlur"); blur.setAttribute("stdDeviation", "3"); blur.setAttribute("result", "g");
         var merge = document.createElementNS(ns, "feMerge");
-        var mn1 = document.createElementNS(ns, "feMergeNode"); mn1.setAttribute("in","g");
-        var mn2 = document.createElementNS(ns, "feMergeNode"); mn2.setAttribute("in","SourceGraphic");
+        var mn1 = document.createElementNS(ns, "feMergeNode"); mn1.setAttribute("in", "g");
+        var mn2 = document.createElementNS(ns, "feMergeNode"); mn2.setAttribute("in", "SourceGraphic");
         merge.appendChild(mn1); merge.appendChild(mn2); filt.appendChild(blur); filt.appendChild(merge);
         defs.appendChild(filt); svg.appendChild(defs);
 
@@ -622,18 +622,18 @@ document.addEventListener("DOMContentLoaded", function () {
         svg.appendChild(diamond);
 
         // Diagonal lines from corners to center
-        [[50,50,250,250],[450,50,250,250],[450,450,250,250],[50,450,250,250]].forEach(function(d) {
+        [[50, 50, 250, 250], [450, 50, 250, 250], [450, 450, 250, 250], [50, 450, 250, 250]].forEach(function (d) {
             var ln = document.createElementNS(ns, "line");
-            ln.setAttribute("x1",d[0]); ln.setAttribute("y1",d[1]);
-            ln.setAttribute("x2",d[2]); ln.setAttribute("y2",d[3]);
+            ln.setAttribute("x1", d[0]); ln.setAttribute("y1", d[1]);
+            ln.setAttribute("x2", d[2]); ln.setAttribute("y2", d[3]);
             ln.setAttribute("class", "chart-line chart-diag");
-            var len = Math.ceil(Math.sqrt(Math.pow(d[2]-d[0],2)+Math.pow(d[3]-d[1],2)));
+            var len = Math.ceil(Math.sqrt(Math.pow(d[2] - d[0], 2) + Math.pow(d[3] - d[1], 2)));
             ln.style.strokeDasharray = len; ln.style.strokeDashoffset = len;
             svg.appendChild(ln);
         });
 
         // House polygons
-        _KUNDLI_HOUSES.forEach(function(h) {
+        _KUNDLI_HOUSES.forEach(function (h) {
             var poly = document.createElementNS(ns, "polygon");
             poly.setAttribute("points", h.pts);
             poly.setAttribute("class", "kundli-house-poly");
@@ -642,7 +642,7 @@ document.addEventListener("DOMContentLoaded", function () {
         });
 
         // House numbers
-        _KUNDLI_HOUSES.forEach(function(h) {
+        _KUNDLI_HOUSES.forEach(function (h) {
             var t = document.createElementNS(ns, "text");
             t.setAttribute("x", h.cx); t.setAttribute("y", h.cy - 14);
             t.setAttribute("class", "kundli-house-num-text"); t.setAttribute("data-house", h.id);
@@ -650,18 +650,18 @@ document.addEventListener("DOMContentLoaded", function () {
         });
 
         // Zodiac sign glyphs
-        _KUNDLI_HOUSES.forEach(function(h) {
+        _KUNDLI_HOUSES.forEach(function (h) {
             var sign = _signForHouse(h.id, asc);
             var t = document.createElementNS(ns, "text");
             t.setAttribute("x", h.cx); t.setAttribute("y", h.cy + 2);
             t.setAttribute("class", "kundli-sign-label"); t.setAttribute("data-house", h.id);
-            t.textContent = _ZODIAC_GLYPHS[sign] || sign.substring(0,3); svg.appendChild(t);
+            t.textContent = _ZODIAC_GLYPHS[sign] || sign.substring(0, 3); svg.appendChild(t);
         });
 
         // Planet glyphs
-        _KUNDLI_HOUSES.forEach(function(h) {
+        _KUNDLI_HOUSES.forEach(function (h) {
             var planets = hpMap[h.id] || [];
-            planets.forEach(function(p, idx) {
+            planets.forEach(function (p, idx) {
                 var g = _PLANET_GLYPHS[p] || "?";
                 var t = document.createElementNS(ns, "text");
                 var ox = (idx - (planets.length - 1) / 2) * 16;
@@ -679,10 +679,10 @@ document.addEventListener("DOMContentLoaded", function () {
     function _createStars(container, n) {
         for (var i = 0; i < n; i++) {
             var s = document.createElement("div"); s.className = "kundli-star";
-            s.style.left = Math.random()*100 + "%"; s.style.top = Math.random()*100 + "%";
-            s.style.setProperty("--dur", (2+Math.random()*4)+"s");
-            s.style.animationDelay = Math.random()*3+"s";
-            var sz = (1+Math.random()*2)+"px"; s.style.width = sz; s.style.height = sz;
+            s.style.left = Math.random() * 100 + "%"; s.style.top = Math.random() * 100 + "%";
+            s.style.setProperty("--dur", (2 + Math.random() * 4) + "s");
+            s.style.animationDelay = Math.random() * 3 + "s";
+            var sz = (1 + Math.random() * 2) + "px"; s.style.width = sz; s.style.height = sz;
             container.appendChild(s);
         }
     }
@@ -705,7 +705,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
         function wait(ms) {
             if (skipped) return Promise.resolve();
-            return new Promise(function(r) { setTimeout(r, ms); });
+            return new Promise(function (r) { setTimeout(r, ms); });
         }
         function setSt(t) { if (statusTxt) statusTxt.textContent = t; }
         function setProg(p) { if (progFill) progFill.style.width = p + "%"; }
@@ -761,7 +761,7 @@ document.addEventListener("DOMContentLoaded", function () {
         if (skipped) { _finish(); return; }
 
         // Show house numbers
-        svg.querySelectorAll(".kundli-house-num-text").forEach(function(el) { el.classList.add("visible"); });
+        svg.querySelectorAll(".kundli-house-num-text").forEach(function (el) { el.classList.add("visible"); });
         await wait(300);
         if (skipped) { _finish(); return; }
 
@@ -779,13 +779,13 @@ document.addEventListener("DOMContentLoaded", function () {
 
             // Highlight polygon
             var poly = svg.querySelector('.kundli-house-poly[data-house="' + h + '"]');
-            svg.querySelectorAll(".kundli-house-poly.scanning").forEach(function(el) {
+            svg.querySelectorAll(".kundli-house-poly.scanning").forEach(function (el) {
                 el.classList.remove("scanning"); el.classList.add("scanned");
             });
             if (poly) poly.classList.add("scanning");
 
             // Highlight house number
-            svg.querySelectorAll(".kundli-house-num-text.active").forEach(function(el) { el.classList.remove("active"); });
+            svg.querySelectorAll(".kundli-house-num-text.active").forEach(function (el) { el.classList.remove("active"); });
             var numEl = svg.querySelector('.kundli-house-num-text[data-house="' + h + '"]');
             if (numEl) numEl.classList.add("active");
 
@@ -824,7 +824,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 if (iPL) {
                     var chip = document.createElement("span");
                     chip.className = "kundli-info-chip";
-                    chip.innerHTML = '<span class="kundli-info-chip-glyph">' + escapeHtml(_PLANET_GLYPHS[pl]||"?") + "</span> " + escapeHtml(_PLANET_NAMES[pl]||pl);
+                    chip.innerHTML = '<span class="kundli-info-chip-glyph">' + escapeHtml(_PLANET_GLYPHS[pl] || "?") + "</span> " + escapeHtml(_PLANET_NAMES[pl] || pl);
                     iPL.appendChild(chip);
                     chip.offsetHeight; // reflow
                     chip.classList.add("visible");
@@ -839,11 +839,11 @@ document.addEventListener("DOMContentLoaded", function () {
         if (skipped) { _finish(); return; }
 
         // Phase 4: Complete
-        svg.querySelectorAll(".kundli-house-poly.scanning").forEach(function(el) {
+        svg.querySelectorAll(".kundli-house-poly.scanning").forEach(function (el) {
             el.classList.remove("scanning"); el.classList.add("scanned");
         });
-        svg.querySelectorAll(".kundli-house-num-text").forEach(function(el) { el.classList.remove("active"); });
-        svg.querySelectorAll(".kundli-sign-label, .kundli-planet-glyph").forEach(function(el) { el.classList.add("visible"); });
+        svg.querySelectorAll(".kundli-house-num-text").forEach(function (el) { el.classList.remove("active"); });
+        svg.querySelectorAll(".kundli-sign-label, .kundli-planet-glyph").forEach(function (el) { el.classList.add("visible"); });
 
         setProg(95);
         setSt("SYNTHESIS COMPLETE");
@@ -859,7 +859,7 @@ document.addEventListener("DOMContentLoaded", function () {
         function _finish() {
             if (skipBtn) skipBtn.removeEventListener("click", doSkip);
             anim.classList.remove("active");
-            setTimeout(function() {
+            setTimeout(function () {
                 anim.classList.add("hidden");
                 if (portal) portal.classList.remove("active");
                 if (grid) grid.classList.remove("active");
@@ -878,37 +878,37 @@ document.addEventListener("DOMContentLoaded", function () {
         var cards = document.querySelectorAll(".report-card.reveal-hidden");
         if (!cards.length) return;
         var autoCount = 3;
-        cards.forEach(function(card, idx) {
+        cards.forEach(function (card, idx) {
             if (idx < autoCount) {
-                setTimeout(function() {
+                setTimeout(function () {
                     card.classList.remove("reveal-hidden");
                     card.classList.add("reveal-visible");
-                    card.querySelectorAll(".reading-intensity-fill").forEach(function(bar) {
+                    card.querySelectorAll(".reading-intensity-fill").forEach(function (bar) {
                         var t = bar.getAttribute("data-target") || "50%";
-                        setTimeout(function() { bar.style.width = t; }, 200);
+                        setTimeout(function () { bar.style.width = t; }, 200);
                     });
                 }, idx * 350);
             }
         });
         if ("IntersectionObserver" in window) {
-            var obs = new IntersectionObserver(function(entries) {
-                entries.forEach(function(entry) {
+            var obs = new IntersectionObserver(function (entries) {
+                entries.forEach(function (entry) {
                     if (entry.isIntersecting) {
                         entry.target.classList.remove("reveal-hidden");
                         entry.target.classList.add("reveal-visible");
-                        entry.target.querySelectorAll(".reading-intensity-fill").forEach(function(bar) {
+                        entry.target.querySelectorAll(".reading-intensity-fill").forEach(function (bar) {
                             var t = bar.getAttribute("data-target") || "50%";
-                            setTimeout(function() { bar.style.width = t; }, 200);
+                            setTimeout(function () { bar.style.width = t; }, 200);
                         });
                         obs.unobserve(entry.target);
                     }
                 });
             }, { threshold: 0.12 });
-            cards.forEach(function(card, idx) {
+            cards.forEach(function (card, idx) {
                 if (idx >= autoCount) obs.observe(card);
             });
         } else {
-            cards.forEach(function(card) {
+            cards.forEach(function (card) {
                 card.classList.remove("reveal-hidden");
                 card.classList.add("reveal-visible");
             });
@@ -917,7 +917,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
     // Ask Guru CTA delegation
     if (reportSections) {
-        reportSections.addEventListener("click", function(e) {
+        reportSections.addEventListener("click", function (e) {
             var btn = e.target.closest(".reading-ask-cta");
             if (!btn) return;
             var topic = btn.getAttribute("data-topic") || "";

@@ -1,18 +1,19 @@
 import multiprocessing
 import os
 
-# Bind to localhost and a port (Nginx will proxy to this)
-bind = "127.0.0.1:8000"
+# Render sets PORT, default to 10000 if not found
+port = os.environ.get("PORT", "10000")
+bind = f"0.0.0.0:{port}"
 
-# Number of worker processes
-# General formula: (2 x CPU cores) + 1
-workers = max(multiprocessing.cpu_count() * 2 + 1, 4)
+# Use a static small number of workers on free tier, or calculate based on CPUs
+workers = 2
 
-# Worker class
-worker_class = "sync"
+# Worker class - gthread is highly recommended for Render to avoid blocking
+worker_class = "gthread"
+threads = 4
 
 # Worker timeout (seconds)
-timeout = 30
+timeout = 120
 
 # Max requests before worker restart (prevents memory leaks)
 max_requests = 1000
@@ -21,13 +22,13 @@ max_requests = 1000
 max_requests_jitter = 100
 
 # Keep-alive timeout
-keepalive = 2
+keepalive = 5
 
-# Access log
-accesslog = "/var/log/gunicorn_access.log" if os.path.exists("/var/log") else "-"
+# Access log - output to stdout for Render
+accesslog = "-"
 
-# Error log
-errorlog = "/var/log/gunicorn_error.log" if os.path.exists("/var/log") else "-"
+# Error log - output to stderr for Render
+errorlog = "-"
 
 # Log level
 loglevel = "info"
