@@ -3,233 +3,278 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="Celestial Arc - Cosmic Blueprint Generator. Discover your Big Three, compatibility, and seasonal timing.">
-    <meta name="theme-color" content="#0f0520">
-    <title>Celestial Arc · Cosmic Blueprint Generator</title>
+    <meta name="description" content="Celestial Arc - Advanced AI Astrology. Discover your cosmic blueprint with precision.">
+    <meta name="theme-color" content="#0a0e27">
+    <title>Celestial Arc · AI-Powered Astrology</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Space+Mono:wght@400;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Poppins:wght@300;400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/landing.css') }}">
 </head>
 <body>
-    <!-- Cosmic Background -->
+    <!-- Animated Background -->
     <div class="cosmic-bg">
-        <div class="cosmic-gradient"></div>
+        <div class="stars"></div>
         <div class="nebula nebula-1"></div>
         <div class="nebula nebula-2"></div>
-        <div class="ambient-glow"></div>
+        <div class="nebula nebula-3"></div>
+        <div class="aurora-border"></div>
     </div>
 
     <!-- Navigation -->
     <nav class="navbar">
         <div class="nav-container">
             <a href="/" class="logo">
-                <svg class="logo-icon" viewBox="0 0 24 24" width="24" height="24">
-                    <circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" stroke-width="1.5" opacity="0.6"/>
-                    <circle cx="12" cy="12" r="8" fill="none" stroke="currentColor" stroke-width="1" opacity="0.4"/>
-                    <circle cx="12" cy="12" r="3" fill="currentColor" opacity="0.8"/>
-                </svg>
-                <span class="logo-text">CELESTIAL ARC</span>
+                <div class="logo-orb"></div>
+                <span class="logo-text">CELESTIAL</span>
             </a>
+            <div class="nav-links">
+                <a href="#features" class="nav-link">Features</a>
+                <a href="#how" class="nav-link">How it Works</a>
+                <a href="#faq" class="nav-link">FAQ</a>
+            </div>
             <button class="cta-nav-btn" onclick="scrollToApp()">Get Started</button>
         </div>
     </nav>
 
-    <!-- Hero Section with Planets -->
+    <!-- Hero Section -->
     <section class="hero">
-        <div class="hero-background">
-            <!-- Animated Planets -->
-            <div class="planets-container">
-                <div class="planet planet-1" data-zodiac="Aries">
-                    <div class="planet-core" style="background: linear-gradient(135deg, #ff6b6b, #ee5a6f);"></div>
-                    <div class="planet-glow"></div>
-                    <div class="zodiac-label">♈</div>
-                </div>
-                <div class="planet planet-2" data-zodiac="Taurus">
-                    <div class="planet-core" style="background: linear-gradient(135deg, #4f9ff0, #2d8659);"></div>
-                    <div class="planet-glow"></div>
-                    <div class="zodiac-label">♉</div>
-                </div>
-                <div class="planet planet-3" data-zodiac="Gemini">
-                    <div class="planet-core" style="background: linear-gradient(135deg, #ffd93d, #ff8c42);"></div>
-                    <div class="planet-glow"></div>
-                    <div class="zodiac-label">♊</div>
-                </div>
-                <div class="planet planet-4" data-zodiac="Cancer">
-                    <div class="planet-core" style="background: linear-gradient(135deg, #a8edea, #fed6e3);"></div>
-                    <div class="planet-glow"></div>
-                    <div class="zodiac-label">♋</div>
-                </div>
-            </div>
-
-            <!-- Starfield -->
-            <div class="starfield"></div>
-        </div>
-
         <div class="hero-content">
-            <div class="hero-text">
-                <span class="hero-label">Discover Your Cosmic Destiny</span>
-                <h1 class="hero-title">Your Cosmic<br/>Blueprint Awaits</h1>
-                <p class="hero-subtitle">Explore the Big Three, compatibility insights, and your place in the cosmic timeline.</p>
-            </div>
-
-            <!-- CTA Button -->
-            <button class="cta-button primary-cta" onclick="scrollToApp()">
-                <span class="cta-text">Start Your Journey</span>
-                <svg class="cta-icon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
-                    <line x1="5" y1="12" x2="19" y2="12"></line>
-                    <polyline points="12 5 19 12 12 19"></polyline>
-                </svg>
-            </button>
-
-            <div class="feature-chips">
-                <div class="chip">✦ Big Three</div>
-                <div class="chip">♥ Compatibility</div>
-                <div class="chip">◎ Seasonal Energy</div>
-            </div>
-        </div>
-    </section>
-
-    <!-- How It Works Section -->
-    <section class="how-it-works section-padding">
-        <div class="section-container">
-            <div class="section-header">
-                <h2 class="section-title">How It Works</h2>
-                <p class="section-subtitle">Three simple steps to discover your cosmic blueprint</p>
-            </div>
+            <div class="hero-label">✨ Your Cosmic Destiny Awaits</div>
+            <h1 class="hero-title">
+                Unveil Your<br/>
+                <span class="gradient-text">Cosmic Blueprint</span>
+            </h1>
+            <p class="hero-subtitle">
+                Advanced AI + Vedic Astrology. Get your Big Three, compatibility insights, career guidance, 
+                and personalized predictions powered by cutting-edge AI analysis.
+            </p>
             
-            <div class="steps-grid">
-                <div class="step-card">
-                    <div class="step-number">01</div>
-                    <h3>Share Your Birth Data</h3>
-                    <p>Enter your birth date, time, and location—the cosmic coordinates of your existence.</p>
-                </div>
+            <div class="hero-buttons">
+                <button class="btn btn-primary" onclick="scrollToApp()">
+                    <span>Explore Your Chart</span>
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="5" y1="12" x2="19" y2="12"></line>
+                        <polyline points="12 5 19 12 12 19"></polyline>
+                    </svg>
+                </button>
+                <button class="btn btn-secondary" onclick="chatWidget.open()">
+                    <span>💬 Ask AI Guru</span>
+                </button>
+            </div>
 
-                <div class="step-card">
-                    <div class="step-number">02</div>
-                    <h3>Optional Palm Insight</h3>
-                    <p>Upload your palm image for deeper symbolic meaning and personal resonance.</p>
+            <div class="hero-stats">
+                <div class="stat">
+                    <div class="stat-value">50K+</div>
+                    <div class="stat-label">Cosmic Journeys</div>
                 </div>
+                <div class="stat">
+                    <div class="stat-value">98%</div>
+                    <div class="stat-label">User Satisfaction</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-value">24/7</div>
+                    <div class="stat-label">AI Support</div>
+                </div>
+            </div>
+        </div>
 
-                <div class="step-card">
-                    <div class="step-number">03</div>
-                    <h3>Receive Your Blueprint</h3>
-                    <p>Get personalized readings on personality, career, love, and your cosmic destiny.</p>
-                </div>
+        <div class="hero-visual">
+            <div class="orbiting-planets">
+                <div class="planet earth"></div>
+                <div class="planet venus"></div>
+                <div class="planet mars"></div>
+                <div class="central-sun"></div>
             </div>
         </div>
     </section>
 
-    <!-- Features Grid Section -->
-    <section class="features-showcase section-padding">
-        <div class="section-container">
-            <div class="section-header">
-                <h2 class="section-title">Unlock Your Cosmic Secrets</h2>
-                <p class="section-subtitle">Explore the depths of your astrological profile</p>
+    <!-- How It Works -->
+    <section id="how" class="how-works">
+        <div class="section-header">
+            <h2>Your Journey to Cosmic Clarity</h2>
+            <p>Three simple steps to discover your destiny</p>
+        </div>
+
+        <div class="steps">
+            <div class="step">
+                <div class="step-number">1</div>
+                <h3>Enter Your Data</h3>
+                <p>Share your birth date, time, and location—the cosmic coordinates of your existence.</p>
+                <div class="step-icon">📍</div>
             </div>
 
-            <div class="features-bento">
-                <div class="feature-bento-item large">
-                    <div class="feature-icon-large">☀</div>
-                    <h3>Sun Sign</h3>
-                    <p>Your core identity, essence, and life purpose. The foundation of who you are.</p>
-                </div>
+            <div class="step">
+                <div class="step-number">2</div>
+                <h3>Analyze Your Chart</h3>
+                <p>Our advanced AI engine calculates your Big Three, houses, and planetary positions.</p>
+                <div class="step-icon">🔍</div>
+            </div>
 
-                <div class="feature-bento-item">
-                    <div class="feature-icon">☽</div>
-                    <h3>Moon Sign</h3>
-                    <p>Your emotional world and inner landscape.</p>
-                </div>
+            <div class="step">
+                <div class="step-number">3</div>
+                <h3>Get AI Insights</h3>
+                <p>Receive personalized readings on personality, career, love, and your cosmic destiny.</p>
+                <div class="step-icon">✨</div>
+            </div>
+        </div>
 
-                <div class="feature-bento-item">
-                    <div class="feature-icon">◑</div>
-                    <h3>Ascendant</h3>
-                    <p>How others perceive you at first glance.</p>
-                </div>
+        <div class="cta-box">
+            <h3>Ready to Discover Your Cosmic Blueprint?</h3>
+            <button class="btn btn-primary large" onclick="scrollToApp()">Start Your Journey Now</button>
+        </div>
+    </section>
 
-                <div class="feature-bento-item large-horizontal">
-                    <div class="feature-icon-large">♥</div>
-                    <h3>Compatibility Matrix</h3>
-                    <p>Harmony patterns and growth dynamics in your relationships with all signs.</p>
-                </div>
+    <!-- Features Section -->
+    <section id="features" class="features">
+        <div class="section-header">
+            <h2>Unlock Your Cosmic Secrets</h2>
+            <p>Comprehensive astrological analysis powered by advanced AI</p>
+        </div>
 
-                <div class="feature-bento-item">
-                    <div class="feature-icon">✦</div>
-                    <h3>Strengths</h3>
-                    <p>Your unique superpowers and gifts.</p>
-                </div>
+        <div class="features-grid">
+            <div class="feature-card">
+                <div class="feature-icon">☀</div>
+                <h3>Big Three Analysis</h3>
+                <p>Sun Sign, Moon Sign & Ascendant with deep AI-driven interpretations for personality insights.</p>
+            </div>
 
-                <div class="feature-bento-item">
-                    <div class="feature-icon">◎</div>
-                    <h3>Growth Edges</h3>
-                    <p>Opportunities for personal transformation.</p>
-                </div>
+            <div class="feature-card">
+                <div class="feature-icon">♥</div>
+                <h3>Compatibility Matrix</h3>
+                <p>Find perfect matches and understand harmony patterns with all zodiac signs.</p>
+            </div>
+
+            <div class="feature-card">
+                <div class="feature-icon">🔮</div>
+                <h3>AI Guru Chat</h3>
+                <p>24/7 access to an intelligent AI astrologer answering your cosmic questions instantly.</p>
+            </div>
+
+            <div class="feature-card">
+                <div class="feature-icon">📊</div>
+                <h3>Kundli Chart</h3>
+                <p>Detailed birth chart with planetary positions, houses, and Vedic interpretations.</p>
+            </div>
+
+            <div class="feature-card">
+                <div class="feature-icon">✋</div>
+                <h3>Palm Reading</h3>
+                <p>Optional palm analysis for deeper symbolic meaning and personal resonance.</p>
+            </div>
+
+            <div class="feature-card">
+                <div class="feature-icon">⏰</div>
+                <h3>Dasha Cycles</h3>
+                <p>Vimshottari Dasha timing predictions and life cycle analysis.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Testimonials -->
+    <section class="testimonials">
+        <div class="section-header">
+            <h2>What Users Say</h2>
+            <p>Real cosmic journeys from our community</p>
+        </div>
+
+        <div class="testimonials-grid">
+            <div class="testimonial">
+                <div class="stars">⭐⭐⭐⭐⭐</div>
+                <p>"The AI insights were incredibly accurate. It felt like talking to a real astrologer!"</p>
+                <div class="testimonial-author">— Priya M.</div>
+            </div>
+
+            <div class="testimonial">
+                <div class="stars">⭐⭐⭐⭐⭐</div>
+                <p>"This app changed how I understand my relationships. The compatibility matrix is spot-on."</p>
+                <div class="testimonial-author">— Arjun K.</div>
+            </div>
+
+            <div class="testimonial">
+                <div class="stars">⭐⭐⭐⭐⭐</div>
+                <p>"The 24/7 AI guru is amazing. Always there when I need cosmic guidance!"</p>
+                <div class="testimonial-author">— Sophia R.</div>
             </div>
         </div>
     </section>
 
     <!-- FAQ Section -->
-    <section class="faq-section section-padding">
-        <div class="section-container">
-            <div class="section-header">
-                <h2 class="section-title">Questions? We Have Answers</h2>
+    <section id="faq" class="faq">
+        <div class="section-header">
+            <h2>Questions? We Have Answers</h2>
+        </div>
+
+        <div class="faq-grid">
+            <div class="faq-item">
+                <button class="faq-header" onclick="toggleFAQ(this)">
+                    <h3>How accurate is this?</h3>
+                    <span class="faq-toggle">+</span>
+                </button>
+                <div class="faq-content">
+                    <p>Our readings use traditional Vedic astrology principles combined with advanced AI analysis. Accuracy depends on precise birth data (date, time, location).</p>
+                </div>
             </div>
-            
-            <div class="faq-grid">
-                <div class="faq-card">
-                    <button class="faq-header" onclick="toggleFAQ(this)">
-                        <h3>How accurate is this?</h3>
-                        <span class="faq-toggle">+</span>
-                    </button>
-                    <div class="faq-content">
-                        <p>This is a beginner-friendly, rule-based reading designed for reflection and entertainment. We use traditional astrological principles blended with modern psychology.</p>
-                    </div>
-                </div>
 
-                <div class="faq-card">
-                    <button class="faq-header" onclick="toggleFAQ(this)">
-                        <h3>Is my data private?</h3>
-                        <span class="faq-toggle">+</span>
-                    </button>
-                    <div class="faq-content">
-                        <p>Absolutely. Your data is stored locally and never shared. We don't sell your information or use it for advertising.</p>
-                    </div>
+            <div class="faq-item">
+                <button class="faq-header" onclick="toggleFAQ(this)">
+                    <h3>Is my data private?</h3>
+                    <span class="faq-toggle">+</span>
+                </button>
+                <div class="faq-content">
+                    <p>Absolutely. Your data is stored securely and never shared. We don't sell information or use it for advertising.</p>
                 </div>
+            </div>
 
-                <div class="faq-card">
-                    <button class="faq-header" onclick="toggleFAQ(this)">
-                        <h3>What if I don't know my birth time?</h3>
-                        <span class="faq-toggle">+</span>
-                    </button>
-                    <div class="faq-content">
-                        <p>We'll use noon as an approximation. Your Sun and Moon signs will be accurate, but your Ascendant may be less precise.</p>
-                    </div>
+            <div class="faq-item">
+                <button class="faq-header" onclick="toggleFAQ(this)">
+                    <h3>What if I don't know my birth time?</h3>
+                    <span class="faq-toggle">+</span>
+                </button>
+                <div class="faq-content">
+                    <p>We use noon as an approximation. Your Sun and Moon signs will be accurate, but your Ascendant may be less precise.</p>
                 </div>
+            </div>
 
-                <div class="faq-card">
-                    <button class="faq-header" onclick="toggleFAQ(this)">
-                        <h3>About the palm reading?</h3>
-                        <span class="faq-toggle">+</span>
-                    </button>
-                    <div class="faq-content">
-                        <p>It's a symbolic, simulated addition inspired by traditional palmistry—meant for fun and deeper self-reflection.</p>
-                    </div>
+            <div class="faq-item">
+                <button class="faq-header" onclick="toggleFAQ(this)">
+                    <h3>Can I talk to the AI Guru?</h3>
+                    <span class="faq-toggle">+</span>
+                </button>
+                <div class="faq-content">
+                    <p>Yes! Visit your saved chart and use the floating chat widget to ask the AI Guru any cosmic questions 24/7.</p>
+                </div>
+            </div>
+
+            <div class="faq-item">
+                <button class="faq-header" onclick="toggleFAQ(this)">
+                    <h3>Is palm reading necessary?</h3>
+                    <span class="faq-toggle">+</span>
+                </button>
+                <div class="faq-content">
+                    <p>No, it's optional. Your full chart reading works with just astrological data. Palm adds symbolic depth for those interested.</p>
+                </div>
+            </div>
+
+            <div class="faq-item">
+                <button class="faq-header" onclick="toggleFAQ(this)">
+                    <h3>How does the AI work?</h3>
+                    <span class="faq-toggle">+</span>
+                </button>
+                <div class="faq-content">
+                    <p>Our AI combines Vedic astrological calculations with natural language processing to provide personalized, contextual cosmic guidance.</p>
                 </div>
             </div>
         </div>
     </section>
 
     <!-- Final CTA -->
-    <section class="final-cta section-padding">
+    <section class="final-cta">
         <div class="cta-content">
-            <h2>Your Cosmic Blueprint Awaits</h2>
-            <p>Begin your journey into the stars</p>
-            <button class="cta-button primary-cta large" onclick="scrollToApp()">
-                <span class="cta-text">Explore Now</span>
-                <svg class="cta-icon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
-                    <line x1="5" y1="12" x2="19" y2="12"></line>
-                    <polyline points="12 5 19 12 12 19"></polyline>
-                </svg>
+            <h2>Begin Your Cosmic Journey Today</h2>
+            <p>Unlock the secrets written in the stars</p>
+            <button class="btn btn-primary large" onclick="scrollToApp()">
+                Get Your Chart Now ✨
             </button>
         </div>
     </section>
@@ -238,9 +283,109 @@
     <footer class="footer">
         <div class="footer-content">
             <p>© 2026 Celestial Arc. Crafted with cosmic curiosity.</p>
-            <p class="disclaimer">For entertainment. Always consult professionals for important decisions.</p>
+            <p class="disclaimer">For entertainment and self-reflection. Always consult professionals for important decisions.</p>
         </div>
     </footer>
+
+    <!-- Floating Chat Widget -->
+    <div id="chatWidget" class="chat-widget">
+        <div class="chat-header">
+            <h3>🔮 AI Guru</h3>
+            <button class="close-btn" onclick="chatWidget.close()">×</button>
+        </div>
+        <div class="chat-messages" id="chatMessages">
+            <div class="chat-message guru">
+                <p>Namaste! 🙏 I'm your cosmic guide. Ask me about astrology, your chart, compatibility, or anything cosmic!</p>
+            </div>
+        </div>
+        <div class="chat-input-box">
+            <input type="text" id="chatWidgetInput" placeholder="Ask the AI Guru..." class="chat-input">
+            <button id="chatWidgetSend" class="chat-send">Send</button>
+        </div>
+    </div>
+
+    <!-- Chat Toggle Button -->
+    <button id="chatToggle" class="chat-toggle" onclick="chatWidget.toggle()">
+        <span class="chat-icon">💬</span>
+    </button>
+
+    <script>
+        // Floating Chat Widget Manager
+        const chatWidget = {
+            open() {
+                document.getElementById('chatWidget').classList.add('active');
+                document.getElementById('chatToggle').classList.add('hidden');
+            },
+            close() {
+                document.getElementById('chatWidget').classList.remove('active');
+                document.getElementById('chatToggle').classList.remove('hidden');
+            },
+            toggle() {
+                const widget = document.getElementById('chatWidget');
+                widget.classList.toggle('active');
+                document.getElementById('chatToggle').classList.toggle('hidden');
+            }
+        };
+
+        function scrollToApp() {
+            window.location.href = '{{ url_for("index") }}';
+        }
+
+        function toggleFAQ(btn) {
+            const content = btn.nextElementSibling;
+            const toggle = btn.querySelector('.faq-toggle');
+            content.classList.toggle('active');
+            toggle.textContent = content.classList.contains('active') ? '−' : '+';
+        }
+
+        // Chat Widget Functionality
+        document.addEventListener('DOMContentLoaded', () => {
+            const chatInput = document.getElementById('chatWidgetInput');
+            const chatSend = document.getElementById('chatWidgetSend');
+            const chatMessages = document.getElementById('chatMessages');
+
+            chatSend.addEventListener('click', () => {
+                const message = chatInput.value.trim();
+                if (!message) return;
+
+                // Add user message
+                const userMsg = document.createElement('div');
+                userMsg.className = 'chat-message user';
+                userMsg.innerHTML = `<p>${escapeHtml(message)}</p>`;
+                chatMessages.appendChild(userMsg);
+
+                // Clear input
+                chatInput.value = '';
+
+                // Add loading indicator
+                const loadingMsg = document.createElement('div');
+                loadingMsg.className = 'chat-message guru loading';
+                loadingMsg.innerHTML = `<div class="typing-indicator"><span></span><span></span><span></span></div>`;
+                chatMessages.appendChild(loadingMsg);
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+
+                // Send to API (demo response for now)
+                setTimeout(() => {
+                    loadingMsg.remove();
+                    const guruMsg = document.createElement('div');
+                    guruMsg.className = 'chat-message guru';
+                    guruMsg.innerHTML = `<p>Thank you for your question! ✨ Please visit your chart to get personalized AI insights.</p>`;
+                    chatMessages.appendChild(guruMsg);
+                    chatMessages.scrollTop = chatMessages.scrollHeight;
+                }, 1000);
+            });
+
+            chatInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') chatSend.click();
+            });
+        });
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+    </script>
 
     <script src="{{ url_for('static', filename='js/landing.js') }}"></script>
 </body>

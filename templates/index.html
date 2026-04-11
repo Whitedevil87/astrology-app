@@ -239,6 +239,29 @@
             </div>
         </section>
     </div>
+
+    <!-- Floating Chat Widget for App Pages -->
+    <div id="floatingChatWidget" class="floating-chat-widget">
+        <div class="floating-chat-header">
+            <h3>🔮 AI Guru</h3>
+            <button class="floating-chat-close" onclick="document.getElementById('floatingChatWidget').classList.remove('active')">×</button>
+        </div>
+        <div class="floating-chat-messages" id="floatingChatMessages">
+            <div class="floating-chat-message guru-msg">
+                <p>Namaste! 🙏 I'm here to answer your cosmic questions. Ask about your chart, compatibility, career, or anything!</p>
+            </div>
+        </div>
+        <div class="floating-chat-input-box">
+            <input type="text" id="floatingChatInput" placeholder="Ask me..." class="floating-chat-input">
+            <button id="floatingChatSend" class="floating-chat-send">↓</button>
+        </div>
+    </div>
+
+    <!-- Floating Chat Toggle Button -->
+    <button id="floatingChatToggle" class="floating-chat-toggle" onclick="document.getElementById('floatingChatWidget').classList.add('active'); this.style.display='none';">
+        💬
+    </button>
+
     <script src="{{ url_for('static', filename='js/app.js') }}"></script>
 </body>
 </html>

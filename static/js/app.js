@@ -599,6 +599,178 @@ document.addEventListener("DOMContentLoaded", function () {
 
     palmNo.addEventListener("click", function () {
         palmEnabled.value = "no";
+        onlyStep(step3, 3);
+    });
+
+    submitBtn.addEventListener("click", function () {
+        if (!validateRequired() || !handChoice.value) {
+            if (!handChoice.value && palmEnabled.value === "yes") {
+                errorBox.textContent = "Please select which hand for palm.";
+                errorBox.classList.remove("hidden");
+            }
+            return;
+        }
+
+        const formData = new FormData(form);
+        onlyStep(processing, 4);
+        progressBar.style.width = "0%";
+        progressText.textContent = "0%";
+        let p = 0;
+        progressInterval = setInterval(function () {
+            p = Math.min(p + Math.random() * 35, 90);
+            progressBar.style.width = p + "%";
+            progressText.textContent = Math.floor(p) + "%";
+        }, 500);
+
+        fetch("/api/analyze", {
+            method: "POST",
+            body: formData,
+            headers: { "X-CSRF-Token": csrfToken || "" }
+        })
+            .then(function (r) {
+                return r.json();
+            })
+            .then(function (data) {
+                clearInterval(progressInterval);
+                progressBar.style.width = "100%";
+                progressText.textContent = "100%";
+                setTimeout(function () {
+                    if (data && data.success) {
+                        displayResults(data);
+                        onlyStep(results, 4);
+                    } else {
+                        errorBox.textContent = (data && data.error) || "Analysis failed.";
+                        errorBox.classList.remove("hidden");
+                        onlyStep(step1, 1);
+                    }
+                }, 400);
+            })
+            .catch(function (err) {
+                clearInterval(progressInterval);
+                console.error("Fetch error:", err);
+                errorBox.textContent = "Network or server error.";
+                errorBox.classList.remove("hidden");
+                onlyStep(step1, 1);
+            });
+    });
+
+    tryAgain.addEventListener("click", function () {
+        form.reset();
+        form.querySelectorAll("select").forEach(function (s) { s.value = ""; });
+        errorBox.classList.add("hidden");
+        onlyStep(step1, 1);
+        window.scrollTo(0, 0);
+    });
+
+    downloadPdf.addEventListener("click", function () {
+        if (!lastReportId) return;
+        window.open("/api/pdf/" + lastReportId, "_blank");
+    });
+});
+
+/* ============================================
+   FLOATING CHAT WIDGET FUNCTIONALITY
+   ============================================ */
+
+document.addEventListener('DOMContentLoaded', function() {
+    const floatingChatWidget = document.getElementById('floatingChatWidget');
+    const floatingChatToggle = document.getElementById('floatingChatToggle');
+    const floatingChatInput = document.getElementById('floatingChatInput');
+    const floatingChatSend = document.getElementById('floatingChatSend');
+    const floatingChatMessages = document.getElementById('floatingChatMessages');
+
+    // Handle send button click
+    if (floatingChatSend) {
+        floatingChatSend.addEventListener('click', sendFloatingChat);
+    }
+
+    // Handle Enter key in input
+    if (floatingChatInput) {
+        floatingChatInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                sendFloatingChat();
+            }
+        });
+    }
+
+    function sendFloatingChat() {
+        const message = floatingChatInput.value.trim();
+        if (!message) return;
+
+        // Add user message
+        const userMsg = document.createElement('div');
+        userMsg.className = 'floating-chat-message user-msg';
+        userMsg.innerHTML = `<p>${escapeHtml(message)}</p>`;
+        floatingChatMessages.appendChild(userMsg);
+
+        // Clear input
+        floatingChatInput.value = '';
+        floatingChatInput.focus();
+
+        // Add loading indicator
+        const loadingMsg = document.createElement('div');
+        loadingMsg.className = 'floating-chat-message';
+        loadingMsg.innerHTML = `<div style="color: var(--neo-cyan); padding: 0.8rem;">thinking...</div>`;
+        floatingChatMessages.appendChild(loadingMsg);
+        floatingChatMessages.scrollTop = floatingChatMessages.scrollHeight;
+
+        // Try to get from last report ID (if saved chart exists)
+        const reportId = lastReportId || null;
+        
+        fetch('/api/chat', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-Token': csrfToken || ''
+            },
+            body: JSON.stringify({
+                user_message: message,
+                report_id: reportId
+            })
+        })
+            .then(r => r.json())
+            .then(data => {
+                loadingMsg.remove();
+                if (data && data.success && data.guru_response) {
+                    const guruMsg = document.createElement('div');
+                    guruMsg.className = 'floating-chat-message guru-msg';
+                    guruMsg.innerHTML = `<p>${escapeHtml(data.guru_response)}</p>`;
+                    floatingChatMessages.appendChild(guruMsg);
+                } else {
+                    const errorMsg = document.createElement('div');
+                    errorMsg.className = 'floating-chat-message guru-msg';
+                    errorMsg.innerHTML = `<p>⚠️ ${escapeHtml((data && data.error) || 'Unable to respond. Please check your chart.')}</p>`;
+                    floatingChatMessages.appendChild(errorMsg);
+                }
+                floatingChatMessages.scrollTop = floatingChatMessages.scrollHeight;
+            })
+            .catch(err => {
+                console.error('Floating chat error:', err);
+                loadingMsg.remove();
+                const errorMsg = document.createElement('div');
+                errorMsg.className = 'floating-chat-message guru-msg';
+                errorMsg.innerHTML = `<p>⚠️ Connection error. Please try again.</p>`;
+                floatingChatMessages.appendChild(errorMsg);
+                floatingChatMessages.scrollTop = floatingChatMessages.scrollHeight;
+            });
+    }
+
+    function escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+});
+    });
+
+    palmYes.addEventListener("click", function () {
+        palmEnabled.value = "yes";
+        onlyStep(step3, 3);
+    });
+
+    palmNo.addEventListener("click", function () {
+        palmEnabled.value = "no";
         form.elements.hand_choice.value = "";
         form.elements.palm_image.value = "";
         submitAnalysis();
