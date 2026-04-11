@@ -666,13 +666,11 @@ document.addEventListener("DOMContentLoaded", function () {
         if (!lastReportId) return;
         window.open("/api/pdf/" + lastReportId, "_blank");
     });
-});
 
-/* ============================================
-   FLOATING CHAT WIDGET FUNCTIONALITY
-   ============================================ */
+    /* ============================================
+       FLOATING CHAT WIDGET FUNCTIONALITY
+       ============================================ */
 
-document.addEventListener('DOMContentLoaded', function() {
     const floatingChatWidget = document.getElementById('floatingChatWidget');
     const floatingChatToggle = document.getElementById('floatingChatToggle');
     const floatingChatInput = document.getElementById('floatingChatInput');
