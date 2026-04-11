@@ -395,13 +395,17 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     function sectionCard(title, body, icon) {
+        var intensity = 50 + ((title.length * 7 + (body || "").length) % 42);
         return (
-            '<div class="report-card">' +
+            '<div class="report-card reveal-hidden">' +
             '<div class="report-card-header">' +
             '<span class="report-card-icon">' + (icon || "✦") + "</span>" +
             '<h3 class="report-card-title">' + escapeHtml(title) + "</h3>" +
             "</div>" +
             '<p class="report-card-body">' + escapeHtml(body) + "</p>" +
+            '<div class="reading-intensity"><span class="reading-intensity-label">Cosmic Intensity</span>' +
+            '<div class="reading-intensity-bar"><div class="reading-intensity-fill" data-target="' + intensity + '%"></div></div></div>' +
+            '<button type="button" class="reading-ask-cta" data-topic="' + escapeHtml(title) + '">✨ Ask Guru about this</button>' +
             "</div>"
         );
     }
@@ -518,6 +522,412 @@ document.addEventListener("DOMContentLoaded", function () {
         if (chatLog) {
             chatLog.innerHTML = "";
         }
+
+        // Render mini kundli chart in results
+        var kundliChartContainer = document.getElementById("kundliChartContainer");
+        var kundliChartDiv = document.getElementById("kundliChart");
+        if (kundliChartContainer && kundliChartDiv && data.vedic && data.vedic.houses) {
+            kundliChartDiv.innerHTML = "";
+            var asc = (data.profile || {}).ascendant || (data.vedic || {}).lagna_sign || "Aries";
+            var hp = _invertHouseMap(data.vedic.houses);
+            _buildKundliSVG(kundliChartDiv, asc, hp, true);
+            kundliChartDiv.querySelectorAll(".chart-line").forEach(function(el) {
+                el.style.strokeDashoffset = "0";
+            });
+            kundliChartDiv.querySelectorAll(".kundli-house-num-text, .kundli-sign-label, .kundli-planet-glyph").forEach(function(el) {
+                el.classList.add("visible");
+            });
+            kundliChartContainer.classList.remove("hidden");
+        }
+
+        // Setup staggered reading reveals
+        setTimeout(_initReadingReveals, 150);
+    }
+
+    // ============================================
+    // KUNDLI ANIMATION ENGINE
+    // ============================================
+
+    var _KUNDLI_HOUSES = [
+        { id:1,  pts:"250,50 350,150 250,250 150,150", cx:250, cy:150 },
+        { id:2,  pts:"250,50 450,50 350,150",          cx:350, cy:83  },
+        { id:3,  pts:"450,50 450,250 350,150",          cx:417, cy:150 },
+        { id:4,  pts:"350,150 450,250 350,350 250,250", cx:350, cy:250 },
+        { id:5,  pts:"450,250 450,450 350,350",          cx:417, cy:350 },
+        { id:6,  pts:"450,450 250,450 350,350",          cx:350, cy:417 },
+        { id:7,  pts:"350,350 250,450 150,350 250,250", cx:250, cy:350 },
+        { id:8,  pts:"250,450 50,450 150,350",           cx:150, cy:417 },
+        { id:9,  pts:"50,450 50,250 150,350",            cx:83,  cy:350 },
+        { id:10, pts:"150,350 50,250 150,150 250,250",   cx:150, cy:250 },
+        { id:11, pts:"50,250 50,50 150,150",             cx:83,  cy:150 },
+        { id:12, pts:"50,50 250,50 150,150",             cx:150, cy:83  }
+    ];
+
+    var _HOUSE_MEANINGS = {
+        1:"Self, Identity & Life Path", 2:"Wealth, Speech & Family",
+        3:"Courage, Siblings & Skills", 4:"Home, Mother & Inner Peace",
+        5:"Creativity, Children & Romance", 6:"Health, Service & Competition",
+        7:"Marriage, Partnerships & Desires", 8:"Transformation & Hidden Forces",
+        9:"Fortune, Wisdom & Higher Truth", 10:"Career, Status & Public Life",
+        11:"Gains, Aspirations & Networks", 12:"Liberation, Dreams & Solitude"
+    };
+
+    var _PLANET_GLYPHS = { sun:"\u2609",moon:"\u263D",mars:"\u2642",mercury:"\u263F",venus:"\u2640",jupiter:"\u2643",saturn:"\u2644",rahu:"\u260A",ketu:"\u260B" };
+    var _PLANET_NAMES = { sun:"Sun",moon:"Moon",mars:"Mars",mercury:"Mercury",venus:"Venus",jupiter:"Jupiter",saturn:"Saturn",rahu:"Rahu",ketu:"Ketu" };
+    var _ZODIAC_LIST = ["Aries","Taurus","Gemini","Cancer","Leo","Virgo","Libra","Scorpio","Sagittarius","Capricorn","Aquarius","Pisces"];
+    var _ZODIAC_GLYPHS = { Aries:"\u2648",Taurus:"\u2649",Gemini:"\u264A",Cancer:"\u264B",Leo:"\u264C",Virgo:"\u264D",Libra:"\u264E",Scorpio:"\u264F",Sagittarius:"\u2650",Capricorn:"\u2651",Aquarius:"\u2652",Pisces:"\u2653" };
+
+    function _invertHouseMap(houses) {
+        var r = {}; for (var h = 1; h <= 12; h++) r[h] = [];
+        if (!houses) return r;
+        Object.keys(houses).forEach(function(p) { var hh = houses[p]; if (r[hh]) r[hh].push(p); });
+        return r;
+    }
+
+    function _signForHouse(num, asc) {
+        var idx = _ZODIAC_LIST.indexOf(asc); if (idx < 0) idx = 0;
+        return _ZODIAC_LIST[(idx + num - 1) % 12];
+    }
+
+    function _buildKundliSVG(parent, asc, hpMap, mini) {
+        var ns = "http://www.w3.org/2000/svg";
+        var svg = document.createElementNS(ns, "svg");
+        svg.setAttribute("viewBox", "0 0 500 500");
+        svg.setAttribute("class", mini ? "mini-kundli-svg" : "kundli-chart-svg");
+
+        // Glow filter
+        var defs = document.createElementNS(ns, "defs");
+        var filt = document.createElementNS(ns, "filter"); filt.id = "kGlow";
+        var blur = document.createElementNS(ns, "feGaussianBlur"); blur.setAttribute("stdDeviation","3"); blur.setAttribute("result","g");
+        var merge = document.createElementNS(ns, "feMerge");
+        var mn1 = document.createElementNS(ns, "feMergeNode"); mn1.setAttribute("in","g");
+        var mn2 = document.createElementNS(ns, "feMergeNode"); mn2.setAttribute("in","SourceGraphic");
+        merge.appendChild(mn1); merge.appendChild(mn2); filt.appendChild(blur); filt.appendChild(merge);
+        defs.appendChild(filt); svg.appendChild(defs);
+
+        // Outer square
+        var outer = document.createElementNS(ns, "path");
+        outer.setAttribute("d", "M50,50 L450,50 L450,450 L50,450 Z");
+        outer.setAttribute("class", "chart-line chart-outer");
+        var outerLen = 1600;
+        outer.style.strokeDasharray = outerLen; outer.style.strokeDashoffset = outerLen;
+        svg.appendChild(outer);
+
+        // Diamond
+        var diamond = document.createElementNS(ns, "path");
+        diamond.setAttribute("d", "M250,50 L450,250 L250,450 L50,250 Z");
+        diamond.setAttribute("class", "chart-line chart-diamond");
+        var diaLen = 1132;
+        diamond.style.strokeDasharray = diaLen; diamond.style.strokeDashoffset = diaLen;
+        svg.appendChild(diamond);
+
+        // Diagonal lines from corners to center
+        [[50,50,250,250],[450,50,250,250],[450,450,250,250],[50,450,250,250]].forEach(function(d) {
+            var ln = document.createElementNS(ns, "line");
+            ln.setAttribute("x1",d[0]); ln.setAttribute("y1",d[1]);
+            ln.setAttribute("x2",d[2]); ln.setAttribute("y2",d[3]);
+            ln.setAttribute("class", "chart-line chart-diag");
+            var len = Math.ceil(Math.sqrt(Math.pow(d[2]-d[0],2)+Math.pow(d[3]-d[1],2)));
+            ln.style.strokeDasharray = len; ln.style.strokeDashoffset = len;
+            svg.appendChild(ln);
+        });
+
+        // House polygons
+        _KUNDLI_HOUSES.forEach(function(h) {
+            var poly = document.createElementNS(ns, "polygon");
+            poly.setAttribute("points", h.pts);
+            poly.setAttribute("class", "kundli-house-poly");
+            poly.setAttribute("data-house", h.id);
+            svg.appendChild(poly);
+        });
+
+        // House numbers
+        _KUNDLI_HOUSES.forEach(function(h) {
+            var t = document.createElementNS(ns, "text");
+            t.setAttribute("x", h.cx); t.setAttribute("y", h.cy - 14);
+            t.setAttribute("class", "kundli-house-num-text"); t.setAttribute("data-house", h.id);
+            t.textContent = String(h.id); svg.appendChild(t);
+        });
+
+        // Zodiac sign glyphs
+        _KUNDLI_HOUSES.forEach(function(h) {
+            var sign = _signForHouse(h.id, asc);
+            var t = document.createElementNS(ns, "text");
+            t.setAttribute("x", h.cx); t.setAttribute("y", h.cy + 2);
+            t.setAttribute("class", "kundli-sign-label"); t.setAttribute("data-house", h.id);
+            t.textContent = _ZODIAC_GLYPHS[sign] || sign.substring(0,3); svg.appendChild(t);
+        });
+
+        // Planet glyphs
+        _KUNDLI_HOUSES.forEach(function(h) {
+            var planets = hpMap[h.id] || [];
+            planets.forEach(function(p, idx) {
+                var g = _PLANET_GLYPHS[p] || "?";
+                var t = document.createElementNS(ns, "text");
+                var ox = (idx - (planets.length - 1) / 2) * 16;
+                t.setAttribute("x", h.cx + ox); t.setAttribute("y", h.cy + 16);
+                t.setAttribute("class", "kundli-planet-glyph");
+                t.setAttribute("data-house", h.id); t.setAttribute("data-planet", p);
+                t.textContent = g; svg.appendChild(t);
+            });
+        });
+
+        parent.appendChild(svg);
+        return svg;
+    }
+
+    function _createStars(container, n) {
+        for (var i = 0; i < n; i++) {
+            var s = document.createElement("div"); s.className = "kundli-star";
+            s.style.left = Math.random()*100 + "%"; s.style.top = Math.random()*100 + "%";
+            s.style.setProperty("--dur", (2+Math.random()*4)+"s");
+            s.style.animationDelay = Math.random()*3+"s";
+            var sz = (1+Math.random()*2)+"px"; s.style.width = sz; s.style.height = sz;
+            container.appendChild(s);
+        }
+    }
+
+    async function _playKundliAnimation(chartData, doneCallback) {
+        var anim = document.getElementById("kundliAnimation");
+        var stars = document.getElementById("kundliStars");
+        var grid = document.getElementById("kundliGrid");
+        var portal = document.getElementById("kundliPortal");
+        var chartArea = document.getElementById("kundliChartArea");
+        var infoPnl = document.getElementById("kundliInfoPanel");
+        var statusTxt = document.getElementById("kundliStatusText");
+        var progFill = document.getElementById("kundliProgressFill");
+        var completeOv = document.getElementById("kundliComplete");
+        var skipBtn = document.getElementById("kundliSkip");
+
+        var skipped = false;
+        function doSkip() { skipped = true; }
+        if (skipBtn) skipBtn.addEventListener("click", doSkip);
+
+        function wait(ms) {
+            if (skipped) return Promise.resolve();
+            return new Promise(function(r) { setTimeout(r, ms); });
+        }
+        function setSt(t) { if (statusTxt) statusTxt.textContent = t; }
+        function setProg(p) { if (progFill) progFill.style.width = p + "%"; }
+
+        var vedic = chartData.vedic || {};
+        var profile = chartData.profile || {};
+        var houses = vedic.houses || {};
+        var ascSign = profile.ascendant || vedic.lagna_sign || "Aries";
+        var hpMap = _invertHouseMap(houses);
+
+        // Clean previous
+        if (stars) stars.innerHTML = "";
+        chartArea.innerHTML = "";
+
+        // Show overlay
+        anim.classList.remove("hidden");
+        await wait(30);
+        anim.classList.add("active");
+
+        // Phase 0: Stars
+        if (stars) _createStars(stars, 80);
+        setSt("CONNECTING TO CELESTIAL COORDINATES");
+        await wait(700);
+        if (skipped) { _finish(); return; }
+
+        // Phase 1: Portal
+        setSt("OPENING COSMIC GATEWAY");
+        if (grid) grid.classList.add("active");
+        if (portal) portal.classList.add("active");
+        setProg(5);
+        await wait(1800);
+        if (skipped) { _finish(); return; }
+
+        // Phase 2: Chart draws
+        setSt("MATERIALIZING YOUR BIRTH CHART");
+        if (portal) portal.classList.remove("active");
+        chartArea.classList.add("active");
+
+        var svg = _buildKundliSVG(chartArea, ascSign, hpMap, false);
+        setProg(10);
+        await wait(200);
+        if (skipped) { _finish(); return; }
+
+        // Draw lines with stagger
+        var allLines = svg.querySelectorAll(".chart-line");
+        for (var li = 0; li < allLines.length; li++) {
+            if (skipped) break;
+            allLines[li].style.strokeDashoffset = "0";
+            await wait(250);
+        }
+        setProg(15);
+        await wait(400);
+        if (skipped) { _finish(); return; }
+
+        // Show house numbers
+        svg.querySelectorAll(".kundli-house-num-text").forEach(function(el) { el.classList.add("visible"); });
+        await wait(300);
+        if (skipped) { _finish(); return; }
+
+        // Phase 3: Scan each house
+        setSt("SCANNING PLANETARY POSITIONS");
+
+        for (var h = 1; h <= 12; h++) {
+            if (skipped) break;
+            var pct = 15 + (h / 12) * 75;
+            setProg(Math.round(pct));
+
+            var sign = _signForHouse(h, ascSign);
+            var planets = hpMap[h] || [];
+            var meaning = _HOUSE_MEANINGS[h] || "";
+
+            // Highlight polygon
+            var poly = svg.querySelector('.kundli-house-poly[data-house="' + h + '"]');
+            svg.querySelectorAll(".kundli-house-poly.scanning").forEach(function(el) {
+                el.classList.remove("scanning"); el.classList.add("scanned");
+            });
+            if (poly) poly.classList.add("scanning");
+
+            // Highlight house number
+            svg.querySelectorAll(".kundli-house-num-text.active").forEach(function(el) { el.classList.remove("active"); });
+            var numEl = svg.querySelector('.kundli-house-num-text[data-house="' + h + '"]');
+            if (numEl) numEl.classList.add("active");
+
+            // Show zodiac
+            var signEl = svg.querySelector('.kundli-sign-label[data-house="' + h + '"]');
+            if (signEl) signEl.classList.add("visible");
+
+            // Update status & info panel
+            setSt("ANALYZING HOUSE " + h + " \u00B7 " + sign.toUpperCase());
+            var iHL = document.getElementById("kundliInfoHouseLabel");
+            var iSN = document.getElementById("kundliInfoSignName");
+            var iMN = document.getElementById("kundliInfoMeaning");
+            var iPL = document.getElementById("kundliInfoPlanets");
+            if (iHL) iHL.textContent = "HOUSE " + h;
+            if (iSN) iSN.textContent = (_ZODIAC_GLYPHS[sign] || "") + " " + sign;
+            if (iMN) iMN.textContent = meaning;
+            if (iPL) {
+                iPL.innerHTML = "";
+                if (planets.length === 0) {
+                    var ec = document.createElement("span");
+                    ec.className = "kundli-info-chip visible"; ec.style.opacity = "0.35";
+                    ec.textContent = "No planets"; iPL.appendChild(ec);
+                }
+            }
+            infoPnl.classList.add("active");
+
+            await wait(700);
+            if (skipped) break;
+
+            // Reveal planets
+            for (var pi = 0; pi < planets.length; pi++) {
+                if (skipped) break;
+                var pl = planets[pi];
+                var gEl = svg.querySelector('.kundli-planet-glyph[data-house="' + h + '"][data-planet="' + pl + '"]');
+                if (gEl) gEl.classList.add("visible");
+                if (iPL) {
+                    var chip = document.createElement("span");
+                    chip.className = "kundli-info-chip";
+                    chip.innerHTML = '<span class="kundli-info-chip-glyph">' + escapeHtml(_PLANET_GLYPHS[pl]||"?") + "</span> " + escapeHtml(_PLANET_NAMES[pl]||pl);
+                    iPL.appendChild(chip);
+                    chip.offsetHeight; // reflow
+                    chip.classList.add("visible");
+                }
+                await wait(400);
+            }
+
+            var hold = planets.length > 0 ? 2200 : 1200;
+            await wait(hold);
+        }
+
+        if (skipped) { _finish(); return; }
+
+        // Phase 4: Complete
+        svg.querySelectorAll(".kundli-house-poly.scanning").forEach(function(el) {
+            el.classList.remove("scanning"); el.classList.add("scanned");
+        });
+        svg.querySelectorAll(".kundli-house-num-text").forEach(function(el) { el.classList.remove("active"); });
+        svg.querySelectorAll(".kundli-sign-label, .kundli-planet-glyph").forEach(function(el) { el.classList.add("visible"); });
+
+        setProg(95);
+        setSt("SYNTHESIS COMPLETE");
+        infoPnl.classList.remove("active");
+        await wait(600);
+
+        if (completeOv) completeOv.classList.add("active");
+        setProg(100);
+        await wait(2200);
+
+        _finish();
+
+        function _finish() {
+            if (skipBtn) skipBtn.removeEventListener("click", doSkip);
+            anim.classList.remove("active");
+            setTimeout(function() {
+                anim.classList.add("hidden");
+                if (portal) portal.classList.remove("active");
+                if (grid) grid.classList.remove("active");
+                chartArea.classList.remove("active");
+                infoPnl.classList.remove("active");
+                if (completeOv) completeOv.classList.remove("active");
+                setProg(0);
+                if (doneCallback) doneCallback();
+            }, 700);
+        }
+    }
+    window.playKundliAnimation = _playKundliAnimation;
+    window.renderResultsForTesting = renderResults;
+
+    function _initReadingReveals() {
+        var cards = document.querySelectorAll(".report-card.reveal-hidden");
+        if (!cards.length) return;
+        var autoCount = 3;
+        cards.forEach(function(card, idx) {
+            if (idx < autoCount) {
+                setTimeout(function() {
+                    card.classList.remove("reveal-hidden");
+                    card.classList.add("reveal-visible");
+                    card.querySelectorAll(".reading-intensity-fill").forEach(function(bar) {
+                        var t = bar.getAttribute("data-target") || "50%";
+                        setTimeout(function() { bar.style.width = t; }, 200);
+                    });
+                }, idx * 350);
+            }
+        });
+        if ("IntersectionObserver" in window) {
+            var obs = new IntersectionObserver(function(entries) {
+                entries.forEach(function(entry) {
+                    if (entry.isIntersecting) {
+                        entry.target.classList.remove("reveal-hidden");
+                        entry.target.classList.add("reveal-visible");
+                        entry.target.querySelectorAll(".reading-intensity-fill").forEach(function(bar) {
+                            var t = bar.getAttribute("data-target") || "50%";
+                            setTimeout(function() { bar.style.width = t; }, 200);
+                        });
+                        obs.unobserve(entry.target);
+                    }
+                });
+            }, { threshold: 0.12 });
+            cards.forEach(function(card, idx) {
+                if (idx >= autoCount) obs.observe(card);
+            });
+        } else {
+            cards.forEach(function(card) {
+                card.classList.remove("reveal-hidden");
+                card.classList.add("reveal-visible");
+            });
+        }
+    }
+
+    // Ask Guru CTA delegation
+    if (reportSections) {
+        reportSections.addEventListener("click", function(e) {
+            var btn = e.target.closest(".reading-ask-cta");
+            if (!btn) return;
+            var topic = btn.getAttribute("data-topic") || "";
+            if (chatInput) {
+                chatInput.value = "Tell me more about my " + topic;
+                var gc = document.getElementById("guruChat");
+                if (gc) gc.scrollIntoView({ behavior: "smooth" });
+                chatInput.focus();
+            }
+        });
     }
 
     // ============================================
@@ -611,8 +1021,17 @@ document.addEventListener("DOMContentLoaded", function () {
             .then(function (data) {
                 finishProgress();
                 setTimeout(function () {
-                    renderResults(data);
-                    onlyStep(results, 4);
+                    if (processing) processing.classList.add("hidden");
+                    try {
+                        _playKundliAnimation(data, function () {
+                            renderResults(data);
+                            onlyStep(results, 4);
+                        });
+                    } catch (animErr) {
+                        console.error("Animation error:", animErr);
+                        renderResults(data);
+                        onlyStep(results, 4);
+                    }
                 }, 320);
             })
             .catch(function (err) {
@@ -679,6 +1098,8 @@ document.addEventListener("DOMContentLoaded", function () {
             clearPlaceSelection();
             hidePlaceDropdown();
             clearError();
+            var kundliAnimReset = document.getElementById("kundliAnimation");
+            if (kundliAnimReset) { kundliAnimReset.classList.add("hidden"); kundliAnimReset.classList.remove("active"); }
             resetProgress();
             if (reportPrintBlock) reportPrintBlock.innerHTML = "";
             if (chatLog) chatLog.innerHTML = "";

@@ -921,3 +921,278 @@
         color: #111 !important;
     }
 }
+
+/* ============================================
+   KUNDLI ANIMATION SYSTEM
+   Cinematic birth chart analysis experience
+   ============================================ */
+
+#kundliAnimation {
+    position: fixed;
+    inset: 0;
+    z-index: 200;
+    background: radial-gradient(ellipse at 50% 50%, #0a0020 0%, #030108 60%, #000 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    overflow: hidden;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.8s ease;
+}
+#kundliAnimation.active { opacity: 1; pointer-events: auto; }
+
+/* Starfield */
+.kundli-stars { position: absolute; inset: 0; overflow: hidden; pointer-events: none; }
+.kundli-star {
+    position: absolute; width: 2px; height: 2px; border-radius: 50%; background: #fff; opacity: 0;
+    animation: kundliTwinkle var(--dur, 3s) ease-in-out infinite alternate;
+}
+@keyframes kundliTwinkle {
+    0% { opacity: 0.1; transform: scale(0.5); }
+    50% { opacity: 1; transform: scale(1.3); }
+    100% { opacity: 0.3; transform: scale(0.8); }
+}
+
+/* Scanlines + vignette overlays */
+.kundli-scanlines {
+    position: absolute; inset: 0; pointer-events: none; z-index: 1;
+    background: repeating-linear-gradient(to bottom, transparent 0px, transparent 2px, rgba(0,0,0,0.04) 2px, rgba(0,0,0,0.04) 4px);
+}
+.kundli-vignette {
+    position: absolute; inset: 0; pointer-events: none;
+    background: radial-gradient(ellipse at center, transparent 35%, rgba(0,0,0,0.65) 100%);
+}
+
+/* Grid overlay (HUD) */
+.kundli-grid-overlay {
+    position: absolute; inset: 0; pointer-events: none; opacity: 0; transition: opacity 1.2s ease;
+    background-image:
+        linear-gradient(to right, rgba(34,211,238,0.03) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(168,85,247,0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+}
+.kundli-grid-overlay.active { opacity: 1; }
+
+/* Portal vortex */
+.kundli-portal {
+    position: absolute; width: 100px; height: 100px; top: 50%; left: 50%;
+    transform: translate(-50%, -50%); pointer-events: none;
+}
+.kundli-portal-ring {
+    position: absolute; inset: 0; border-radius: 50%;
+    border: 2px solid rgba(34,211,238,0.6);
+    opacity: 0; transform: scale(0);
+    transition: opacity 0.6s, transform 1.8s cubic-bezier(0.16,1,0.3,1);
+}
+.kundli-portal-ring:nth-child(2) { border-color: rgba(168,85,247,0.5); transition-duration: 0.6s, 2.2s; }
+.kundli-portal-ring:nth-child(3) { border-color: rgba(232,121,249,0.4); transition-duration: 0.6s, 2.6s; }
+.kundli-portal.active .kundli-portal-ring { opacity: 1; transform: scale(5); animation: portalRotate 6s linear infinite; }
+.kundli-portal.active .kundli-portal-ring:nth-child(2) { transform: scale(7); animation-direction: reverse; animation-duration: 8s; }
+.kundli-portal.active .kundli-portal-ring:nth-child(3) { transform: scale(9); animation-duration: 10s; }
+@keyframes portalRotate { to { transform: rotate(360deg) scale(var(--ps, 5)); } }
+
+/* Chart container */
+.kundli-chart-area {
+    position: relative; width: 400px; height: 400px;
+    max-width: 85vw; max-height: 46vh; z-index: 2;
+    opacity: 0; transform: scale(0.7);
+    transition: opacity 1s ease, transform 1s cubic-bezier(0.16,1,0.3,1);
+}
+.kundli-chart-area.active { opacity: 1; transform: scale(1); }
+
+/* SVG chart */
+.kundli-chart-svg {
+    width: 100%; height: 100%;
+    filter: drop-shadow(0 0 25px rgba(34,211,238,0.15));
+}
+.kundli-chart-svg .chart-line {
+    stroke: rgba(34,211,238,0.5); stroke-width: 1.5; fill: none;
+    transition: stroke-dashoffset 1.8s cubic-bezier(0.4,0,0.2,1);
+}
+.kundli-chart-svg .chart-outer { stroke: rgba(34,211,238,0.35); stroke-width: 2; }
+.kundli-chart-svg .chart-diamond { stroke: rgba(168,85,247,0.45); stroke-width: 1.5; }
+.kundli-chart-svg .chart-diag { stroke: rgba(148,163,184,0.2); stroke-width: 1; }
+
+/* House polygons */
+.kundli-house-poly {
+    fill: transparent; stroke: rgba(148,163,184,0.08); stroke-width: 0.5;
+    transition: fill 0.5s ease, stroke 0.4s ease, filter 0.4s ease;
+}
+.kundli-house-poly.scanning {
+    fill: rgba(34,211,238,0.1); stroke: rgba(34,211,238,0.7); stroke-width: 2;
+    filter: drop-shadow(0 0 10px rgba(34,211,238,0.4));
+    animation: houseGlow 1.2s ease-in-out infinite;
+}
+.kundli-house-poly.scanned {
+    fill: rgba(168,85,247,0.04); stroke: rgba(168,85,247,0.25); stroke-width: 1;
+}
+@keyframes houseGlow {
+    0%,100% { fill: rgba(34,211,238,0.06); }
+    50% { fill: rgba(34,211,238,0.16); }
+}
+
+/* Planet glyphs in chart */
+.kundli-planet-glyph {
+    font-size: 13px; fill: rgba(232,121,249,0); text-anchor: middle;
+    dominant-baseline: middle; pointer-events: none; transition: fill 0.7s ease;
+}
+.kundli-planet-glyph.visible {
+    fill: rgba(232,121,249,1); filter: drop-shadow(0 0 6px rgba(232,121,249,0.5));
+}
+
+/* Sign labels & house numbers */
+.kundli-sign-label {
+    font-size: 9px; fill: rgba(196,181,253,0); text-anchor: middle;
+    dominant-baseline: middle; font-family: ui-sans-serif, system-ui, sans-serif;
+    transition: fill 0.5s ease;
+}
+.kundli-sign-label.visible { fill: rgba(196,181,253,0.6); }
+.kundli-house-num-text {
+    font-size: 10px; font-weight: 700; fill: rgba(148,163,184,0); text-anchor: middle;
+    dominant-baseline: middle; font-family: ui-sans-serif, system-ui, sans-serif;
+    transition: fill 0.4s ease, font-size 0.3s ease;
+}
+.kundli-house-num-text.visible { fill: rgba(148,163,184,0.45); }
+.kundli-house-num-text.active { fill: rgba(34,211,238,0.9); font-size: 12px; }
+
+/* Info panel */
+.kundli-info-panel {
+    position: relative; width: 380px; max-width: 88vw; z-index: 2;
+    margin-top: 20px; padding: 18px 22px;
+    background: rgba(5,5,20,0.85); border: 1px solid rgba(34,211,238,0.18);
+    border-radius: 14px; backdrop-filter: blur(14px);
+    opacity: 0; transform: translateY(16px);
+    transition: opacity 0.4s ease, transform 0.4s ease;
+}
+.kundli-info-panel.active { opacity: 1; transform: translateY(0); }
+.kundli-info-house-label {
+    font-size: 0.68rem; font-weight: 800; letter-spacing: 0.22em;
+    text-transform: uppercase; color: rgba(34,211,238,0.85); margin-bottom: 3px;
+}
+.kundli-info-sign-name {
+    font-size: 1.2rem; font-weight: 700; color: #fff; margin-bottom: 5px;
+}
+.kundli-info-meaning {
+    font-size: 0.82rem; color: rgba(226,232,240,0.75); line-height: 1.5; margin-bottom: 8px;
+}
+.kundli-info-planets { display: flex; gap: 10px; flex-wrap: wrap; }
+.kundli-info-chip {
+    display: inline-flex; align-items: center; gap: 5px;
+    padding: 5px 11px; border-radius: 999px;
+    background: rgba(232,121,249,0.1); border: 1px solid rgba(232,121,249,0.28);
+    font-size: 0.78rem; color: #f5d0fe;
+    opacity: 0; transform: scale(0.5);
+    transition: opacity 0.35s ease, transform 0.35s cubic-bezier(0.16,1,0.3,1);
+}
+.kundli-info-chip.visible { opacity: 1; transform: scale(1); }
+.kundli-info-chip-glyph { font-size: 1rem; }
+
+/* Status bar */
+.kundli-status-bar {
+    position: absolute; bottom: 28px; left: 50%; transform: translateX(-50%);
+    text-align: center; width: 300px; max-width: 85vw; z-index: 2;
+}
+.kundli-status-text {
+    font-size: 0.68rem; font-weight: 700; letter-spacing: 0.22em;
+    text-transform: uppercase; color: rgba(34,211,238,0.65);
+    animation: statusBlink 2s ease-in-out infinite;
+}
+@keyframes statusBlink { 0%,100% { opacity: 0.65; } 50% { opacity: 1; } }
+.kundli-progress { width: 100%; height: 3px; border-radius: 2px; background: rgba(148,163,184,0.12); margin-top: 8px; overflow: hidden; }
+.kundli-progress-fill { height: 100%; width: 0; border-radius: 2px; background: linear-gradient(90deg, rgba(34,211,238,0.85), rgba(168,85,247,0.85)); transition: width 0.3s ease; }
+
+/* Skip button */
+.kundli-skip-btn {
+    position: absolute; top: 22px; right: 22px; z-index: 10;
+    padding: 7px 16px; border-radius: 999px;
+    border: 1px solid rgba(148,163,184,0.22); background: rgba(2,6,23,0.45);
+    color: rgba(226,232,240,0.65); font-size: 0.75rem; cursor: pointer;
+    transition: border-color 0.2s, color 0.2s, background 0.2s;
+    backdrop-filter: blur(8px);
+}
+.kundli-skip-btn:hover {
+    border-color: rgba(34,211,238,0.4); color: rgba(34,211,238,0.9);
+    background: rgba(34,211,238,0.06);
+}
+
+/* Analysis complete overlay */
+.kundli-complete-overlay {
+    position: absolute; inset: 0; display: flex; flex-direction: column;
+    align-items: center; justify-content: center; z-index: 5;
+    background: rgba(3,1,8,0.88); opacity: 0; transition: opacity 0.7s ease;
+    pointer-events: none;
+}
+.kundli-complete-overlay.active { opacity: 1; }
+.kundli-complete-title {
+    font-size: clamp(1.4rem, 4vw, 2.4rem); font-weight: 900; letter-spacing: 0.12em;
+    background: linear-gradient(135deg, rgba(34,211,238,1), rgba(168,85,247,1), rgba(232,121,249,1));
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+    animation: completeShine 2s ease-in-out infinite;
+}
+@keyframes completeShine { 0%,100% { opacity: 0.8; transform: scale(1); } 50% { opacity: 1; transform: scale(1.04); } }
+.kundli-complete-sub {
+    font-size: 0.82rem; color: rgba(196,181,253,0.6); margin-top: 8px; letter-spacing: 0.08em;
+}
+
+/* ============================================
+   ENHANCED READING EXPERIENCE
+   ============================================ */
+
+.report-card.reveal-hidden {
+    opacity: 0; transform: translateY(28px);
+    transition: opacity 0.6s ease, transform 0.6s cubic-bezier(0.16,1,0.3,1);
+}
+.report-card.reveal-visible {
+    opacity: 1; transform: translateY(0);
+    animation: cardBorderGlow 1.4s ease;
+}
+@keyframes cardBorderGlow {
+    0% { box-shadow: 0 0 0 rgba(34,211,238,0); border-color: rgba(34,211,238,0.45); }
+    50% { box-shadow: 0 0 25px rgba(34,211,238,0.12); }
+    100% { box-shadow: none; border-color: rgba(192,132,252,0.32); }
+}
+
+.reading-ask-cta {
+    display: inline-flex; align-items: center; gap: 5px;
+    padding: 4px 13px; border-radius: 999px; margin-top: 10px;
+    border: 1px solid rgba(34,211,238,0.22); background: rgba(34,211,238,0.05);
+    color: rgba(34,211,238,0.8); font-size: 0.72rem; cursor: pointer;
+    transition: all 0.2s ease;
+}
+.reading-ask-cta:hover {
+    background: rgba(34,211,238,0.1); border-color: rgba(34,211,238,0.4);
+    color: rgba(34,211,238,1); box-shadow: 0 0 12px rgba(34,211,238,0.12);
+}
+.reading-intensity { display: flex; align-items: center; gap: 8px; margin-top: 10px; }
+.reading-intensity-label {
+    font-size: 0.62rem; font-weight: 600; letter-spacing: 0.1em;
+    text-transform: uppercase; color: rgba(196,181,253,0.5); white-space: nowrap;
+}
+.reading-intensity-bar { flex: 1; height: 3px; border-radius: 2px; background: rgba(148,163,184,0.12); overflow: hidden; }
+.reading-intensity-fill {
+    height: 100%; border-radius: 2px; width: 0;
+    background: linear-gradient(90deg, rgba(34,211,238,0.7), rgba(168,85,247,0.7));
+    transition: width 1.4s cubic-bezier(0.16,1,0.3,1);
+}
+
+/* Mini kundli in results */
+.mini-kundli-wrap { display: flex; justify-content: center; padding: 16px 0; }
+.mini-kundli-svg { width: 260px; height: 260px; filter: drop-shadow(0 0 12px rgba(34,211,238,0.12)); }
+.mini-kundli-svg .chart-line { stroke: rgba(34,211,238,0.35); stroke-width: 1; fill: none; }
+.mini-kundli-svg .chart-outer { stroke: rgba(34,211,238,0.25); }
+.mini-kundli-svg .chart-diamond { stroke: rgba(168,85,247,0.3); }
+.mini-kundli-svg .chart-diag { stroke: rgba(148,163,184,0.12); }
+.mini-kundli-svg .kundli-house-poly { fill: rgba(168,85,247,0.03); stroke: rgba(148,163,184,0.1); }
+.mini-kundli-svg .kundli-planet-glyph { font-size: 10px; }
+.mini-kundli-svg .kundli-sign-label { font-size: 7px; }
+.mini-kundli-svg .kundli-house-num-text { font-size: 8px; }
+
+/* Responsive kundli */
+@media (max-width: 600px) {
+    .kundli-chart-area { width: 280px; height: 280px; }
+    .kundli-info-panel { width: 92vw; padding: 14px 16px; }
+    .kundli-complete-title { font-size: 1.2rem; }
+    .kundli-skip-btn { top: 14px; right: 14px; font-size: 0.7rem; }
+}

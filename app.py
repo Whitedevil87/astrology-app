@@ -49,10 +49,12 @@ app.config["MAX_CONTENT_LENGTH"] = 10 * 1024 * 1024
 # Production security configurations
 app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", "dev-key-change-in-production")
 app.config["DEBUG"] = os.environ.get("FLASK_DEBUG", "false").lower() in ("1", "true", "yes")
-app.config["SESSION_COOKIE_SECURE"] = not app.config["DEBUG"]
+
+# Disable secure cookies if running locally without HTTPS to allow CSRF sessions to persist
+app.config["SESSION_COOKIE_SECURE"] = os.environ.get("REQUIRE_HTTPS", "false").lower() in ("1", "true", "yes")
 app.config["SESSION_COOKIE_HTTPONLY"] = True
 app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
-app.config["PREFERRED_URL_SCHEME"] = "https" if not app.config["DEBUG"] else "http"
+app.config["PREFERRED_URL_SCHEME"] = "https" if app.config["SESSION_COOKIE_SECURE"] else "http"
 
 # Production hardening (safe defaults)
 app.config["SESSION_COOKIE_NAME"] = os.environ.get("SESSION_COOKIE_NAME", "celestial_arc")

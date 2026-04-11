@@ -262,6 +262,35 @@
         💬
     </button>
 
+    <!-- Kundli Animation Overlay -->
+    <div id="kundliAnimation" class="hidden">
+        <div class="kundli-stars" id="kundliStars"></div>
+        <div class="kundli-scanlines"></div>
+        <div class="kundli-vignette"></div>
+        <div class="kundli-grid-overlay" id="kundliGrid"></div>
+        <div class="kundli-portal" id="kundliPortal">
+            <div class="kundli-portal-ring"></div>
+            <div class="kundli-portal-ring"></div>
+            <div class="kundli-portal-ring"></div>
+        </div>
+        <div class="kundli-chart-area" id="kundliChartArea"></div>
+        <div class="kundli-info-panel" id="kundliInfoPanel">
+            <div class="kundli-info-house-label" id="kundliInfoHouseLabel"></div>
+            <div class="kundli-info-sign-name" id="kundliInfoSignName"></div>
+            <div class="kundli-info-meaning" id="kundliInfoMeaning"></div>
+            <div class="kundli-info-planets" id="kundliInfoPlanets"></div>
+        </div>
+        <div class="kundli-status-bar">
+            <div class="kundli-status-text" id="kundliStatusText">INITIALIZING BIRTH CHART ANALYSIS</div>
+            <div class="kundli-progress"><div class="kundli-progress-fill" id="kundliProgressFill"></div></div>
+        </div>
+        <div class="kundli-complete-overlay" id="kundliComplete">
+            <div class="kundli-complete-title">ANALYSIS COMPLETE</div>
+            <div class="kundli-complete-sub">Preparing your cosmic reading...</div>
+        </div>
+        <button type="button" id="kundliSkip" class="kundli-skip-btn">Skip Animation ⟩</button>
+    </div>
+
     <script src="{{ url_for('static', filename='js/app.js') }}"></script>
 </body>
 </html>
