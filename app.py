@@ -870,7 +870,11 @@ def _groq_chat(system: str, user: str, api_key: str) -> Optional[str]:
         error_msg = str(e)
         
         # Parse error details
-        if "401" in error_msg or "Unauthorized" in error_msg:
+        if "model_decommissioned" in error_msg:
+            logger.error(f"❌ Model Decommissioned from Groq - Update GROQ_MODEL env var")
+            logger.error(f"   Current model may be deprecated. Visit: https://console.groq.com/docs/deprecations")
+            logger.error(f"   Try: GROQ_MODEL=llama-3.1-8b-instant or llama-3.3-70b-versatile")
+        elif "401" in error_msg or "Unauthorized" in error_msg:
             logger.error(f"❌ 401 Unauthorized from Groq - Invalid API key")
         elif "403" in error_msg or "Forbidden" in error_msg or "1010" in error_msg:
             logger.error(f"❌ 403 Forbidden/1010 from Groq - Check API key permissions or try new key")
@@ -1455,20 +1459,6 @@ def api_chat():
         )
     except Exception as e:
         logger.error(f"❌ Chat endpoint error: {type(e).__name__}: {e}")
-        return jsonify({
-            "success": False,
-            "error": "An error occurred while processing your message."
-        }), 500
-
-        return jsonify(
-            {
-                "success": True,
-                "reply": ai_reply,
-                "source": "ai",
-            }
-        )
-    except Exception as e:
-        logger.error(f"Chat endpoint error: {type(e).__name__}: {e}")
         return jsonify({
             "success": False,
             "error": "An error occurred while processing your message."
