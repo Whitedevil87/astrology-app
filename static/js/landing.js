@@ -22,17 +22,25 @@ function scrollToApp() {
 // ============================================
 
 function toggleFAQ(button) {
-    const faqItem =
-        button.closest('.faq-item') ||
-        button.closest('.faq-card') ||
-        button.parentElement;
+    const faqItem = button.closest('.faq-item') || button.closest('.faq-card') || button.parentElement;
 
     // Close all other FAQ items (single-open behavior)
-    document.querySelectorAll('.faq-item.active, .faq-card.active').forEach(item => {
-        if (item !== faqItem) item.classList.remove('active');
+    document.querySelectorAll('.faq-item, .faq-card').forEach(item => {
+        if (item !== faqItem) {
+            const otherContent = item.querySelector('.faq-content');
+            const otherToggle = item.querySelector('.faq-toggle');
+            if (otherContent) otherContent.classList.remove('active');
+            if (otherToggle) otherToggle.textContent = '+';
+        }
     });
 
-    faqItem.classList.toggle('active');
+    // Toggle current
+    const content = button.nextElementSibling;
+    const toggle = button.querySelector('.faq-toggle');
+    if (content) {
+        content.classList.toggle('active');
+        if (toggle) toggle.textContent = content.classList.contains('active') ? '−' : '+';
+    }
 }
 
 // ============================================

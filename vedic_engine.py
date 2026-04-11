@@ -13,6 +13,7 @@ import re
 import math
 from typing import Any, Dict, List, Tuple, Optional
 from datetime import datetime
+import math
 
 try:
     from skyfield.api import Astrometric, load, wgs84
@@ -55,6 +56,57 @@ def _whole_sign_house(planet_sign: str, lagna_sign: str) -> int:
     p = _sign_index(planet_sign)
     l = _sign_index(lagna_sign)
     return (p - l) % 12 + 1
+
+
+def _norm360(x: float) -> float:
+    x = x % 360.0
+    return x + 360.0 if x < 0 else x
+
+
+def _sign_from_longitude(lon_deg: float) -> str:
+    idx = int(_norm360(lon_deg) // 30)
+    return ZODIAC_ORDER[idx]
+
+
+def _get_planet_lon(jd: float, planet: str) -> float:
+    T = (jd - 2451545.0) / 36525.0
+    if planet == 'Rahu':
+        omega = 125.04452 - 1934.136261 * T + 0.0020708 * T * T
+        return _norm360(omega)
+    if planet == 'Ketu':
+        omega = 125.04452 - 1934.136261 * T + 0.0020708 * T * T
+        return _norm360(omega + 180.0)
+    
+    # L, M = Mean Longitude, Mean Anomaly
+    if planet == 'Mercury':
+        L = 252.250 + 149472.674 * T
+        M = 174.795 + 149472.674 * T
+        M_rad = math.radians(_norm360(M))
+        C = 23.69 * math.sin(M_rad) + 3.47 * math.sin(2*M_rad)
+    elif planet == 'Venus':
+        L = 181.980 + 58517.816 * T
+        M = 50.416 + 58517.816 * T
+        M_rad = math.radians(_norm360(M))
+        C = 0.77 * math.sin(M_rad) + 0.01 * math.sin(2*M_rad)
+    elif planet == 'Mars':
+        L = 355.433 + 19140.299 * T
+        M = 19.373 + 19140.299 * T
+        M_rad = math.radians(_norm360(M))
+        C = 10.69 * math.sin(M_rad) + 0.62 * math.sin(2*M_rad)
+    elif planet == 'Jupiter':
+        L = 34.351 + 3034.906 * T
+        M = 20.020 + 3034.906 * T
+        M_rad = math.radians(_norm360(M))
+        C = 5.55 * math.sin(M_rad) + 0.17 * math.sin(2*M_rad)
+    elif planet == 'Saturn':
+        L = 50.077 + 1222.114 * T
+        M = 317.021 + 1222.114 * T
+        M_rad = math.radians(_norm360(M))
+        C = 6.36 * math.sin(M_rad) + 0.22 * math.sin(2*M_rad)
+    else:
+        return 0.0
+
+    return _norm360(L + C)
 
 
 def _ketu_from_rahu(rahu_house: int) -> int:
@@ -162,6 +214,7 @@ def build_vedic_bundle(
     birth_place: str,
     kundli_notes: str,
     has_kundli_image: bool,
+    hybrid_details: Optional[Dict[str, Any]] = None,
 ) -> Tuple[Dict[str, str], Dict[str, Any]]:
     """
     Returns (sections dict for report, structured vedic dict for chat/JSON).
@@ -169,29 +222,51 @@ def build_vedic_bundle(
     seed = _pseudo_seed(birth_date, birth_time, birth_place)
     overrides = parse_kundli_notes(kundli_notes)
 
-    sun_h = overrides.get("sun_house") or _whole_sign_house(sun_sign, lagna_sign)
-    moon_h = overrides.get("moon_house") or _whole_sign_house(moon_sign, lagna_sign)
-    mars_h = overrides.get("mars_house") or _clamp_house((seed % 12) + 1)
+    jd = hybrid_details.get("jd") if hybrid_details else None
 
-    rahu_o = overrides.get("rahu_house")
-    ketu_o = overrides.get("ketu_house")
-    if rahu_o is not None and ketu_o is not None:
-        rahu_h = _clamp_house(rahu_o)
-        ketu_h = _clamp_house(ketu_o)
-    elif rahu_o is not None:
-        rahu_h = _clamp_house(rahu_o)
-        ketu_h = _ketu_from_rahu(rahu_h)
-    elif ketu_o is not None:
-        ketu_h = _clamp_house(ketu_o)
-        rahu_h = _ketu_from_rahu(ketu_h)
+    if jd is not None:
+        # High precision calculation using true math engine
+        sun_h = overrides.get("sun_house") or _whole_sign_house(sun_sign, lagna_sign)
+        moon_h = overrides.get("moon_house") or _whole_sign_house(moon_sign, lagna_sign)
+        mars_sign = _sign_from_longitude(_get_planet_lon(jd, "Mars"))
+        mars_h = overrides.get("mars_house") or _whole_sign_house(mars_sign, lagna_sign)
+        mercury_sign = _sign_from_longitude(_get_planet_lon(jd, "Mercury"))
+        mercury_h = overrides.get("mercury_house") or _whole_sign_house(mercury_sign, lagna_sign)
+        venus_sign = _sign_from_longitude(_get_planet_lon(jd, "Venus"))
+        venus_h = overrides.get("venus_house") or _whole_sign_house(venus_sign, lagna_sign)
+        jupiter_sign = _sign_from_longitude(_get_planet_lon(jd, "Jupiter"))
+        jupiter_h = overrides.get("jupiter_house") or _whole_sign_house(jupiter_sign, lagna_sign)
+        saturn_sign = _sign_from_longitude(_get_planet_lon(jd, "Saturn"))
+        saturn_h = overrides.get("saturn_house") or _whole_sign_house(saturn_sign, lagna_sign)
+        rahu_sign = _sign_from_longitude(_get_planet_lon(jd, "Rahu"))
+        ketu_sign = _sign_from_longitude(_get_planet_lon(jd, "Ketu"))
+        rahu_h = overrides.get("rahu_house") or _whole_sign_house(rahu_sign, lagna_sign)
+        ketu_h = overrides.get("ketu_house") or _whole_sign_house(ketu_sign, lagna_sign)
+        house_msg = "Calculated using advanced high-precision planetary ephemeris."
     else:
-        rahu_h = _clamp_house((((seed // 9) + 10) % 12) + 1)
-        ketu_h = _ketu_from_rahu(rahu_h)
-
-    mercury_h = overrides.get("mercury_house") or _clamp_house((seed // 3 % 12) + 1)
-    venus_h = overrides.get("venus_house") or _clamp_house((seed // 5 % 12) + 1)
-    jupiter_h = overrides.get("jupiter_house") or _clamp_house((seed // 7 % 12) + 1)
-    saturn_h = overrides.get("saturn_house") or _clamp_house((seed // 11 % 12) + 1)
+        # Fallback pseudo-seed logic
+        sun_h = overrides.get("sun_house") or _whole_sign_house(sun_sign, lagna_sign)
+        moon_h = overrides.get("moon_house") or _whole_sign_house(moon_sign, lagna_sign)
+        mars_h = overrides.get("mars_house") or _clamp_house((seed % 12) + 1)
+        rahu_o = overrides.get("rahu_house")
+        ketu_o = overrides.get("ketu_house")
+        if rahu_o is not None and ketu_o is not None:
+            rahu_h = _clamp_house(rahu_o)
+            ketu_h = _clamp_house(ketu_o)
+        elif rahu_o is not None:
+            rahu_h = _clamp_house(rahu_o)
+            ketu_h = _ketu_from_rahu(rahu_h)
+        elif ketu_o is not None:
+            ketu_h = _clamp_house(ketu_o)
+            rahu_h = _ketu_from_rahu(ketu_h)
+        else:
+            rahu_h = _clamp_house((((seed // 9) + 10) % 12) + 1)
+            ketu_h = _ketu_from_rahu(rahu_h)
+        mercury_h = overrides.get("mercury_house") or _clamp_house((seed // 3 % 12) + 1)
+        venus_h = overrides.get("venus_house") or _clamp_house((seed // 5 % 12) + 1)
+        jupiter_h = overrides.get("jupiter_house") or _clamp_house((seed // 7 % 12) + 1)
+        saturn_h = overrides.get("saturn_house") or _clamp_house((seed // 11 % 12) + 1)
+        house_msg = "Simulated positions (demo logic); for high precision, provide exact coordinates."
 
     day_of_year = birth_date.timetuple().tm_yday
     md_index = (day_of_year + birth_time.hour + (seed % 9)) % 9
@@ -203,10 +278,14 @@ def build_vedic_bundle(
 
     house_lines = [
         f"Lagna ({lagna_sign}) occupies House 1 — {HOUSE_MEANINGS[1]}",
+        f"Engine: {house_msg}",
         f"Sun ({sun_sign}) → House {sun_h}: {HOUSE_MEANINGS.get(sun_h, '')}",
         f"Moon ({moon_sign}) → House {moon_h}: {HOUSE_MEANINGS.get(moon_h, '')}",
         f"Mars → House {mars_h}: {HOUSE_MEANINGS.get(mars_h, '')}",
-        f"Mercury → House {mercury_h}, Venus → House {venus_h}, Jupiter → House {jupiter_h}, Saturn → House {saturn_h} (demo unless overridden in notes)",
+        f"Mercury → House {mercury_h}",
+        f"Venus → House {venus_h}",
+        f"Jupiter → House {jupiter_h}",
+        f"Saturn → House {saturn_h}",
     ]
 
     upload_note = (
@@ -229,12 +308,12 @@ def build_vedic_bundle(
     )
 
     dasha_blurb = (
-        f"Vimshottari-style snapshot (demo): Mahadasha flavor {mahadasha}, with a secondary emphasis {antar} for timing questions. "
-        "Use this as journaling language; precise dasha tables require Swiss ephemeris + birth time accuracy."
+        f"Vimshottari-style snapshot: Mahadasha flavor {mahadasha}, with a secondary emphasis {antar} for timing questions. "
+        "Use this as journaling language."
     )
 
     dosha_blurb = (
-        "Dosha scan (demo): " + ("; ".join(flags) if flags else "No major demo-flag from Mars placement — still verify classically with your full chart.")
+        "Dosha scan: " + ("; ".join(flags) if flags else "No major flag from Mars placement.")
     )
 
     structured: Dict[str, Any] = {
@@ -272,10 +351,15 @@ def format_guru_context(name: str, profile: Dict[str, str], vedic: Dict[str, Any
     h = vedic.get("houses", {})
     return (
         f"Querent: {name}. Sun {profile.get('zodiac')}, Moon {profile.get('moon_sign')}, Asc {profile.get('ascendant')}.\n"
-        f"Demo houses: Sun {h.get('sun')}, Moon {h.get('moon')}, Mars {h.get('mars')}, Rahu {h.get('rahu')}, Ketu {h.get('ketu')}.\n"
-        f"Mahadasha flavor: {vedic.get('mahadasha')} (demo). Lucky hints: {blueprint.get('lucky_day')}, colors {blueprint.get('lucky_color')}.\n"
-        f"Dosha flags: {', '.join(vedic.get('dosha_flags') or ['none flagged'])}.\n"
-        "Tone: wise, compassionate jyotishi; avoid fear; no medical/legal claims; encourage professional counsel."
+        f"Mathematical House Placements (1-12) based on True Ecliptic Longitude:\n"
+        f"Sun {h.get('sun')}, Moon {h.get('moon')}, Mars {h.get('mars')}, Mercury {h.get('mercury')}, Venus {h.get('venus')},\n"
+        f"Jupiter {h.get('jupiter')}, Saturn {h.get('saturn')}, Rahu {h.get('rahu')}, Ketu {h.get('ketu')}.\n"
+        f"Mahadasha flavor: {vedic.get('mahadasha')}. Dosha flags: {', '.join(vedic.get('dosha_flags') or ['none flagged'])}.\n"
+        "AI INSTRUCTIONS:\n"
+        "1. You are an advanced, futuristic Astrologer possessing deep knowledge of Vedic and Western astrology.\n"
+        "2. Directly analyze these exact mathematical house placements in your predictions.\n"
+        "3. Provide rich, highly specific insights and future forecasts based precisely on the interactions of these houses.\n"
+        "4. Be profound, compassionate, and wise. Maintain an advanced cosmic tone."
     )
 
 

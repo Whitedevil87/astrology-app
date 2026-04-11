@@ -1273,6 +1273,7 @@ def analyze():
         birth_place,
         kundli_notes,
         bool(kundli_image_path),
+        hybrid_details,
     )
     sections.update(vedic_sections)
 
