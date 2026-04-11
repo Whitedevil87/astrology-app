@@ -23,6 +23,7 @@ try:
     GROQ_SDK_AVAILABLE = True
 except ImportError:
     GROQ_SDK_AVAILABLE = False
+    Groq = None  # type: ignore
 
 OPENAI_AVAILABLE = True
 
@@ -203,8 +204,14 @@ def photon_search(q: str, limit: int = 7) -> list[Dict[str, Any]]:
             props = feat.get("properties") or {}
             geom = feat.get("geometry") or {}
             coords = (geom.get("coordinates") or [None, None])
-            lon = float(coords[0])
-            lat = float(coords[1])
+            if not coords or len(coords) < 2:
+                continue
+            coord_lon = coords[0]
+            coord_lat = coords[1]
+            if coord_lon is None or coord_lat is None:
+                continue
+            lon = float(coord_lon)
+            lat = float(coord_lat)
             name = props.get("name") or ""
             city = props.get("city") or ""
             state = props.get("state") or props.get("region") or ""
@@ -846,6 +853,10 @@ def openai_guru_reply(system: str, user: str) -> Optional[str]:
 
 def _groq_chat(system: str, user: str, api_key: str) -> Optional[str]:
     """Use official Groq Python SDK (recommended way)."""
+    if not GROQ_SDK_AVAILABLE or Groq is None:
+        logger.warning("⚠️ Groq SDK not available, falling back to HTTP")
+        return _groq_http_fallback(system, user, api_key)
+    
     try:
         model = os.environ.get("GROQ_MODEL", "").strip() or "llama-3.1-8b-instant"
         logger.info(f"🔄 Using Groq SDK with model '{model}'")
@@ -1436,7 +1447,6 @@ def api_chat():
             "You are a concise Vedic astrology chat guide. "
             "Answer user questions directly and briefly (2-3 sentences max). "
             "Use the CONTEXT provided but avoid repeating it. "
-            "No greetings like 'Namaste' or unnecessary pleasantries. "
             "Focus on actionable insights, not lengthy explanations. "
             "Be respectful, mystical, but always brief."
         )
