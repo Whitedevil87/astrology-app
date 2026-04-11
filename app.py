@@ -1433,10 +1433,12 @@ def api_chat():
     try:
         ctx = format_guru_context(row["full_name"], profile, vedic, blueprint)
         system = (
-            "You are a compassionate, accurate Vedic-inspired astrologer chat guide. "
-            "Use the structured CONTEXT; do not invent precise astronomical facts not in context. "
-            "Refuse medical/legal claims; encourage professional human advice. "
-            "Tone: warm, mystical, empowering."
+            "You are a concise Vedic astrology chat guide. "
+            "Answer user questions directly and briefly (2-3 sentences max). "
+            "Use the CONTEXT provided but avoid repeating it. "
+            "No greetings like 'Namaste' or unnecessary pleasantries. "
+            "Focus on actionable insights, not lengthy explanations. "
+            "Be respectful, mystical, but always brief."
         )
         user_blob = f"CONTEXT:\n{ctx}\n\nUSER QUESTION:\n{message}"
         logger.info(f"   Calling AI endpoint...")
