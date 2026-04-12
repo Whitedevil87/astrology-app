@@ -20,10 +20,14 @@ from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 # Try importing Groq client (recommended way)
 try:
     from groq import Groq
+    import httpx
     GROQ_SDK_AVAILABLE = True
+    HTTPX_AVAILABLE = True
 except ImportError:
     GROQ_SDK_AVAILABLE = False
+    HTTPX_AVAILABLE = False
     Groq = None  # type: ignore
+    httpx = None  # type: ignore
 
 OPENAI_AVAILABLE = True
 
@@ -873,7 +877,20 @@ def _groq_chat(system: str, user: str, api_key: str) -> Optional[str]:
         model = os.environ.get("GROQ_MODEL", "").strip() or "llama-3.1-8b-instant"
         logger.info(f"🔄 Using Groq SDK with model '{model}'")
         
-        client = Groq(api_key=api_key)
+        # Create explicit httpx client without proxy to avoid environment variable conflicts
+        # This prevents "TypeError: Client.__init__() got an unexpected keyword argument 'proxies'"
+        if HTTPX_AVAILABLE:
+            try:
+                # Create httpx client without allowing environment proxies
+                http_client = httpx.Client(trust_env=False)
+                client = Groq(api_key=api_key, http_client=http_client)
+            except Exception as httpx_err:
+                # Fallback if explicit http_client fails
+                logger.warning(f"⚠️ Could not create explicit httpx client: {httpx_err}. Retrying without it.")
+                client = Groq(api_key=api_key)
+        else:
+            client = Groq(api_key=api_key)
+        
         chat_completion = client.chat.completions.create(
             messages=[
                 {"role": "system", "content": system},
