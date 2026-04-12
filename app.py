@@ -47,7 +47,17 @@ app.config["UPLOAD_FOLDER"] = UPLOAD_DIR
 app.config["MAX_CONTENT_LENGTH"] = 10 * 1024 * 1024
 
 # Production security configurations
-app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", "dev-key-change-in-production")
+# Secure SECRET_KEY configuration
+_SECRET_KEY = os.environ.get("SECRET_KEY", "").strip()
+if not _SECRET_KEY:
+    if os.environ.get("FLASK_ENV") == "production":
+        logger.critical("❌ CRITICAL: SECRET_KEY environment variable is not set in production!")
+        logger.critical("   This is a security vulnerability. Set SECRET_KEY env var before deploying.")
+    else:
+        logger.warning("⚠️ Using development SECRET_KEY fallback")
+        _SECRET_KEY = "dev-key-change-in-production-UNSAFE"
+app.config["SECRET_KEY"] = _SECRET_KEY
+
 app.config["DEBUG"] = os.environ.get("FLASK_DEBUG", "false").lower() in ("1", "true", "yes")
 
 # Disable secure cookies if running locally without HTTPS to allow CSRF sessions to persist
@@ -1255,7 +1265,7 @@ def analyze():
         }
         chart_debug["fallback"] = "legacy_approx"
 
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc).replace(tzinfo=None)  # Python 3.12+ compatible
     blueprint = build_blueprint(profile["zodiac"], profile["moon_sign"], profile["ascendant"], parsed_date)
     sections = build_prediction(
         full_name,
@@ -1345,43 +1355,9 @@ def api_config():
     )
 
 
-@app.route("/api/debug/chat-config", methods=["GET"])
-def debug_chat_config():
-    """Debug endpoint to check chat configuration. Redacts sensitive values."""
-    groq_key = os.environ.get("GROQ_API_KEY", "").strip()
-    openai_key = os.environ.get("OPENAI_API_KEY", "").strip()
-    groq_model = os.environ.get("GROQ_MODEL", "").strip()
-    openai_model = os.environ.get("OPENAI_MODEL", "").strip()
-    
-    def redact(key: str) -> str:
-        if not key:
-            return "[NOT SET]"
-        if len(key) < 10:
-            return f"[TOO SHORT: {len(key)} chars]"
-        return f"[SET: {key[:10]}...{key[-5:]}]"
-    
-    return jsonify({
-        "groq": {
-            "api_key": redact(groq_key),
-            "model": groq_model or "[DEFAULT: llama-3.1-8b-instant]",
-            "endpoint": "https://api.groq.com/openai/v1",
-            "status": "✅ READY" if groq_key and groq_model else "❌ MISSING"
-        },
-        "openai": {
-            "api_key": redact(openai_key),
-            "model": openai_model or "[DEFAULT: gpt-4o-mini]",
-            "endpoint": "https://api.openai.com/v1",
-            "status": "✅ READY" if openai_key else "❌ MISSING"
-        },
-        "active_provider": "Groq" if groq_key else ("OpenAI" if openai_key else "NONE"),
-        "custom_base_url": os.environ.get("AI_CHAT_BASE_URL", "[NOT SET]"),
-        "openai_available_flag": OPENAI_AVAILABLE,
-        "recommendations": [
-            "Ensure GROQ_API_KEY is set on Render" if not groq_key else "✅ GROQ_API_KEY is set",
-            "Set GROQ_MODEL to 'llama-3.1-8b-instant'" if not groq_model else f"✅ GROQ_MODEL = {groq_model}",
-            "API key must be at least 20 characters" if groq_key and len(groq_key) < 20 else "✅ API key length OK"
-        ]
-    })
+# SECURITY: Debug endpoint removed to prevent information disclosure
+# This endpoint was leaking API key patterns (first 10 + last 5 characters)
+# If you need configuration debugging, access Render dashboard directly
 
 
 @app.route("/api/chat", methods=["POST"])

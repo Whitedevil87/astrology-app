@@ -835,6 +835,8 @@
 .floating-chat-messages::-webkit-scrollbar-thumb:hover {
     background: rgba(34, 211, 238, 0.5);
 }
+
+.report-section-heading {
     gap: 0.35rem;
     margin-bottom: 0.4rem;
 }
