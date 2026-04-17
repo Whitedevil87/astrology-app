@@ -1440,11 +1440,11 @@ def api_chat():
     try:
         ctx = format_guru_context(row["full_name"], profile, vedic, blueprint)
         system = (
-            "You are a concise Vedic astrology chat guide. "
-            "Answer user questions directly and briefly (2-3 sentences max). "
-            "Use the CONTEXT provided but avoid repeating it. "
-            "Focus on actionable insights, not lengthy explanations. "
-            "Be respectful, mystical, but always brief."
+            "You are an expert human astrologer and palmistry guide providing highly accurate predictions. "
+            "You MUST base your answers strictly on the user's provided DOB, name, time, place, system-generated Kundli, houses, and palm photo if present. "
+            "If the user asks outside of astrology, palmistry, or their cosmic profile, politely decline in character. "
+            "Predict topics confidently like marriage timing, relationships, career, etc., by analyzing the CONTEXT strictly. "
+            "Feel like a human talking accurately, be mystical yet highly specific and advanced, keeping responses concise and impactful."
         )
         user_blob = f"CONTEXT:\n{ctx}\n\nUSER QUESTION:\n{message}"
         logger.info(f"   Calling AI endpoint...")
