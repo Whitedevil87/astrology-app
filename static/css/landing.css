@@ -36,6 +36,28 @@ body {
 }
 
 /* ============================================
+   SLIDE SCROLL STYLES
+   ============================================ */
+
+.slide-scroll-container {
+    scroll-snap-type: y mandatory;
+    overflow-y: scroll;
+    height: 100vh;
+}
+
+.slide-scroll-container section,
+.slide-scroll-container .zodiac-strip,
+.slide-scroll-container .footer,
+.slide-scroll-container > div[id^="how"],
+.slide-scroll-container > div[id^="features"],
+.slide-scroll-container > div[id^="testimonials"],
+.slide-scroll-container > div[id^="faq"],
+.slide-scroll-container > div[id^="final"] {
+    scroll-snap-align: start;
+    scroll-snap-stop: always;
+}
+
+/* ============================================
    COSMIC BACKGROUND
    ============================================ */
 
@@ -997,6 +1019,46 @@ body {
 }
 
 /* ============================================
+   SLIDE INDICATORS
+   ============================================ */
+
+.slide-indicators {
+    position: fixed;
+    right: 30px;
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 999;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.slide-indicator-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    border: 2px solid rgba(0, 217, 255, 0.4);
+    background: transparent;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    padding: 0;
+}
+
+.slide-indicator-dot:hover {
+    border-color: var(--color-primary);
+    width: 14px;
+    height: 14px;
+}
+
+.slide-indicator-dot.active {
+    background: linear-gradient(135deg, var(--color-primary), var(--color-secondary));
+    border-color: var(--color-primary);
+    box-shadow: 0 0 20px rgba(0, 217, 255, 0.5);
+    width: 16px;
+    height: 16px;
+}
+
+/* ============================================
    RESPONSIVE DESIGN
    ============================================ */
 
@@ -1012,6 +1074,21 @@ body {
     .cta-nav-btn {
         padding: 0.5rem 1.2rem;
         font-size: 0.9rem;
+    }
+
+    .slide-indicators {
+        right: 15px;
+        gap: 8px;
+    }
+
+    .slide-indicator-dot {
+        width: 10px;
+        height: 10px;
+    }
+
+    .slide-indicator-dot.active {
+        width: 14px;
+        height: 14px;
     }
 
     .hero {
@@ -1245,6 +1322,21 @@ body {
 
     body {
         font-size: 14px;
+    }
+
+    .slide-indicators {
+        right: 10px;
+        gap: 6px;
+    }
+
+    .slide-indicator-dot {
+        width: 8px;
+        height: 8px;
+    }
+
+    .slide-indicator-dot.active {
+        width: 12px;
+        height: 12px;
     }
 
     .navbar {

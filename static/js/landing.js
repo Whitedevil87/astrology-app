@@ -1,7 +1,117 @@
 /**
  * Celestial Arc - Landing Page JavaScript
- * Minimal, performance-optimized interactions
+ * Premium slide-based scroll experience
  */
+
+// ============================================
+// SLIDE NAVIGATION SYSTEM
+// ============================================
+
+let currentSlideIndex = 0;
+let isScrolling = false;
+
+const slides = [];
+let slideIndicators = null;
+
+document.addEventListener('DOMContentLoaded', () => {
+    // Initialize slides
+    initializeSlides();
+    
+    // Keyboard accessibility for buttons
+    setupKeyboardAccessibility();
+
+    // Smooth scroll snapping for supported browsers
+    setupScrollSnapping();
+
+    // Add keyboard navigation
+    setupSlideKeyboardNavigation();
+});
+
+function initializeSlides() {
+    // Gather all slide sections
+    const sections = document.querySelectorAll('body > section, body > .zodiac-strip, body > .footer');
+    sections.forEach((section, index) => {
+        section.dataset.slideIndex = index;
+        slides.push(section);
+    });
+
+    // Create slide indicators
+    createSlideIndicators();
+    updateActiveSlide(0);
+}
+
+function createSlideIndicators() {
+    const indicatorContainer = document.createElement('div');
+    indicatorContainer.className = 'slide-indicators';
+    
+    slides.forEach((_, index) => {
+        const dot = document.createElement('button');
+        dot.className = 'slide-indicator-dot';
+        dot.title = `Slide ${index + 1}`;
+        dot.onclick = () => navigateToSlide(index);
+        indicatorContainer.appendChild(dot);
+    });
+
+    document.body.appendChild(indicatorContainer);
+    slideIndicators = document.querySelectorAll('.slide-indicator-dot');
+}
+
+function updateActiveSlide(index) {
+    if (slideIndicators) {
+        slideIndicators.forEach((dot, i) => {
+            dot.classList.toggle('active', i === index);
+        });
+    }
+    currentSlideIndex = index;
+}
+
+function navigateToSlide(index) {
+    if (index < 0 || index >= slides.length || isScrolling) return;
+    
+    isScrolling = true;
+    slides[index].scrollIntoView({ behavior: 'smooth', block: 'start' });
+    updateActiveSlide(index);
+    
+    setTimeout(() => {
+        isScrolling = false;
+    }, 1000);
+}
+
+function setupScrollSnapping() {
+    // Detect current slide on scroll
+    let scrollTimeout;
+    window.addEventListener('scroll', () => {
+        clearTimeout(scrollTimeout);
+        scrollTimeout = setTimeout(() => {
+            const scrollY = window.scrollY;
+            let closestIndex = 0;
+            let closestDistance = Infinity;
+
+            slides.forEach((slide, index) => {
+                const slideTop = slide.offsetTop;
+                const distance = Math.abs(scrollY - slideTop);
+                if (distance < closestDistance) {
+                    closestDistance = distance;
+                    closestIndex = index;
+                }
+            });
+
+            updateActiveSlide(closestIndex);
+        }, 100);
+    });
+}
+
+function setupSlideKeyboardNavigation() {
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'ArrowDown' || e.key === ' ') {
+            e.preventDefault();
+            navigateToSlide(currentSlideIndex + 1);
+        } else if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            navigateToSlide(currentSlideIndex - 1);
+        }
+    });
+}
 
 // ============================================
 // SCROLL TO APP FUNCTION
@@ -69,9 +179,6 @@ document.addEventListener('DOMContentLoaded', () => {
     featureCards.forEach(card => {
         observer.observe(card);
     });
-
-    // Keyboard accessibility for buttons
-    setupKeyboardAccessibility();
 });
 
 // ============================================
