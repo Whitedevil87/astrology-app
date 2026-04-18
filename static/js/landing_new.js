@@ -13,6 +13,8 @@ function initializeLanding() {
     initializeScrollAnimations();
     initializeScrollToApp();
     initializeNavigation();
+    // Performance optimization: use passive listeners
+    window.addEventListener('scroll', throttle(() => {}, 100), { passive: true });
 }
 
 /* ============================================
@@ -35,18 +37,19 @@ function initializeFAQ() {
             // Toggle current FAQ
             if (!isActive) {
                 faqContent.classList.add('active');
-                // Smooth scroll to this FAQ item
                 header.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
             }
         });
-        
-        // Close on Escape key
-        document.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape') {
-                header.nextElementSibling.classList.remove('active');
-            }
-        });
     });
+    
+    // Single keydown listener for all FAQs
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+            document.querySelectorAll('.faq-content').forEach(content => {
+                content.classList.remove('active');
+            });
+        }
+    }, { once: false });
 }
 
 /* ============================================
@@ -130,15 +133,8 @@ function initializeScrollToApp() {
 }
 
 function scrollToApp() {
-    // In production, this would navigate to the app form
-    // For now, scroll to the top (where app would be loaded)
-    window.scrollTo({
-        top: 0,
-        behavior: 'smooth'
-    });
-    
-    // You can also navigate to the app page here:
-    // window.location.href = '/app';
+    // Navigate to the app form
+    window.location.href = '/app';
 }
 
 /* ============================================
@@ -194,20 +190,9 @@ function updateActiveNavLink() {
    MOUSE FOLLOW EFFECT
    ============================================ */
 
-document.addEventListener('mousemove', (e) => {
-    const floatingElements = document.querySelectorAll('.floating-element');
-    
-    floatingElements.forEach(element => {
-        const rect = element.getBoundingClientRect();
-        const centerX = rect.left + rect.width / 2;
-        const centerY = rect.top + rect.height / 2;
-        
-        const distX = (e.clientX - centerX) * 0.05;
-        const distY = (e.clientY - centerY) * 0.05;
-        
-        element.style.transform = `translate(${distX}px, ${distY}px)`;
-    });
-});
+// Performance optimization: Mouse follow effect disabled to reduce lag
+// Can be re-enabled with requestAnimationFrame if needed
+// document.addEventListener('mousemove', (e) => { ... });
 
 /* ============================================
    BUTTON RIPPLE EFFECT

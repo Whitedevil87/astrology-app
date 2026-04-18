@@ -71,9 +71,9 @@ body {
 .nebula {
     position: absolute;
     border-radius: 50%;
-    filter: blur(120px);
-    opacity: 0.06;
-    animation: float-nebula 20s ease-in-out infinite;
+    filter: blur(80px);
+    opacity: 0.04;
+    animation: float-nebula 30s ease-in-out infinite;
 }
 
 .nebula-1 {
@@ -110,8 +110,8 @@ body {
 .floating-planet {
     position: absolute;
     border-radius: 50%;
-    animation: float-planet 15s ease-in-out infinite;
-    box-shadow: 0 0 30px rgba(0, 217, 255, 0.3);
+    animation: float-planet 20s ease-in-out infinite;
+    box-shadow: 0 0 20px rgba(0, 217, 255, 0.2);
 }
 
 .planet-1 {
@@ -152,8 +152,8 @@ body {
 
 .glass-effect {
     background: var(--glass-bg);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
     border: 1px solid var(--glass-border);
     border-radius: 20px;
 }
