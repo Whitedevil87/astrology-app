@@ -1001,103 +1001,701 @@ body {
    ============================================ */
 
 @media (max-width: 768px) {
+    .navbar {
+        padding: 0.75rem 0;
+    }
+
+    .nav-container {
+        padding: 0 1.5rem;
+    }
+
+    .cta-nav-btn {
+        padding: 0.5rem 1.2rem;
+        font-size: 0.9rem;
+    }
+
     .hero {
         grid-template-columns: 1fr;
-        padding: 4rem 1rem;
-        margin-top: 80px;
+        padding: 3rem 1.5rem 2rem;
+        margin-top: 70px;
+        gap: 2rem;
+    }
+
+    .hero-content {
+        text-align: center;
+    }
+
+    .hero-label {
+        display: inline-block;
+        font-size: 0.75rem;
+        padding: 0.4rem 0.8rem;
+        margin-bottom: 0.8rem;
+    }
+
+    .hero-title {
+        font-size: clamp(1.8rem, 5vw, 2.8rem);
+        margin-bottom: 1rem;
+    }
+
+    .hero-subtitle {
+        font-size: 1rem;
+        margin-bottom: 1.5rem;
     }
 
     .hero-visual {
-        height: 300px;
+        height: 280px;
+        display: flex;
+        justify-content: center;
     }
 
     .orbiting-planets {
-        width: 250px;
-        height: 250px;
+        width: 220px;
+        height: 220px;
+        top: 0;
     }
 
     .hero-buttons {
         flex-direction: column;
+        gap: 0.75rem;
+        justify-content: center;
+    }
+
+    .btn {
+        width: 100%;
+        padding: 0.85rem 1.5rem;
+        font-size: 0.95rem;
     }
 
     .nav-links {
-        gap: 1rem;
+        gap: 1.2rem;
+        font-size: 0.85rem;
     }
 
     .hero-stats {
         grid-template-columns: 1fr;
         gap: 1rem;
+        margin-top: 1.5rem;
     }
 
-    .chat-widget {
-        width: 350px;
-        height: 500px;
-        right: 20px;
-        bottom: 100px;
+    .stat {
+        padding: 1rem;
+        background: rgba(0, 217, 255, 0.05);
+        border-radius: 12px;
     }
 
-    .chat-toggle {
-        bottom: 30px;
-        right: 20px;
+    .stat-value {
+        font-size: 1.8rem;
     }
 
-    .faq-grid {
+    .stat-label {
+        font-size: 0.8rem;
+    }
+
+    .section-header {
+        margin-bottom: 2.5rem;
+        padding: 0 1rem;
+    }
+
+    .section-header h2 {
+        font-size: clamp(1.5rem, 4vw, 2.5rem);
+        margin-bottom: 0.8rem;
+    }
+
+    .section-header p {
+        font-size: 1rem;
+    }
+
+    .how-works {
+        padding: 3rem 1rem;
+    }
+
+    .features {
+        padding: 3rem 1rem;
+    }
+
+    .steps {
         grid-template-columns: 1fr;
+        gap: 2rem;
+        margin: 2.5rem 0;
+    }
+
+    .step-number {
+        width: 70px;
+        height: 70px;
+        font-size: 1.8rem;
+        margin: 0 auto 0.8rem;
+    }
+
+    .step h3 {
+        font-size: 1.2rem;
+    }
+
+    .step p {
+        font-size: 0.95rem;
+        margin-bottom: 1rem;
+    }
+
+    .cta-box {
+        padding: 2rem 1.5rem;
+        margin: 2.5rem 1rem;
+        border-radius: 16px;
+    }
+
+    .cta-box h3 {
+        font-size: 1.4rem;
+        margin-bottom: 1rem;
     }
 
     .features-grid {
         grid-template-columns: 1fr;
+        gap: 1.5rem;
+    }
+
+    .feature-card {
+        padding: 1.5rem;
+        border-radius: 16px;
+    }
+
+    .feature-card .feature-icon {
+        font-size: 2.5rem;
+        margin-bottom: 0.8rem;
+    }
+
+    .feature-card h3 {
+        font-size: 1.2rem;
+        margin-bottom: 0.6rem;
+    }
+
+    .feature-card p {
+        font-size: 0.95rem;
+    }
+
+    .testimonials {
+        padding: 3rem 1rem;
+    }
+
+    .testimonials-grid {
+        grid-template-columns: 1fr;
+        gap: 1.5rem;
+    }
+
+    .testimonial {
+        padding: 1.5rem;
+        border-radius: 14px;
+    }
+
+    .faq {
+        padding: 3rem 1rem;
+    }
+
+    .faq-grid {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+
+    .faq-header {
+        padding: 1.2rem;
+        font-size: 1rem;
+    }
+
+    .faq-content {
+        padding: 1rem;
+    }
+
+    .final-cta {
+        padding: 3rem 1rem;
+    }
+
+    .cta-content h2 {
+        font-size: clamp(1.5rem, 4vw, 2.5rem);
+        margin-bottom: 1rem;
+    }
+
+    .footer {
+        padding: 2rem 1rem;
+    }
+
+    .footer-content {
+        text-align: center;
+        font-size: 0.9rem;
+    }
+
+    .chat-widget {
+        width: calc(100% - 40px);
+        height: 450px;
+        right: 20px;
+        bottom: 90px;
+        border-radius: 16px;
+    }
+
+    .chat-toggle {
+        bottom: 20px;
+        right: 20px;
+        width: 55px;
+        height: 55px;
+        font-size: 1.3rem;
     }
 }
 
 @media (max-width: 480px) {
+    * {
+        margin: 0;
+        padding: 0;
+    }
+
+    body {
+        font-size: 14px;
+    }
+
     .navbar {
-        padding: 1rem 0;
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        padding: 0.6rem 0;
+        z-index: 100;
     }
 
     .nav-container {
         padding: 0 1rem;
+        gap: 0.5rem;
+    }
+
+    .logo {
+        font-size: 1.1rem;
+        gap: 0.5rem;
+        letter-spacing: 1px;
+    }
+
+    .logo-orb {
+        width: 20px;
+        height: 20px;
+    }
+
+    .cta-nav-btn {
+        padding: 0.5rem 1rem;
+        font-size: 0.85rem;
+        border-radius: 50px;
     }
 
     .nav-links {
         display: none;
     }
 
+    .hero {
+        grid-template-columns: 1fr;
+        padding: 2rem 1rem;
+        margin-top: 60px;
+        gap: 1.5rem;
+    }
+
+    .hero-content {
+        text-align: center;
+        animation: none;
+    }
+
+    .hero-label {
+        font-size: 0.7rem;
+        padding: 0.3rem 0.6rem;
+        margin-bottom: 0.6rem;
+    }
+
     .hero-title {
-        font-size: 2rem;
+        font-size: 1.6rem;
+        font-weight: 900;
+        line-height: 1.2;
+        margin-bottom: 0.8rem;
+        letter-spacing: -0.5px;
+    }
+
+    .hero-subtitle {
+        font-size: 0.9rem;
+        color: var(--color-text-dim);
+        margin-bottom: 1.2rem;
+        line-height: 1.6;
+    }
+
+    .hero-visual {
+        height: 200px;
+        display: none;
+    }
+
+    .orbiting-planets {
+        display: none;
     }
 
     .hero-buttons {
-        gap: 0.5rem;
+        flex-direction: column;
+        gap: 0.6rem;
+        width: 100%;
     }
 
     .btn {
-        padding: 0.8rem 1.2rem;
+        width: 100%;
+        padding: 0.75rem 1.2rem;
         font-size: 0.9rem;
+        border-radius: 40px;
+        min-height: 44px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
     }
 
-    .chat-widget {
-        width: calc(100% - 20px);
-        height: 400px;
-        right: 10px;
-        left: 10px;
-        bottom: 10px;
+    .btn svg {
+        display: none;
     }
 
-    .chat-toggle {
-        bottom: 100px;
-        right: 20px;
-        width: 50px;
-        height: 50px;
-        font-size: 1.2rem;
+    .btn-secondary:hover {
+        background: rgba(0, 217, 255, 0.1);
+    }
+
+    .hero-stats {
+        grid-template-columns: 1fr;
+        gap: 0.8rem;
+        margin-top: 1rem;
+        display: none;
+    }
+
+    .stat {
+        padding: 0.8rem;
+        background: rgba(0, 217, 255, 0.03);
+        border-radius: 10px;
+        text-align: center;
+    }
+
+    .stat-value {
+        font-size: 1.5rem;
+        text-shadow: 0 0 15px rgba(0, 217, 255, 0.2);
+    }
+
+    .stat-label {
+        font-size: 0.75rem;
+        margin-top: 0.3rem;
+    }
+
+    .section-header {
+        margin-bottom: 1.8rem;
+        padding: 0 0.5rem;
+        text-align: center;
     }
 
     .section-header h2 {
-        font-size: 1.8rem;
+        font-size: 1.4rem;
+        margin-bottom: 0.5rem;
+    }
+
+    .section-header p {
+        font-size: 0.9rem;
+        line-height: 1.5;
+    }
+
+    .how-works {
+        padding: 2rem 1rem;
+    }
+
+    .features {
+        padding: 2rem 1rem;
     }
 
     .steps {
+        grid-template-columns: 1fr;
         gap: 1.5rem;
+        margin: 1.5rem 0;
+    }
+
+    .step {
+        text-align: center;
+    }
+
+    .step-number {
+        width: 65px;
+        height: 65px;
+        font-size: 1.6rem;
+        margin: 0 auto 0.6rem;
+        box-shadow: 0 0 20px rgba(0, 217, 255, 0.2);
+    }
+
+    .step h3 {
+        font-size: 1.1rem;
+        margin-bottom: 0.5rem;
+    }
+
+    .step p {
+        font-size: 0.9rem;
+        margin-bottom: 0.8rem;
+        line-height: 1.5;
+    }
+
+    .step-icon {
+        font-size: 2.5rem;
+    }
+
+    .cta-box {
+        padding: 1.5rem 1rem;
+        margin: 1.8rem 0.5rem;
+        border-radius: 12px;
+        border-width: 1px;
+        background: rgba(0, 217, 255, 0.05);
+    }
+
+    .cta-box h3 {
+        font-size: 1.2rem;
+        margin-bottom: 0.8rem;
+    }
+
+    .cta-box .btn {
+        width: 100%;
+    }
+
+    .features-grid {
+        grid-template-columns: 1fr;
+        gap: 1.2rem;
+    }
+
+    .feature-card {
+        padding: 1.2rem;
+        border-radius: 12px;
+        text-align: center;
+    }
+
+    .feature-card::before {
+        display: none;
+    }
+
+    .feature-card .feature-icon {
+        font-size: 2.2rem;
+        margin-bottom: 0.6rem;
+    }
+
+    .feature-card h3 {
+        font-size: 1.1rem;
+        margin-bottom: 0.5rem;
+    }
+
+    .feature-card p {
+        font-size: 0.9rem;
+        line-height: 1.5;
+    }
+
+    .testimonials {
+        padding: 2rem 1rem;
+    }
+
+    .testimonials-grid {
+        grid-template-columns: 1fr;
+        gap: 1.2rem;
+    }
+
+    .testimonial {
+        padding: 1.2rem;
+        border-radius: 12px;
+        text-align: center;
+    }
+
+    .testimonial .stars {
+        font-size: 1.1rem;
+        margin-bottom: 0.6rem;
+    }
+
+    .testimonial p {
+        font-size: 0.9rem;
+        line-height: 1.6;
+        margin-bottom: 0.6rem;
+    }
+
+    .testimonial-author {
+        font-size: 0.85rem;
+        margin-top: 0.5rem;
+    }
+
+    .faq {
+        padding: 2rem 1rem;
+    }
+
+    .faq-grid {
+        grid-template-columns: 1fr;
+        gap: 0.8rem;
+    }
+
+    .faq-item {
+        border-radius: 10px;
+        overflow: hidden;
+    }
+
+    .faq-header {
+        padding: 1rem;
+        background: rgba(0, 217, 255, 0.05);
+        font-size: 0.95rem;
+        cursor: pointer;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .faq-header h3 {
+        font-size: 1rem;
+        margin: 0;
+    }
+
+    .faq-toggle {
+        font-size: 1.2rem;
+        margin-left: 0.5rem;
+    }
+
+    .faq-content {
+        padding: 0 1rem;
+        max-height: 0;
+        overflow: hidden;
+        transition: all 0.3s ease;
+        background: rgba(0, 217, 255, 0.02);
+    }
+
+    .faq-content.active {
+        padding: 1rem;
+        max-height: 500px;
+    }
+
+    .faq-content p {
+        font-size: 0.9rem;
+        line-height: 1.6;
+        margin: 0;
+    }
+
+    .final-cta {
+        padding: 2rem 1rem;
+        text-align: center;
+    }
+
+    .cta-content h2 {
+        font-size: 1.4rem;
+        margin-bottom: 0.8rem;
+    }
+
+    .cta-content p {
+        font-size: 0.9rem;
+        margin-bottom: 1.2rem;
+    }
+
+    .cta-content .btn {
+        width: 100%;
+    }
+
+    .footer {
+        padding: 1.5rem 1rem;
+        text-align: center;
+    }
+
+    .footer-content p {
+        font-size: 0.85rem;
+        margin-bottom: 0.5rem;
+        line-height: 1.5;
+    }
+
+    .footer-content .disclaimer {
+        font-size: 0.8rem;
+        color: var(--color-text-dim);
+    }
+
+    /* Chat Widget - Mobile Optimized */
+    .chat-widget {
+        position: fixed;
+        width: calc(100vw - 20px);
+        height: auto;
+        max-height: calc(100vh - 100px);
+        right: 10px;
+        bottom: 70px;
+        left: 10px;
+        border-radius: 12px;
+        box-shadow: 0 0 20px rgba(0, 217, 255, 0.3);
+        z-index: 999;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .chat-header {
+        padding: 1rem;
+        font-size: 1rem;
+    }
+
+    .chat-header h3 {
+        font-size: 1rem;
+        margin: 0;
+    }
+
+    .chat-messages {
+        flex: 1;
+        max-height: calc(100vh - 200px);
+        overflow-y: auto;
+        padding: 0.8rem;
+    }
+
+    .chat-message p {
+        font-size: 0.9rem;
+        max-width: 85%;
+    }
+
+    .chat-input-box {
+        padding: 0.8rem;
+        gap: 0.4rem;
+    }
+
+    .chat-input {
+        font-size: 0.9rem;
+        padding: 0.6rem 1rem;
+        border-radius: 25px;
+    }
+
+    .chat-send {
+        width: 38px;
+        height: 38px;
+        font-size: 1rem;
+        border-radius: 50%;
+    }
+
+    .chat-toggle {
+        position: fixed;
+        bottom: 15px;
+        right: 15px;
+        width: 50px;
+        height: 50px;
+        font-size: 1.2rem;
+        z-index: 998;
+        box-shadow: 0 0 20px rgba(0, 217, 255, 0.3);
+    }
+
+    .chat-toggle:active {
+        transform: scale(0.95);
+    }
+}
+
+@media (max-width: 360px) {
+    .hero-title {
+        font-size: 1.3rem;
+    }
+
+    .hero-subtitle {
+        font-size: 0.8rem;
+    }
+
+    .btn {
+        padding: 0.65rem 1rem;
+        font-size: 0.85rem;
+    }
+
+    .feature-card {
+        padding: 1rem;
+    }
+
+    .feature-card .feature-icon {
+        font-size: 2rem;
+    }
+
+    .step-number {
+        width: 60px;
+        height: 60px;
+        font-size: 1.4rem;
+    }
+}
     }
 }
 
