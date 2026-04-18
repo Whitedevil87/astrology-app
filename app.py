@@ -1138,20 +1138,20 @@ def save_report(payload: Dict) -> int:
 
 @app.route("/landing")
 def landing():
-    """Serve the futuristic landing page."""
-    return render_template("landing.html")
+    """Serve the premium SaaS landing page."""
+    return render_template("landing_new.html")
 
 
 @app.route("/")
 def index():
-    """Serve the futuristic landing page as home."""
-    return render_template("landing.html")
+    """Serve the premium SaaS landing page as home."""
+    return render_template("landing_new.html")
 
 
 @app.route("/app")
 def app_view():
-    """Serve the main astrology app."""
-    return render_template("index.html")
+    """Serve the premium main astrology app."""
+    return render_template("index_new.html")
 
 
 @app.route("/horoscope")

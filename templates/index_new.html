@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Get Your Cosmic Reading - Celestial Arc</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles_new.css') }}">
+</head>
+<body class="premium-app">
+    <div class="cosmic-bg">
+        <div class="stars"></div>
+        <div class="nebula nebula-1"></div>
+        <div class="nebula nebula-2"></div>
+        <div class="nebula nebula-3"></div>
+        <div class="floating-planet planet-1"></div>
+        <div class="floating-planet planet-2"></div>
+        <div class="floating-planet planet-3"></div>
+    </div>
+
+    <div class="app-container">
+        <!-- Sidebar Navigation -->
+        <aside class="app-sidebar">
+            <button class="sidebar-close" onclick="closeSidebar()">✕</button>
+            <nav class="sidebar-nav">
+                <a href="#home" class="sidebar-link active" onclick="navigateToHome()">
+                    <span class="nav-icon">🏠</span>
+                    Home
+                </a>
+                <a href="#reading" class="sidebar-link" onclick="navigateToReading()">
+                    <span class="nav-icon">✨</span>
+                    My Reading
+                </a>
+                <a href="#history" class="sidebar-link" onclick="navigateToHistory()">
+                    <span class="nav-icon">📜</span>
+                    History
+                </a>
+                <a href="#profile" class="sidebar-link" onclick="navigateToProfile()">
+                    <span class="nav-icon">👤</span>
+                    Profile
+                </a>
+            </nav>
+            <div class="sidebar-footer">
+                <button class="btn-sidebar-logout" onclick="logout()">Logout</button>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="app-main">
+            <!-- Header -->
+            <header class="app-header">
+                <button class="menu-toggle" onclick="toggleSidebar()">☰</button>
+                <div class="header-content">
+                    <h1 class="app-title">
+                        <span class="title-icon">✨</span>
+                        Cosmic Reading
+                    </h1>
+                    <p class="header-subtitle">Unlock your celestial destiny</p>
+                </div>
+                <div class="header-actions">
+                    <button class="btn-help" title="Help">?</button>
+                    <div class="user-avatar">CA</div>
+                </div>
+            </header>
+
+            <!-- Main Content Area -->
+            <div class="app-content">
+                <!-- Left Column: Form -->
+                <div class="form-column">
+                    <!-- Step Indicator -->
+                    <div class="step-indicator">
+                        <div class="progress-line">
+                            <div class="progress-fill" id="progressFill" style="width: 25%;"></div>
+                        </div>
+                        <div class="steps">
+                            <div class="step active" data-step="1">
+                                <div class="step-number">1</div>
+                                <span class="step-label">Birth Info</span>
+                            </div>
+                            <div class="step" data-step="2">
+                                <div class="step-number">2</div>
+                                <span class="step-label">Palm Choice</span>
+                            </div>
+                            <div class="step" data-step="3">
+                                <div class="step-number">3</div>
+                                <span class="step-label">Palm Upload</span>
+                            </div>
+                            <div class="step" data-step="4">
+                                <div class="step-number">4</div>
+                                <span class="step-label">Results</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Step 1: Birth Information -->
+                    <form id="astroForm" class="form-panel" onsubmit="handleFormSubmit(event)">
+                        <!-- Step 1 Content -->
+                        <div class="form-step" id="step1" style="display: block;">
+                            <h2 class="step-title">
+                                <span class="title-icon">👤</span>
+                                Your Birth Details
+                            </h2>
+                            <p class="step-description">Enter your accurate birth information to generate your personalized cosmic profile.</p>
+
+                            <div class="form-group">
+                                <label for="name" class="form-label">Full Name *</label>
+                                <input type="text" id="name" class="form-input" placeholder="Your full name" required>
+                                <span class="input-hint">This will be used in your reading</span>
+                            </div>
+
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="dob" class="form-label">Date of Birth *</label>
+                                    <input type="date" id="dob" class="form-input" required>
+                                </div>
+                                <div class="form-group">
+                                    <label for="tob" class="form-label">Time of Birth *</label>
+                                    <input type="time" id="tob" class="form-input" required>
+                                    <span class="input-hint">As exact as possible</span>
+                                </div>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="pob" class="form-label">Place of Birth *</label>
+                                <input type="text" id="pob" class="form-input" placeholder="City, Country" required>
+                                <span class="input-hint">Your birth location</span>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="gender" class="form-label">Gender *</label>
+                                <div class="radio-group">
+                                    <label class="radio-label">
+                                        <input type="radio" name="gender" value="Male" required>
+                                        <span>Male</span>
+                                    </label>
+                                    <label class="radio-label">
+                                        <input type="radio" name="gender" value="Female" required>
+                                        <span>Female</span>
+                                    </label>
+                                    <label class="radio-label">
+                                        <input type="radio" name="gender" value="Other" required>
+                                        <span>Other</span>
+                                    </label>
+                                </div>
+                            </div>
+
+                            <div class="form-actions">
+                                <button type="button" class="btn-secondary" style="opacity: 0.5; cursor: not-allowed;">
+                                    Previous
+                                </button>
+                                <button type="button" class="btn-primary" onclick="goToStep(2)">
+                                    Next
+                                    <span class="btn-icon">→</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Step 2: Palm Choice -->
+                        <div class="form-step" id="step2" style="display: none;">
+                            <h2 class="step-title">
+                                <span class="title-icon">✋</span>
+                                Choose Your Palm
+                            </h2>
+                            <p class="step-description">Select which hand's palm you'd like us to analyze.</p>
+
+                            <div class="palm-choice-grid">
+                                <div class="palm-option" onclick="selectPalm('right')">
+                                    <div class="palm-image">🤲 Right</div>
+                                    <p>Right Hand</p>
+                                </div>
+                                <div class="palm-option" onclick="selectPalm('left')">
+                                    <div class="palm-image">✋ Left</div>
+                                    <p>Left Hand</p>
+                                </div>
+                                <div class="palm-option" onclick="selectPalm('both')">
+                                    <div class="palm-image">🙌 Both</div>
+                                    <p>Both Hands</p>
+                                </div>
+                            </div>
+
+                            <div class="form-actions">
+                                <button type="button" class="btn-secondary" onclick="goToStep(1)">
+                                    <span class="btn-icon">←</span>
+                                    Previous
+                                </button>
+                                <button type="button" class="btn-primary" onclick="goToStep(3)">
+                                    Next
+                                    <span class="btn-icon">→</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Step 3: Palm Upload -->
+                        <div class="form-step" id="step3" style="display: none;">
+                            <h2 class="step-title">
+                                <span class="title-icon">📸</span>
+                                Upload Your Palm
+                            </h2>
+                            <p class="step-description">Take a clear photo of your palm from different angles with good lighting.</p>
+
+                            <div class="upload-area" id="uploadArea" ondrop="handleDrop(event)" ondragover="handleDragOver(event)">
+                                <div class="upload-icon">📷</div>
+                                <h3>Click to upload or drag and drop</h3>
+                                <p>PNG, JPG up to 10MB</p>
+                                <input type="file" id="palmImage" class="upload-input" accept="image/*" onchange="handleFileSelect(event)">
+                            </div>
+
+                            <div class="upload-guidelines">
+                                <h4>Upload Guidelines:</h4>
+                                <ul>
+                                    <li>Ensure palm is clearly visible and well-lit</li>
+                                    <li>Use at least 3-5 clear photos from different angles</li>
+                                    <li>Keep fingers slightly spread apart</li>
+                                    <li>Avoid shadows over palm lines</li>
+                                </ul>
+                            </div>
+
+                            <div class="form-actions">
+                                <button type="button" class="btn-secondary" onclick="goToStep(2)">
+                                    <span class="btn-icon">←</span>
+                                    Previous
+                                </button>
+                                <button type="button" class="btn-primary" onclick="goToStep(4)">
+                                    Analyze Palm
+                                    <span class="btn-icon">✨</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Step 4: Results Loading -->
+                        <div class="form-step" id="step4" style="display: none;">
+                            <h2 class="step-title">
+                                <span class="title-icon">🔮</span>
+                                Analyzing Your Cosmic Blueprint
+                            </h2>
+                            <p class="step-description">Our advanced AI is reading your palm and calculating your cosmic destiny...</p>
+
+                            <div class="loading-container">
+                                <div class="cosmic-loader">
+                                    <div class="loader-ring"></div>
+                                    <div class="loader-text">
+                                        Decoding your
+                                        <span class="loading-dots">destiny</span>
+                                    </div>
+                                </div>
+                                <div class="loading-progress">
+                                    <div class="progress-bar">
+                                        <div class="progress-value" id="loadingProgress" style="width: 0%;"></div>
+                                    </div>
+                                    <p class="progress-text" id="progressText">Initializing readings...</p>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- Right Column: Visual & Info -->
+                <div class="info-column">
+                    <!-- Zodiac Info Card -->
+                    <div class="info-card zodiac-card glass-effect">
+                        <h3>Your Zodiac Sign</h3>
+                        <div class="zodiac-display" id="zodiacDisplay">
+                            <div class="zodiac-symbol">♈</div>
+                            <h2 id="zodiacName">Calculate from birth date</h2>
+                            <p class="zodiac-date" id="zodiacDate"></p>
+                        </div>
+                        <div class="zodiac-traits">
+                            <p class="trait-label">Traits:</p>
+                            <div class="trait-tags">
+                                <span class="trait-tag">Ambitious</span>
+                                <span class="trait-tag">Courageous</span>
+                                <span class="trait-tag">Passionate</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Reading Tips Card -->
+                    <div class="info-card tips-card glass-effect">
+                        <h3>✨ Tips for Best Results</h3>
+                        <ul class="tips-list">
+                            <li><strong>Be Accurate:</strong> Your birth time affects your chart</li>
+                            <li><strong>Clear Photos:</strong> Ensure good lighting on palm</li>
+                            <li><strong>Relax:</strong> Our AI works best with calm, natural palms</li>
+                            <li><strong>Natural Lines:</strong> Avoid wearing jewelry on hands</li>
+                        </ul>
+                    </div>
+
+                    <!-- Benefits Card -->
+                    <div class="info-card benefits-card glass-effect">
+                        <h3>🎯 What You'll Discover</h3>
+                        <div class="benefits-list">
+                            <div class="benefit-item">
+                                <span class="benefit-icon">💫</span>
+                                <div>
+                                    <strong>Life Path</strong>
+                                    <p>Your cosmic destiny</p>
+                                </div>
+                            </div>
+                            <div class="benefit-item">
+                                <span class="benefit-icon">❤️</span>
+                                <div>
+                                    <strong>Love Future</strong>
+                                    <p>Romantic connections ahead</p>
+                                </div>
+                            </div>
+                            <div class="benefit-item">
+                                <span class="benefit-icon">💼</span>
+                                <div>
+                                    <strong>Career Path</strong>
+                                    <p>Professional opportunities</p>
+                                </div>
+                            </div>
+                            <div class="benefit-item">
+                                <span class="benefit-icon">🧘</span>
+                                <div>
+                                    <strong>Inner Wisdom</strong>
+                                    <p>Personal growth insights</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Scripts -->
+    <script src="{{ url_for('static', filename='js/app_new.js') }}"></script>
+</body>
+</html>

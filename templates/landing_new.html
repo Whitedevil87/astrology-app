@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Celestial Arc - Discover your cosmic destiny with AI-powered personalized astrology readings.">
+    <meta name="theme-color" content="#0f0a1f">
+    <title>Celestial Arc — Your Cosmic Destiny Awaits</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/landing_new.css') }}">
+</head>
+<body>
+    <!-- Animated Cosmic Background -->
+    <div class="cosmic-bg">
+        <div class="stars"></div>
+        <div class="nebula nebula-1"></div>
+        <div class="nebula nebula-2"></div>
+        <div class="nebula nebula-3"></div>
+        <div class="floating-planet planet-1"></div>
+        <div class="floating-planet planet-2"></div>
+        <div class="floating-planet planet-3"></div>
+    </div>
+
+    <!-- Navigation -->
+    <nav class="navbar glass-effect">
+        <div class="nav-container">
+            <a href="/" class="logo">
+                <span class="logo-glow">✦</span>
+                <span class="logo-text">Celestial Arc</span>
+            </a>
+            <div class="nav-center">
+                <a href="#features" class="nav-link">Features</a>
+                <a href="#testimonials" class="nav-link">Testimonials</a>
+                <a href="#faq" class="nav-link">FAQ</a>
+            </div>
+            <button class="btn-nav-cta" onclick="scrollToApp()">
+                <span>Launch App</span>
+                <span class="glow-dot"></span>
+            </button>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="hero">
+        <div class="hero-container">
+            <div class="hero-content">
+                <div class="hero-badge glass-effect">
+                    <span class="badge-glow">●</span>
+                    <span>Trusted by 10,000+ cosmic seekers</span>
+                </div>
+
+                <h1 class="hero-title">
+                    <span class="gradient-text">Discover your future</span><br>
+                    <span class="highlight-text">in 60 seconds</span>
+                </h1>
+
+                <p class="hero-subtitle">
+                    Powered by your exact birth chart and AI-enhanced Vedic astrology.
+                    Unlock your personality, destiny, and cosmic purpose.
+                </p>
+
+                <div class="hero-cta-group">
+                    <button class="btn-primary btn-lg glow-on-hover" onclick="scrollToApp()">
+                        <span class="btn-text">Get My Prediction Now</span>
+                        <span class="btn-icon">→</span>
+                        <div class="btn-glow"></div>
+                    </button>
+                    <button class="btn-secondary" onclick="scrollToFeatures()">
+                        <span>See How It Works</span>
+                    </button>
+                </div>
+
+                <div class="social-proof">
+                    <div class="proof-item">
+                        <span class="proof-number">10,000+</span>
+                        <span class="proof-label">Users worldwide</span>
+                    </div>
+                    <div class="proof-divider"></div>
+                    <div class="proof-item">
+                        <span class="proof-number">4.9★</span>
+                        <span class="proof-label">Average rating</span>
+                    </div>
+                    <div class="proof-divider"></div>
+                    <div class="proof-item">
+                        <span class="proof-number">60sec</span>
+                        <span class="proof-label">Prediction time</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="hero-visual">
+                <div class="cosmic-chart">
+                    <svg viewBox="0 0 200 200" class="zodiac-wheel">
+                        <circle cx="100" cy="100" r="90" fill="none" stroke="rgba(0,217,255,0.1)" stroke-width="1"/>
+                        <circle cx="100" cy="100" r="75" fill="none" stroke="rgba(168,85,247,0.15)" stroke-width="1"/>
+                        <circle cx="100" cy="100" r="60" fill="none" stroke="rgba(232,121,249,0.2)" stroke-width="1"/>
+                        <circle cx="100" cy="100" r="30" fill="none" stroke="rgba(0,217,255,0.3)" stroke-width="2"/>
+                        
+                        <!-- Zodiac symbols -->
+                        <text x="100" y="20" text-anchor="middle" class="zodiac-symbol">♈</text>
+                        <text x="155" y="50" text-anchor="middle" class="zodiac-symbol">♉</text>
+                        <text x="175" y="100" text-anchor="middle" class="zodiac-symbol">♊</text>
+                        <text x="155" y="150" text-anchor="middle" class="zodiac-symbol">♋</text>
+                        <text x="100" y="180" text-anchor="middle" class="zodiac-symbol">♌</text>
+                        <text x="45" y="150" text-anchor="middle" class="zodiac-symbol">♍</text>
+                        <text x="25" y="100" text-anchor="middle" class="zodiac-symbol">♎</text>
+                        <text x="45" y="50" text-anchor="middle" class="zodiac-symbol">♏</text>
+                        
+                        <!-- Center dot -->
+                        <circle cx="100" cy="100" r="4" fill="#00d9ff"/>
+                    </svg>
+                </div>
+
+                <div class="floating-element element-1">
+                    <div class="glow-circle"></div>
+                </div>
+                <div class="floating-element element-2">
+                    <div class="glow-circle"></div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Features Section -->
+    <section id="features" class="features">
+        <div class="section-header">
+            <h2>Why Choose Celestial Arc?</h2>
+            <p>Premium astrology powered by cutting-edge AI</p>
+        </div>
+
+        <div class="features-grid">
+            <div class="feature-card glass-effect">
+                <div class="feature-icon">🔮</div>
+                <h3>Personalized Readings</h3>
+                <p>AI analyzes your unique birth chart to deliver deeply personalized cosmic insights.</p>
+            </div>
+
+            <div class="feature-card glass-effect">
+                <div class="feature-icon">📊</div>
+                <h3>Big Three Analysis</h3>
+                <p>Sun, Moon, and Ascendant breakdown with detailed personality interpretations.</p>
+            </div>
+
+            <div class="feature-card glass-effect">
+                <div class="feature-icon">♥</div>
+                <h3>Compatibility Matrix</h3>
+                <p>Discover your cosmic compatibility with all 12 zodiac signs instantly.</p>
+            </div>
+
+            <div class="feature-card glass-effect">
+                <div class="feature-icon">💼</div>
+                <h3>Career Guidance</h3>
+                <p>Align your career path with your cosmic blueprint and planetary influences.</p>
+            </div>
+
+            <div class="feature-card glass-effect">
+                <div class="feature-icon">🌙</div>
+                <h3>Dasha Timing</h3>
+                <p>Understanding your planetary cycles and life timing predictions.</p>
+            </div>
+
+            <div class="feature-card glass-effect">
+                <div class="feature-icon">✋</div>
+                <h3>Palm Insights</h3>
+                <p>Optional palm reading for deeper symbolic personal resonance.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Testimonials Section -->
+    <section id="testimonials" class="testimonials">
+        <div class="section-header">
+            <h2>Loved by Cosmic Seekers</h2>
+            <p>Real stories from real users</p>
+        </div>
+
+        <div class="testimonials-grid">
+            <div class="testimonial-card glass-effect">
+                <div class="testimonial-stars">★★★★★</div>
+                <p class="testimonial-text">
+                    "The accuracy is mind-blowing. It's like they know my soul."
+                </p>
+                <div class="testimonial-author">
+                    <span class="author-name">Priya M.</span>
+                    <span class="author-title">Mumbai</span>
+                </div>
+            </div>
+
+            <div class="testimonial-card glass-effect">
+                <div class="testimonial-stars">★★★★★</div>
+                <p class="testimonial-text">
+                    "Life-changing insights. Finally understanding my purpose and destiny."
+                </p>
+                <div class="testimonial-author">
+                    <span class="author-name">Alex K.</span>
+                    <span class="author-title">San Francisco</span>
+                </div>
+            </div>
+
+            <div class="testimonial-card glass-effect">
+                <div class="testimonial-stars">★★★★★</div>
+                <p class="testimonial-text">
+                    "The palmistry addition made it feel even more personal and real."
+                </p>
+                <div class="testimonial-author">
+                    <span class="author-name">Sophia R.</span>
+                    <span class="author-title">London</span>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- FAQ Section -->
+    <section id="faq" class="faq">
+        <div class="section-header">
+            <h2>Questions? We Have Answers</h2>
+        </div>
+
+        <div class="faq-container">
+            <div class="faq-item glass-effect">
+                <button class="faq-header" onclick="toggleFAQ(this)">
+                    <span>How accurate are the readings?</span>
+                    <span class="faq-toggle">+</span>
+                </button>
+                <div class="faq-content">
+                    Our readings blend traditional Vedic astrology with advanced AI analysis. Accuracy depends on precise birth data. Always provide exact time and location for best results.
+                </div>
+            </div>
+
+            <div class="faq-item glass-effect">
+                <button class="faq-header" onclick="toggleFAQ(this)">
+                    <span>What if I don't know my birth time?</span>
+                    <span class="faq-toggle">+</span>
+                </button>
+                <div class="faq-content">
+                    We use noon as an approximation. Your Sun and Moon signs will be accurate, but Ascendant may be less precise. You can also use rectification methods.
+                </div>
+            </div>
+
+            <div class="faq-item glass-effect">
+                <button class="faq-header" onclick="toggleFAQ(this)">
+                    <span>Is my data private and secure?</span>
+                    <span class="faq-toggle">+</span>
+                </button>
+                <div class="faq-content">
+                    Absolutely. Your data is encrypted and stored securely. We never share or sell your information. Your cosmic journey is yours alone.
+                </div>
+            </div>
+
+            <div class="faq-item glass-effect">
+                <button class="faq-header" onclick="toggleFAQ(this)">
+                    <span>Can I get multiple readings?</span>
+                    <span class="faq-toggle">+</span>
+                </button>
+                <div class="faq-content">
+                    Yes! Save your readings and regenerate anytime. Each reading can include new questions or focus areas for deepening insights.
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Final CTA Section -->
+    <section class="final-cta">
+        <div class="cta-container">
+            <h2>Ready to Discover Your Destiny?</h2>
+            <p>Join thousands unlocking their cosmic blueprint</p>
+            <button class="btn-primary btn-lg glow-on-hover" onclick="scrollToApp()">
+                <span class="btn-text">Start Your Journey Now</span>
+                <span class="btn-icon">→</span>
+                <div class="btn-glow"></div>
+            </button>
+            <div class="cta-guarantee">
+                ✓ 60 seconds to your destiny • ✓ Secure & private • ✓ No credit card needed
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="footer-content">
+            <p>© 2026 Celestial Arc. Guided by cosmic wisdom.</p>
+            <div class="footer-links">
+                <a href="#privacy">Privacy</a>
+                <a href="#terms">Terms</a>
+                <a href="#contact">Contact</a>
+            </div>
+        </div>
+    </footer>
+
+    <script src="{{ url_for('static', filename='js/landing_new.js') }}"></script>
+</body>
+</html>
