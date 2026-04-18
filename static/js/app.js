@@ -396,16 +396,30 @@ document.addEventListener("DOMContentLoaded", function () {
 
     function sectionCard(title, body, icon) {
         var intensity = 50 + ((title.length * 7 + (body || "").length) % 42);
+        
+        var cleanBody = (body || "").replace(/\n/g, ' ').replace(/\*/g, '');
+        var sentences = cleanBody.match(/[^.!?]+[.!?]+/g) || [cleanBody];
+        var bulletsHtml = '<ul class="mt-4 space-y-2 text-sm text-purple-200/80 leading-relaxed list-disc list-inside">';
+        for (var i = 0; i < Math.min(sentences.length, 4); i++) {
+            var s = sentences[i].trim();
+            if (s.length > 5) {
+                bulletsHtml += '<li>' + escapeHtml(s) + '</li>';
+            }
+        }
+        bulletsHtml += '</ul>';
+
         return (
-            '<div class="report-card reveal-hidden">' +
-            '<div class="report-card-header">' +
-            '<span class="report-card-icon">' + (icon || "✦") + "</span>" +
-            '<h3 class="report-card-title">' + escapeHtml(title) + "</h3>" +
+            '<div class="report-card reveal-hidden flex flex-col h-full bg-purple-950/20 border border-purple-500/30 p-6 rounded-2xl">' +
+            '<div class="flex items-center gap-3 mb-2">' +
+            '<span class="text-2xl pt-1">' + (icon || "✦") + "</span>" +
+            '<h3 class="font-display font-bold text-lg m-0">' + escapeHtml(title) + "</h3>" +
             "</div>" +
-            '<p class="report-card-body">' + escapeHtml(body) + "</p>" +
-            '<div class="reading-intensity"><span class="reading-intensity-label">Cosmic Intensity</span>' +
-            '<div class="reading-intensity-bar"><div class="reading-intensity-fill" data-target="' + intensity + '%"></div></div></div>' +
-            '<button type="button" class="reading-ask-cta" data-topic="' + escapeHtml(title) + '">✨ Ask Guru about this</button>' +
+            bulletsHtml +
+            '<div class="mt-auto pt-6">' +
+            '<div class="reading-intensity mb-3"><span class="text-xs uppercase tracking-widest text-purple-300/75 font-semibold">Cosmic Intensity</span>' +
+            '<div class="h-1 bg-purple-950/40 rounded-full mt-1 overflow-hidden"><div class="h-full bg-gradient-to-r from-purple-500 to-cyan-500 transition-all duration-1000 reading-intensity-fill" data-target="' + intensity + '%"></div></div></div>' +
+            '<button type="button" class="reading-ask-cta text-xs px-4 py-1.5 rounded-full border border-purple-500/30 bg-purple-500/10 text-purple-200/90 hover:bg-purple-500/20 hover:text-white transition-colors" data-topic="' + escapeHtml(title) + '">✨ Ask Guru</button>' +
+            "</div>" +
             "</div>"
         );
     }

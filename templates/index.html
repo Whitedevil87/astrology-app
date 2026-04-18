@@ -229,6 +229,32 @@
                     </div>
                 </div>
 
+                <div id="guruChat" class="guru-chat mt-6 mb-8 relative border-l-4 border-l-cyan-400">
+                    <div class="absolute -top-3 -right-3 z-10 animate-pulse">
+                        <span class="relative flex h-6 w-6">
+                          <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-fuchsia-400 opacity-75"></span>
+                          <span class="relative inline-flex rounded-full h-6 w-6 bg-fuchsia-500 border-2 border-slate-900 border-solid"></span>
+                        </span>
+                    </div>
+                    <div class="mb-3 border-b border-white/10 pb-3">
+                        <h3 class="text-xl font-display font-semibold text-white flex items-center gap-2">
+                            <span class="text-cyan-400 text-2xl">✨</span> Direct AI Oracle
+                        </h3>
+                        <p class="text-sm text-purple-200/85 mt-1 leading-relaxed">
+                            Ask for accurate future prediction, marriage timing, relationship status, or career analysis. 
+                            The AI dynamically reads your exact DOB, Name, Time, Place and system-made Kundli to answer like a top astrologer.
+                        </p>
+                        <p id="chatHint" class="text-xs text-fuchsia-300/85 mt-1 hidden"></p>
+                    </div>
+                    <div id="chatLog" class="chat-log mt-2" aria-live="polite"></div>
+                    <div class="mt-4 flex flex-col sm:flex-row gap-3">
+                        <input type="text" id="chatInput" class="neo-input flex-1 py-3 px-4 text-base"
+                            placeholder="e.g. When will I get married? Is my career safe this year?"
+                            autocomplete="off">
+                        <button type="button" id="chatSend" class="btn-primary shrink-0 px-6 cursor-pointer">Predict Now</button>
+                    </div>
+                </div>
+
                 <div id="blueprintChips" class="mt-6 flex flex-wrap gap-2"></div>
 
                 <div id="profileCards" class="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 mt-6"></div>
@@ -244,19 +270,9 @@
                     </div>
                 </div>
 
-                <div id="reportSections" class="space-y-4 mt-8"></div>
+                <div id="reportSections" class="horizontal-scroll-container"></div>
 
-                <div id="guruChat" class="guru-chat mt-10">
-                    <h3 class="text-xl font-display font-semibold text-white">Ask the Guru</h3>
-                    <p id="chatHint" class="text-xs text-purple-300/85 mt-2"></p>
-                    <div id="chatLog" class="chat-log mt-4" aria-live="polite"></div>
-                    <div class="mt-3 flex flex-col sm:flex-row gap-2">
-                        <input type="text" id="chatInput" class="neo-input flex-1"
-                            placeholder="e.g. How does my Rahu affect career? Remedies for marriage timing?"
-                            autocomplete="off">
-                        <button type="button" id="chatSend" class="btn-primary shrink-0">Send</button>
-                    </div>
-                </div>
+
 
                 <div id="reportPrintBlock" class="print-only hidden print:block mt-8"></div>
             </div>

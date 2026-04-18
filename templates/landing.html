@@ -1,16 +1,21 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="Celestial Arc - Advanced AI Astrology. Discover your cosmic blueprint with precision.">
-    <meta name="theme-color" content="#0a0e27">
+    <meta name="description"
+        content="Celestial Arc - Advanced AI Astrology. Discover your cosmic blueprint with precision Vedic readings.">
+    <meta name="theme-color" content="#060b1a">
     <title>Celestial Arc · AI-Powered Astrology</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Poppins:wght@300;400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600;700;800;900&family=Poppins:wght@300;400;500;600;700&display=swap"
+        rel="stylesheet">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/landing.css') }}">
 </head>
+
 <body>
     <!-- Animated Background -->
     <div class="cosmic-bg">
@@ -26,48 +31,51 @@
         <div class="nav-container">
             <a href="/" class="logo">
                 <div class="logo-orb"></div>
-                <span class="logo-text">CELESTIAL</span>
+                <span class="logo-text">CELESTIAL ARC</span>
             </a>
             <div class="nav-links">
                 <a href="#features" class="nav-link">Features</a>
                 <a href="#how" class="nav-link">How it Works</a>
+                <a href="/horoscope" class="nav-link">Horoscope</a>
                 <a href="#faq" class="nav-link">FAQ</a>
             </div>
-            <button class="cta-nav-btn" onclick="scrollToApp()">Get Started</button>
+            <button class="cta-nav-btn" onclick="scrollToApp()">GET STARTED</button>
         </div>
     </nav>
 
     <!-- Hero Section -->
     <section class="hero">
         <div class="hero-content">
-            <div class="hero-label">✨ Your Cosmic Destiny Awaits</div>
+            <div class="hero-label">✦ Your Cosmic Destiny Awaits</div>
             <h1 class="hero-title">
-                Unveil Your<br/>
-                <span class="gradient-text">Cosmic Blueprint</span>
+                Read Your Daily<br />
+                <span class="gradient-text">Horoscope Today</span>
             </h1>
             <p class="hero-subtitle">
-                Advanced AI + Vedic Astrology. Get your Big Three, compatibility insights, career guidance, 
-                and personalized predictions powered by cutting-edge AI analysis.
+                Advanced AI combined with Vedic Astrology. Discover your Big Three,
+                compatibility insights, career guidance, and personalized predictions
+                powered by celestial wisdom.
             </p>
-            
+
             <div class="hero-buttons">
                 <button class="btn btn-primary" onclick="scrollToApp()">
                     <span>Explore Your Chart</span>
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                        stroke-width="2.5">
                         <line x1="5" y1="12" x2="19" y2="12"></line>
                         <polyline points="12 5 19 12 12 19"></polyline>
                     </svg>
                 </button>
                 <button class="btn btn-secondary" onclick="chatWidget.open()">
-                    <span>💬 Ask AI Guru</span>
+                    <span>🔮 Ask AI Guru</span>
                 </button>
             </div>
 
-            
+
             <div class="stats">
                 <div class="stat">
                     <div class="stat-value">24/7</div>
-                    <div class="stat-label">AI Support</div>
+                    <div class="stat-label">AI Guidance</div>
                 </div>
             </div>
         </div>
@@ -81,6 +89,22 @@
             </div>
         </div>
     </section>
+
+    <!-- Zodiac Signs Strip -->
+    <div class="zodiac-strip">
+        <span class="zodiac-glyph" title="Aries">♈</span>
+        <span class="zodiac-glyph" title="Taurus">♉</span>
+        <span class="zodiac-glyph" title="Gemini">♊</span>
+        <span class="zodiac-glyph" title="Cancer">♋</span>
+        <span class="zodiac-glyph" title="Leo">♌</span>
+        <span class="zodiac-glyph" title="Virgo">♍</span>
+        <span class="zodiac-glyph" title="Libra">♎</span>
+        <span class="zodiac-glyph" title="Scorpio">♏</span>
+        <span class="zodiac-glyph" title="Sagittarius">♐</span>
+        <span class="zodiac-glyph" title="Capricorn">♑</span>
+        <span class="zodiac-glyph" title="Aquarius">♒</span>
+        <span class="zodiac-glyph" title="Pisces">♓</span>
+    </div>
 
     <!-- How It Works -->
     <section id="how" class="how-works">
@@ -205,7 +229,8 @@
                     <span class="faq-toggle">+</span>
                 </button>
                 <div class="faq-content">
-                    <p>Our readings use traditional Vedic astrology principles combined with advanced AI analysis. Accuracy depends on precise birth data (date, time, location).</p>
+                    <p>Our readings use traditional Vedic astrology principles combined with advanced AI analysis.
+                        Accuracy depends on precise birth data (date, time, location).</p>
                 </div>
             </div>
 
@@ -215,7 +240,8 @@
                     <span class="faq-toggle">+</span>
                 </button>
                 <div class="faq-content">
-                    <p>Absolutely. Your data is stored securely and never shared. We don't sell information or use it for advertising.</p>
+                    <p>Absolutely. Your data is stored securely and never shared. We don't sell information or use it
+                        for advertising.</p>
                 </div>
             </div>
 
@@ -225,7 +251,8 @@
                     <span class="faq-toggle">+</span>
                 </button>
                 <div class="faq-content">
-                    <p>We use noon as an approximation. Your Sun and Moon signs will be accurate, but your Ascendant may be less precise.</p>
+                    <p>We use noon as an approximation. Your Sun and Moon signs will be accurate, but your Ascendant may
+                        be less precise.</p>
                 </div>
             </div>
 
@@ -235,7 +262,8 @@
                     <span class="faq-toggle">+</span>
                 </button>
                 <div class="faq-content">
-                    <p>Yes! Visit your saved chart and use the floating chat widget to ask the AI Guru any cosmic questions 24/7.</p>
+                    <p>Yes! Visit your saved chart and use the floating chat widget to ask the AI Guru any cosmic
+                        questions 24/7.</p>
                 </div>
             </div>
 
@@ -245,7 +273,8 @@
                     <span class="faq-toggle">+</span>
                 </button>
                 <div class="faq-content">
-                    <p>No, it's optional. Your full chart reading works with just astrological data. Palm adds symbolic depth for those interested.</p>
+                    <p>No, it's optional. Your full chart reading works with just astrological data. Palm adds symbolic
+                        depth for those interested.</p>
                 </div>
             </div>
 
@@ -255,7 +284,8 @@
                     <span class="faq-toggle">+</span>
                 </button>
                 <div class="faq-content">
-                    <p>Our AI combines Vedic astrological calculations with natural language processing to provide personalized, contextual cosmic guidance.</p>
+                    <p>Our AI combines Vedic astrological calculations with natural language processing to provide
+                        personalized, contextual cosmic guidance.</p>
                 </div>
             </div>
         </div>
@@ -267,7 +297,7 @@
             <h2>Begin Your Cosmic Journey Today</h2>
             <p>Unlock the secrets written in the stars</p>
             <button class="btn btn-primary large" onclick="scrollToApp()">
-                Get Your Chart Now ✨
+                Get Your Chart Now ✦
             </button>
         </div>
     </section>
@@ -276,7 +306,8 @@
     <footer class="footer">
         <div class="footer-content">
             <p>© 2026 Celestial Arc. Crafted with cosmic curiosity.</p>
-            <p class="disclaimer">For entertainment and self-reflection. Always consult professionals for important decisions.</p>
+            <p class="disclaimer">For entertainment and self-reflection. Always consult professionals for important
+                decisions.</p>
         </div>
     </footer>
 
@@ -288,7 +319,8 @@
         </div>
         <div class="chat-messages" id="chatMessages">
             <div class="chat-message guru">
-                <p>Namaste! 🙏 I'm your cosmic guide. Ask me about astrology, your chart, compatibility, or anything cosmic!</p>
+                <p>Namaste! 🙏 I'm your cosmic guide. Ask me about astrology, your chart, compatibility, or anything
+                    cosmic!</p>
             </div>
         </div>
         <div class="chat-input-box">
@@ -362,7 +394,7 @@
                     loadingMsg.remove();
                     const guruMsg = document.createElement('div');
                     guruMsg.className = 'chat-message guru';
-                    guruMsg.innerHTML = `<p>Thank you for your question! ✨ Please visit your chart to get personalized AI insights.</p>`;
+                    guruMsg.innerHTML = `<p>Thank you for your question! ✦ Please visit your chart to get personalized AI insights.</p>`;
                     chatMessages.appendChild(guruMsg);
                     chatMessages.scrollTop = chatMessages.scrollHeight;
                 }, 1000);
@@ -382,4 +414,5 @@
 
     <script src="{{ url_for('static', filename='js/landing.js') }}"></script>
 </body>
+
 </html>
