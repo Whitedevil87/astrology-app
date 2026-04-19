@@ -451,13 +451,17 @@
     border-radius: 14px;
     padding: 1.25rem 1.4rem;
     background: rgba(9, 9, 20, 0.55);
-    min-width: 320px;
-    max-width: 400px;
-    width: 85vw;
+    /* Fit phone width — avoid half-clipped “carousel” cards */
+    min-width: 0;
+    max-width: min(400px, calc(100vw - 2.5rem));
+    width: min(400px, calc(100vw - 2.5rem));
     flex-shrink: 0;
     scroll-snap-align: start;
     display: flex;
     flex-direction: column;
+    box-sizing: border-box;
+    overflow-wrap: anywhere;
+    word-break: break-word;
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25), inset 0 1px 1px rgba(255, 255, 255, 0.05);
     transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
 }
@@ -473,12 +477,32 @@
     overflow-x: auto;
     scroll-snap-type: x mandatory;
     gap: 1.25rem;
-    padding-bottom: 1.5rem;
-    padding-top: 0.5rem;
+    padding: 0.5rem 0.25rem 1.5rem;
     margin-top: 2rem;
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
     -webkit-overflow-scrolling: touch;
     scrollbar-width: thin;
     scrollbar-color: rgba(168, 85, 247, 0.4) rgba(15, 23, 42, 0.3);
+}
+
+/* Stack reading cards on small screens — no sideways trim */
+@media (max-width: 768px) {
+    .horizontal-scroll-container {
+        flex-direction: column;
+        overflow-x: visible;
+        scroll-snap-type: none;
+        gap: 1rem;
+        padding-left: 0;
+        padding-right: 0;
+    }
+
+    .horizontal-scroll-container .report-card {
+        width: 100%;
+        max-width: 100%;
+        scroll-snap-align: unset;
+    }
 }
 
 .horizontal-scroll-container::-webkit-scrollbar {
@@ -521,6 +545,10 @@
     border-radius: 16px;
     padding: 1.15rem 1.25rem;
     background: rgba(2, 6, 23, 0.5);
+    box-sizing: border-box;
+    max-width: 100%;
+    overflow-x: hidden;
+    overflow-wrap: anywhere;
 }
 
 .chat-log {
@@ -551,6 +579,9 @@
     border: 1px solid rgba(148, 163, 184, 0.25);
     color: #e2e8f0;
     white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+    max-width: 100%;
 }
 
 .chat-meta {

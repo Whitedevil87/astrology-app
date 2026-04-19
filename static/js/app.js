@@ -399,7 +399,7 @@ document.addEventListener("DOMContentLoaded", function () {
         
         var cleanBody = (body || "").replace(/\n/g, ' ').replace(/\*/g, '');
         var sentences = cleanBody.match(/[^.!?]+[.!?]+/g) || [cleanBody];
-        var bulletsHtml = '<ul class="mt-4 space-y-2 text-sm text-purple-200/80 leading-relaxed list-disc list-inside">';
+        var bulletsHtml = '<ul class="mt-4 space-y-2 text-sm text-purple-200/80 leading-relaxed list-disc pl-5" style="list-style-position:outside">';
         for (var i = 0; i < Math.min(sentences.length, 4); i++) {
             var s = sentences[i].trim();
             if (s.length > 5) {

@@ -346,20 +346,34 @@ def build_vedic_bundle(
     return sections, structured
 
 
+def _planets_in_house(houses: Dict[str, Any], house_num: int) -> str:
+    if not houses:
+        return "(no house table)"
+    hits = [name for name, hn in houses.items() if hn == house_num]
+    return ", ".join(hits) if hits else "(none listed in this house)"
+
+
 def format_guru_context(name: str, profile: Dict[str, str], vedic: Dict[str, Any], blueprint: Dict[str, Any]) -> str:
     """Compact text for LLM or logging."""
-    h = vedic.get("houses", {})
+    h = vedic.get("houses") or {}
+    career_hint = ""
+    if blueprint:
+        career_hint = (
+            f"Blueprint cues — energy focus: {blueprint.get('energy_focus', 'n/a')}; "
+            f"ruling planet: {blueprint.get('ruling_planet', 'n/a')}.\n"
+        )
     return (
         f"Querent: {name}. Sun {profile.get('zodiac')}, Moon {profile.get('moon_sign')}, Asc {profile.get('ascendant')}.\n"
+        f"{career_hint}"
         f"Mathematical House Placements (1-12) based on True Ecliptic Longitude:\n"
         f"Sun {h.get('sun')}, Moon {h.get('moon')}, Mars {h.get('mars')}, Mercury {h.get('mercury')}, Venus {h.get('venus')},\n"
         f"Jupiter {h.get('jupiter')}, Saturn {h.get('saturn')}, Rahu {h.get('rahu')}, Ketu {h.get('ketu')}.\n"
+        f"10th house (career / reputation) hosts: {_planets_in_house(h, 10)}.\n"
+        f"6th house (daily work / service / obstacles) hosts: {_planets_in_house(h, 6)}.\n"
+        f"2nd/11th money houses snapshot — 2nd hosts {_planets_in_house(h, 2)}; 11th hosts {_planets_in_house(h, 11)}.\n"
         f"Mahadasha flavor: {vedic.get('mahadasha')}. Dosha flags: {', '.join(vedic.get('dosha_flags') or ['none flagged'])}.\n"
-        "AI INSTRUCTIONS:\n"
-        "1. You are an advanced, futuristic Astrologer possessing deep knowledge of Vedic and Western astrology.\n"
-        "2. Directly analyze these exact mathematical house placements in your predictions.\n"
-        "3. Provide rich, highly specific insights and future forecasts based precisely on the interactions of these houses.\n"
-        "4. Be profound, compassionate, and wise. Maintain an advanced cosmic tone."
+        "When answering career or job questions, cite 10th and 6th from above and Saturn/Jupiter flavor; "
+        "for love/marriage, cite 7th and Venus/Moon—not the other way around.\n"
     )
 
 
@@ -375,8 +389,26 @@ def guru_reply_rule_based(message: str, ctx: str, vedic: Dict[str, Any], section
             "Partnership lens: the 7th house and Venus timing matter. "
             + sections.get("compatibility", "")
         )
-    if any(k in m for k in ("career", "job", "money", "10th", "business")):
+    if any(
+        k in m
+        for k in (
+            "career",
+            "job",
+            "jobs",
+            "employ",
+            "unemploy",
+            "salary",
+            "work",
+            "office",
+            "hiring",
+            "interview",
+            "money",
+            "10th",
+            "business",
+        )
+    ):
         chunks.append(sections.get("career", ""))
+        chunks.append(sections.get("future", ""))
     if any(k in m for k in ("dasha", "mahadasha", "antar", "timing", "when")):
         chunks.append(sections.get("vimshottari_timing", ""))
     if any(k in m for k in ("remedy", "puja", "mantra", "dosha", "afflicted", "problem")):

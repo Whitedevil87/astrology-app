@@ -1377,6 +1377,16 @@ def api_config():
 # If you need configuration debugging, access Render dashboard directly
 
 
+def _chat_text_clip(text: Optional[str], max_len: int = 900) -> str:
+    """Single-line excerpt for LLM context (keeps prompts bounded)."""
+    if not text:
+        return ""
+    t = " ".join(str(text).split())
+    if len(t) <= max_len:
+        return t
+    return t[: max_len - 1] + "…"
+
+
 @app.route("/api/chat", methods=["POST"])
 def api_chat():
     payload = request.get_json(force=True, silent=True) or {}
@@ -1439,14 +1449,32 @@ def api_chat():
     
     try:
         ctx = format_guru_context(row["full_name"], profile, vedic, blueprint)
-        system = (
-            "You are an expert human astrologer and palmistry guide providing highly accurate predictions. "
-            "You MUST base your answers strictly on the user's provided DOB, name, time, place, system-generated Kundli, houses, and palm photo if present. "
-            "If the user asks outside of astrology, palmistry, or their cosmic profile, politely decline in character. "
-            "Predict topics confidently like marriage timing, relationships, career, etc., by analyzing the CONTEXT strictly. "
-            "Feel like a human talking accurately, be mystical yet highly specific and advanced, keeping responses concise and impactful."
+        report_excerpts = "\n".join(
+            [
+                f"Career (saved reading): {_chat_text_clip(merged_sections.get('career'))}",
+                f"Future outlook (saved reading): {_chat_text_clip(merged_sections.get('future'))}",
+                f"Love (saved reading): {_chat_text_clip(merged_sections.get('love'))}",
+                f"Timing / seasonal (saved reading): {_chat_text_clip(merged_sections.get('seasonal_energy'))}",
+                f"Dasha snapshot (saved reading): {_chat_text_clip(merged_sections.get('vimshottari_timing'))}",
+                f"Personality (saved reading): {_chat_text_clip(merged_sections.get('personality'), 650)}",
+            ]
         )
-        user_blob = f"CONTEXT:\n{ctx}\n\nUSER QUESTION:\n{message}"
+        system = (
+            "You are an expert astrologer answering ONLY from CONTEXT + REPORT EXCERPTS + house table. "
+            "Rules: (1) Lead with a direct answer to the USER QUESTION—do not change the subject. "
+            "(2) Job / employment / unemployment / interviews / salary / promotion questions MUST use 10th and 6th "
+            "house occupants, mahadasha flavor, Saturn/Jupiter themes, and the Career + Future excerpts. "
+            "Do not discuss marriage, dating, or spouse timing unless the user asked about love or marriage. "
+            "(3) Love or marriage questions use 7th house, Venus, Moon, and Love excerpt—do not pivot to career. "
+            "(4) Never invent a precise calendar day as a guaranteed fact. Use conditional windows "
+            "(e.g. 'next several weeks', 'after a supportive Jupiter stretch', 'during a busy 6th-house phase') "
+            "and tie them to the chart language above. If precision is impossible, say so honestly. "
+            "(5) Keep under 200 words unless the user explicitly asks for more detail."
+        )
+        user_blob = (
+            f"CONTEXT:\n{ctx}\n\nREPORT EXCERPTS (same querent, saved with this chart):\n{report_excerpts}\n\n"
+            f"USER QUESTION:\n{message}"
+        )
         logger.info(f"   Calling AI endpoint...")
         ai_reply = openai_guru_reply(system, user_blob)
         
