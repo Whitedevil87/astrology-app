@@ -5,9 +5,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description"
-        content="Celestial Arc - Advanced AI Astrology. Discover your cosmic blueprint with precision Vedic readings.">
+        content="Celestial Arc helps you get an astrology reading, birth chart summary, and daily horoscope from your birth details.">
     <meta name="theme-color" content="#060b1a">
-    <title>Celestial Arc · AI-Powered Astrology</title>
+    <title>Celestial Arc | Astrology Reading, Birth Chart and Horoscope</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link
@@ -17,8 +17,7 @@
 </head>
 
 <body class="slide-scroll-container">
-    <!-- Animated Background -->
-    <div class="cosmic-bg">
+    <div class="cosmic-bg" aria-hidden="true">
         <div class="stars"></div>
         <div class="nebula nebula-1"></div>
         <div class="nebula nebula-2"></div>
@@ -26,7 +25,6 @@
         <div class="aurora-border"></div>
     </div>
 
-    <!-- Navigation -->
     <nav class="navbar">
         <div class="nav-container">
             <a href="/" class="logo">
@@ -35,31 +33,29 @@
             </a>
             <div class="nav-links">
                 <a href="#features" class="nav-link">Features</a>
-                <a href="#how" class="nav-link">How it Works</a>
+                <a href="#how" class="nav-link">How It Works</a>
                 <a href="/horoscope" class="nav-link">Horoscope</a>
                 <a href="#faq" class="nav-link">FAQ</a>
             </div>
-            <button class="cta-nav-btn" onclick="scrollToApp()">GET STARTED</button>
+            <button class="cta-nav-btn" onclick="scrollToApp()">Open Reading</button>
         </div>
     </nav>
 
-    <!-- Hero Section -->
     <section class="hero">
         <div class="hero-content">
-            <div class="hero-label">✦ Your Cosmic Destiny Awaits</div>
+            <div class="hero-label">Simple astrology reading</div>
             <h1 class="hero-title">
-                Read Your Daily<br />
-                <span class="gradient-text">Horoscope Today</span>
+                Get your <span class="gradient-text">astrology reading</span><br>
+                from your birth details
             </h1>
             <p class="hero-subtitle">
-                Advanced AI combined with Vedic Astrology. Discover your Big Three,
-                compatibility insights, career guidance, and personalized predictions
-                powered by celestial wisdom.
+                Enter your date, time, and place of birth. We show your sun sign, moon sign,
+                ascendant, kundli notes, and simple guidance for life, work, and relationships.
             </p>
 
             <div class="hero-buttons">
                 <button class="btn btn-primary" onclick="scrollToApp()">
-                    <span>Explore Your Chart</span>
+                    <span>Get My Astrology Reading</span>
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                         stroke-width="2.5">
                         <line x1="5" y1="12" x2="19" y2="12"></line>
@@ -67,156 +63,187 @@
                     </svg>
                 </button>
                 <button class="btn btn-secondary" onclick="chatWidget.open()">
-                    <span>🔮 Ask AI Guru</span>
+                    <span>Ask a Sample Question</span>
                 </button>
             </div>
 
-
-            <div class="stats">
-                <div class="stat">
-                    <div class="stat-value">24/7</div>
-                    <div class="stat-label">AI Guidance</div>
+            <div class="hero-summary" aria-label="Quick overview">
+                <div class="summary-item">
+                    <strong>Birth chart</strong>
+                    <span>Sun, moon, and ascendant</span>
+                </div>
+                <div class="summary-item">
+                    <strong>Kundli support</strong>
+                    <span>Notes and image upload</span>
+                </div>
+                <div class="summary-item">
+                    <strong>Simple guidance</strong>
+                    <span>Career, love, and daily horoscope</span>
                 </div>
             </div>
         </div>
 
         <div class="hero-visual">
-            <div class="orbiting-planets">
+            <div class="orbiting-planets" aria-hidden="true">
                 <div class="planet earth"></div>
                 <div class="planet venus"></div>
                 <div class="planet mars"></div>
                 <div class="central-sun"></div>
             </div>
+            <div class="hero-legend">
+                <div class="planet-card">
+                    <span class="planet-dot sun-dot"></span>
+                    <div>
+                        <strong>Sun</strong>
+                        <p>Main sign and core personality</p>
+                    </div>
+                </div>
+                <div class="planet-card">
+                    <span class="planet-dot moon-dot"></span>
+                    <div>
+                        <strong>Moon</strong>
+                        <p>Emotions and inner habits</p>
+                    </div>
+                </div>
+                <div class="planet-card">
+                    <span class="planet-dot asc-dot"></span>
+                    <div>
+                        <strong>Ascendant</strong>
+                        <p>First impression and life direction</p>
+                    </div>
+                </div>
+            </div>
         </div>
     </section>
 
-    <!-- Zodiac Signs Strip -->
-    <div class="zodiac-strip">
-        <span class="zodiac-glyph" title="Aries">♈</span>
-        <span class="zodiac-glyph" title="Taurus">♉</span>
-        <span class="zodiac-glyph" title="Gemini">♊</span>
-        <span class="zodiac-glyph" title="Cancer">♋</span>
-        <span class="zodiac-glyph" title="Leo">♌</span>
-        <span class="zodiac-glyph" title="Virgo">♍</span>
-        <span class="zodiac-glyph" title="Libra">♎</span>
-        <span class="zodiac-glyph" title="Scorpio">♏</span>
-        <span class="zodiac-glyph" title="Sagittarius">♐</span>
-        <span class="zodiac-glyph" title="Capricorn">♑</span>
-        <span class="zodiac-glyph" title="Aquarius">♒</span>
-        <span class="zodiac-glyph" title="Pisces">♓</span>
-    </div>
+    <section class="sign-preview" aria-label="Zodiac signs covered">
+        <div class="section-header compact">
+            <h2>All 12 zodiac signs are covered</h2>
+            <p>We support a full reading for every sign.</p>
+        </div>
+        <div class="sign-grid">
+            <div class="sign-chip"><span class="sign-mark">Ar</span><span>Aries</span></div>
+            <div class="sign-chip"><span class="sign-mark">Ta</span><span>Taurus</span></div>
+            <div class="sign-chip"><span class="sign-mark">Ge</span><span>Gemini</span></div>
+            <div class="sign-chip"><span class="sign-mark">Cn</span><span>Cancer</span></div>
+            <div class="sign-chip"><span class="sign-mark">Le</span><span>Leo</span></div>
+            <div class="sign-chip"><span class="sign-mark">Vi</span><span>Virgo</span></div>
+            <div class="sign-chip"><span class="sign-mark">Li</span><span>Libra</span></div>
+            <div class="sign-chip"><span class="sign-mark">Sc</span><span>Scorpio</span></div>
+            <div class="sign-chip"><span class="sign-mark">Sg</span><span>Sagittarius</span></div>
+            <div class="sign-chip"><span class="sign-mark">Cp</span><span>Capricorn</span></div>
+            <div class="sign-chip"><span class="sign-mark">Aq</span><span>Aquarius</span></div>
+            <div class="sign-chip"><span class="sign-mark">Pi</span><span>Pisces</span></div>
+        </div>
+    </section>
 
-    <!-- How It Works -->
     <section id="how" class="how-works">
         <div class="section-header">
-            <h2>Your Journey to Cosmic Clarity</h2>
-            <p>Three simple steps to discover your destiny</p>
+            <h2>How it works</h2>
+            <p>Three simple steps to get your reading.</p>
         </div>
 
         <div class="steps">
             <div class="step">
                 <div class="step-number">1</div>
-                <h3>Enter Your Data</h3>
-                <p>Share your birth date, time, and location—the cosmic coordinates of your existence.</p>
-                <div class="step-icon">📍</div>
+                <h3>Enter birth details</h3>
+                <p>Add your name, birth date, birth time, and birth place.</p>
+                <div class="step-icon">Form</div>
             </div>
 
             <div class="step">
                 <div class="step-number">2</div>
-                <h3>Analyze Your Chart</h3>
-                <p>Our advanced AI engine calculates your Big Three, houses, and planetary positions.</p>
-                <div class="step-icon">🔍</div>
+                <h3>We build your chart</h3>
+                <p>We calculate your big three, chart details, and daily guidance.</p>
+                <div class="step-icon">Chart</div>
             </div>
 
             <div class="step">
                 <div class="step-number">3</div>
-                <h3>Get AI Insights</h3>
-                <p>Receive personalized readings on personality, career, love, and your cosmic destiny.</p>
-                <div class="step-icon">✨</div>
+                <h3>Read your result</h3>
+                <p>See simple notes for personality, work, love, and horoscope.</p>
+                <div class="step-icon">Read</div>
             </div>
         </div>
 
         <div class="cta-box">
-            <h3>Ready to Discover Your Cosmic Blueprint?</h3>
-            <button class="btn btn-primary large" onclick="scrollToApp()">Start Your Journey Now</button>
+            <h3>Ready to check your astrology chart?</h3>
+            <button class="btn btn-primary large" onclick="scrollToApp()">Get My Astrology Reading</button>
         </div>
     </section>
 
-    <!-- Features Section -->
     <section id="features" class="features">
         <div class="section-header">
-            <h2>Unlock Your Cosmic Secrets</h2>
-            <p>Comprehensive astrological analysis powered by advanced AI</p>
+            <h2>What you get</h2>
+            <p>Clear astrology details without confusing language.</p>
         </div>
 
         <div class="features-grid">
             <div class="feature-card">
-                <div class="feature-icon">☀</div>
-                <h3>Big Three Analysis</h3>
-                <p>Sun Sign, Moon Sign & Ascendant with deep AI-driven interpretations for personality insights.</p>
+                <div class="feature-icon">01</div>
+                <h3>Big three summary</h3>
+                <p>See your sun sign, moon sign, and ascendant in one simple view.</p>
             </div>
 
             <div class="feature-card">
-                <div class="feature-icon">♥</div>
-                <h3>Compatibility Matrix</h3>
-                <p>Find perfect matches and understand harmony patterns with all zodiac signs.</p>
+                <div class="feature-icon">02</div>
+                <h3>Relationship guidance</h3>
+                <p>Read simple notes about harmony, connection, and common patterns.</p>
             </div>
 
             <div class="feature-card">
-                <div class="feature-icon">🔮</div>
-                <h3>AI Guru Chat</h3>
-                <p>24/7 access to an intelligent AI astrologer answering your cosmic questions instantly.</p>
+                <div class="feature-icon">03</div>
+                <h3>AI follow-up chat</h3>
+                <p>Ask extra questions after your report is ready.</p>
             </div>
 
             <div class="feature-card">
-                <div class="feature-icon">📊</div>
-                <h3>Kundli Chart</h3>
-                <p>Detailed birth chart with planetary positions, houses, and Vedic interpretations.</p>
+                <div class="feature-icon">04</div>
+                <h3>Kundli support</h3>
+                <p>Upload chart notes or image details for a richer reading.</p>
             </div>
 
             <div class="feature-card">
-                <div class="feature-icon">✋</div>
-                <h3>Palm Reading</h3>
-                <p>Optional palm analysis for deeper symbolic meaning and personal resonance.</p>
+                <div class="feature-icon">05</div>
+                <h3>Palm option</h3>
+                <p>Add palm details if you want extra symbolic insight.</p>
             </div>
 
             <div class="feature-card">
-                <div class="feature-icon">⏰</div>
-                <h3>Dasha Cycles</h3>
-                <p>Vimshottari Dasha timing predictions and life cycle analysis.</p>
+                <div class="feature-icon">06</div>
+                <h3>Timing notes</h3>
+                <p>Get simple timing guidance based on chart patterns and dasha themes.</p>
             </div>
         </div>
     </section>
 
-    <!-- Testimonials -->
-    <section class="testimonials">
+    <section class="reading-preview">
         <div class="section-header">
-            <h2>What Users Say</h2>
-            <p>Real cosmic journeys from our community</p>
+            <h2>What happens next</h2>
+            <p>No fake ratings. This is what the app actually gives you.</p>
         </div>
 
-        <div class="testimonials-grid">
-            <div class="testimonial">
-                <div class="stars">⭐⭐⭐⭐⭐</div>
-                <p>"The AI insights were incredibly accurate. It felt like talking to a real astrologer!"</p>
-                <div class="testimonial-author">— Priya M.</div>
+        <div class="preview-grid">
+            <div class="preview-card">
+                <div class="preview-tag">Step 1</div>
+                <h3>Fill one short form</h3>
+                <p>You enter birth details once. The app guides you step by step.</p>
             </div>
 
-            <div class="testimonial">
-                <div class="stars">⭐⭐⭐⭐⭐</div>
-                <p>"This app changed how I understand my relationships. The compatibility matrix is spot-on."</p>
-                <div class="testimonial-author">— Arjun K.</div>
+            <div class="preview-card">
+                <div class="preview-tag">Step 2</div>
+                <h3>See your chart summary</h3>
+                <p>You get your sign details, reading cards, and kundli notes in one place.</p>
             </div>
 
-            <div class="testimonial">
-                <div class="stars">⭐⭐⭐⭐⭐</div>
-                <p>"The 24/7 AI guru is amazing. Always there when I need cosmic guidance!"</p>
-                <div class="testimonial-author">— Sophia R.</div>
+            <div class="preview-card">
+                <div class="preview-tag">Step 3</div>
+                <h3>Ask follow-up questions</h3>
+                <p>When chat is enabled, you can ask about work, love, or timing after the report.</p>
             </div>
         </div>
     </section>
 
-    <!-- FAQ Section -->
     <section id="faq" class="faq">
         <div class="section-header">
             <h2>Questions? We Have Answers</h2>
@@ -229,8 +256,8 @@
                     <span class="faq-toggle">+</span>
                 </button>
                 <div class="faq-content">
-                    <p>Our readings use traditional Vedic astrology principles combined with advanced AI analysis.
-                        Accuracy depends on precise birth data (date, time, location).</p>
+                    <p>The reading is better when your birth date, time, and place are correct. It is meant for
+                        guidance and self-reflection, not as a guarantee.</p>
                 </div>
             </div>
 
@@ -240,173 +267,151 @@
                     <span class="faq-toggle">+</span>
                 </button>
                 <div class="faq-content">
-                    <p>Absolutely. Your data is stored securely and never shared. We don't sell information or use it
-                        for advertising.</p>
+                    <p>Your report data stays in the app and is not meant for advertising or public sharing.</p>
                 </div>
             </div>
 
             <div class="faq-item">
                 <button class="faq-header" onclick="toggleFAQ(this)">
-                    <h3>What if I don't know my birth time?</h3>
+                    <h3>What if I do not know my birth time?</h3>
                     <span class="faq-toggle">+</span>
                 </button>
                 <div class="faq-content">
-                    <p>We use noon as an approximation. Your Sun and Moon signs will be accurate, but your Ascendant may
-                        be less precise.</p>
+                    <p>You can still continue. The result may be less exact, especially for the ascendant and house
+                        details.</p>
                 </div>
             </div>
 
             <div class="faq-item">
                 <button class="faq-header" onclick="toggleFAQ(this)">
-                    <h3>Can I talk to the AI Guru?</h3>
+                    <h3>Can I talk to the AI guide?</h3>
                     <span class="faq-toggle">+</span>
                 </button>
                 <div class="faq-content">
-                    <p>Yes! Visit your saved chart and use the floating chat widget to ask the AI Guru any cosmic
-                        questions 24/7.</p>
+                    <p>Yes. After your chart is ready, you can use chat to ask more questions when the AI feature is
+                        turned on.</p>
                 </div>
             </div>
 
             <div class="faq-item">
                 <button class="faq-header" onclick="toggleFAQ(this)">
-                    <h3>Is palm reading necessary?</h3>
+                    <h3>Is palm reading required?</h3>
                     <span class="faq-toggle">+</span>
                 </button>
                 <div class="faq-content">
-                    <p>No, it's optional. Your full chart reading works with just astrological data. Palm adds symbolic
-                        depth for those interested.</p>
+                    <p>No. Palm upload is optional. You can still get a full astrology reading without it.</p>
                 </div>
             </div>
 
             <div class="faq-item">
                 <button class="faq-header" onclick="toggleFAQ(this)">
-                    <h3>How does the AI work?</h3>
+                    <h3>How does the app create the result?</h3>
                     <span class="faq-toggle">+</span>
                 </button>
                 <div class="faq-content">
-                    <p>Our AI combines Vedic astrological calculations with natural language processing to provide
-                        personalized, contextual cosmic guidance.</p>
+                    <p>The app mixes astrology rules, birth chart calculations, and AI text generation to explain the
+                        result in simple language.</p>
                 </div>
             </div>
         </div>
     </section>
 
-    <!-- Final CTA -->
     <section class="final-cta">
         <div class="cta-content">
-            <h2>Begin Your Cosmic Journey Today</h2>
-            <p>Unlock the secrets written in the stars</p>
+            <h2>Start your astrology reading</h2>
+            <p>Open the form and get your chart in a few steps.</p>
             <button class="btn btn-primary large" onclick="scrollToApp()">
-                Get Your Chart Now ✦
+                Get My Astrology Reading
             </button>
         </div>
     </section>
 
-    <!-- Footer -->
     <footer class="footer">
         <div class="footer-content">
-            <p>© 2026 Celestial Arc. Crafted with cosmic curiosity.</p>
-            <p class="disclaimer">For entertainment and self-reflection. Always consult professionals for important
-                decisions.</p>
+            <p>&copy; 2026 Celestial Arc. Built for astrology guidance and self-reflection.</p>
+            <p class="disclaimer">For entertainment and self-reflection. Please use professional advice for health,
+                legal, or money decisions.</p>
         </div>
     </footer>
 
-    <!-- Floating Chat Widget -->
     <div id="chatWidget" class="chat-widget">
         <div class="chat-header">
-            <h3>🔮 AI Guru</h3>
-            <button class="close-btn" onclick="chatWidget.close()">×</button>
+            <h3>AI Guide</h3>
+            <button class="close-btn" onclick="chatWidget.close()">X</button>
         </div>
         <div class="chat-messages" id="chatMessages">
             <div class="chat-message guru">
-                <p>Namaste! 🙏 I'm your cosmic guide. Ask me about astrology, your chart, compatibility, or anything
-                    cosmic!</p>
+                <p>Hello. Ask a sample astrology question here, then open your full reading for personal chart details.</p>
             </div>
         </div>
         <div class="chat-input-box">
-            <input type="text" id="chatWidgetInput" placeholder="Ask the AI Guru..." class="chat-input">
+            <input type="text" id="chatWidgetInput" placeholder="Ask a sample astrology question..." class="chat-input">
             <button id="chatWidgetSend" class="chat-send">Send</button>
         </div>
     </div>
 
-    <!-- Chat Toggle Button -->
     <button id="chatToggle" class="chat-toggle" onclick="chatWidget.toggle()">
-        <span class="chat-icon">💬</span>
+        <span class="chat-icon">Chat</span>
     </button>
 
     <script>
-        // Floating Chat Widget Manager
         const chatWidget = {
             open() {
-                document.getElementById('chatWidget').classList.add('active');
-                document.getElementById('chatToggle').classList.add('hidden');
+                document.getElementById("chatWidget").classList.add("active");
+                document.getElementById("chatToggle").classList.add("hidden");
             },
             close() {
-                document.getElementById('chatWidget').classList.remove('active');
-                document.getElementById('chatToggle').classList.remove('hidden');
+                document.getElementById("chatWidget").classList.remove("active");
+                document.getElementById("chatToggle").classList.remove("hidden");
             },
             toggle() {
-                const widget = document.getElementById('chatWidget');
-                widget.classList.toggle('active');
-                document.getElementById('chatToggle').classList.toggle('hidden');
+                const widget = document.getElementById("chatWidget");
+                widget.classList.toggle("active");
+                document.getElementById("chatToggle").classList.toggle("hidden");
             }
         };
 
-        function scrollToApp() {
-            window.location.href = '/app';
-        }
+        document.addEventListener("DOMContentLoaded", () => {
+            const chatInput = document.getElementById("chatWidgetInput");
+            const chatSend = document.getElementById("chatWidgetSend");
+            const chatMessages = document.getElementById("chatMessages");
 
-        function toggleFAQ(btn) {
-            const content = btn.nextElementSibling;
-            const toggle = btn.querySelector('.faq-toggle');
-            content.classList.toggle('active');
-            toggle.textContent = content.classList.contains('active') ? '−' : '+';
-        }
-
-        // Chat Widget Functionality
-        document.addEventListener('DOMContentLoaded', () => {
-            const chatInput = document.getElementById('chatWidgetInput');
-            const chatSend = document.getElementById('chatWidgetSend');
-            const chatMessages = document.getElementById('chatMessages');
-
-            chatSend.addEventListener('click', () => {
-                const message = chatInput.value.trim();
-                if (!message) return;
-
-                // Add user message
-                const userMsg = document.createElement('div');
-                userMsg.className = 'chat-message user';
-                userMsg.innerHTML = `<p>${escapeHtml(message)}</p>`;
-                chatMessages.appendChild(userMsg);
-
-                // Clear input
-                chatInput.value = '';
-
-                // Add loading indicator
-                const loadingMsg = document.createElement('div');
-                loadingMsg.className = 'chat-message guru loading';
-                loadingMsg.innerHTML = `<div class="typing-indicator"><span></span><span></span><span></span></div>`;
+            function addSampleReply() {
+                const loadingMsg = document.createElement("div");
+                loadingMsg.className = "chat-message guru loading";
+                loadingMsg.innerHTML = "<div class=\"typing-indicator\"><span></span><span></span><span></span></div>";
                 chatMessages.appendChild(loadingMsg);
                 chatMessages.scrollTop = chatMessages.scrollHeight;
 
-                // Send to API (demo response for now)
                 setTimeout(() => {
                     loadingMsg.remove();
-                    const guruMsg = document.createElement('div');
-                    guruMsg.className = 'chat-message guru';
-                    guruMsg.innerHTML = `<p>Thank you for your question! ✦ Please visit your chart to get personalized AI insights.</p>`;
+                    const guruMsg = document.createElement("div");
+                    guruMsg.className = "chat-message guru";
+                    guruMsg.innerHTML = "<p>Open your chart to get a personal answer based on your birth details. This sample chat is only a preview.</p>";
                     chatMessages.appendChild(guruMsg);
                     chatMessages.scrollTop = chatMessages.scrollHeight;
-                }, 1000);
+                }, 900);
+            }
+
+            chatSend.addEventListener("click", () => {
+                const message = chatInput.value.trim();
+                if (!message) return;
+
+                const userMsg = document.createElement("div");
+                userMsg.className = "chat-message user";
+                userMsg.innerHTML = "<p>" + escapeHtml(message) + "</p>";
+                chatMessages.appendChild(userMsg);
+                chatInput.value = "";
+                addSampleReply();
             });
 
-            chatInput.addEventListener('keypress', (e) => {
-                if (e.key === 'Enter') chatSend.click();
+            chatInput.addEventListener("keypress", (e) => {
+                if (e.key === "Enter") chatSend.click();
             });
         });
 
         function escapeHtml(text) {
-            const div = document.createElement('div');
+            const div = document.createElement("div");
             div.textContent = text;
             return div.innerHTML;
         }

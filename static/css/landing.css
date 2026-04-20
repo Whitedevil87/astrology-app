@@ -315,6 +315,32 @@ body {
     flex-wrap: wrap;
 }
 
+.hero-summary {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 1rem;
+}
+
+.summary-item {
+    background: rgba(15, 26, 61, 0.5);
+    border: 1px solid var(--color-border);
+    border-radius: 16px;
+    padding: 1rem 1.1rem;
+    backdrop-filter: blur(10px);
+}
+
+.summary-item strong {
+    display: block;
+    font-size: 1rem;
+    margin-bottom: 0.35rem;
+    color: var(--color-text);
+}
+
+.summary-item span {
+    color: var(--color-text-dim);
+    font-size: 0.92rem;
+}
+
 .btn {
     padding: 0.9rem 1.8rem;
     border: none;
@@ -382,6 +408,10 @@ body {
     position: relative;
     height: 400px;
     animation: slideInRight 0.8s ease-out;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 1.25rem;
 }
 
 @keyframes slideInRight {
@@ -400,7 +430,7 @@ body {
     width: 300px;
     height: 300px;
     margin: 0 auto;
-    top: 50px;
+    top: 0;
 }
 
 .central-sun {
@@ -461,6 +491,98 @@ body {
 @keyframes orbit-planet {
     0% { transform: rotate(0deg) translateX(120px) rotate(0deg); }
     100% { transform: rotate(360deg) translateX(120px) rotate(-360deg); }
+}
+
+.hero-legend {
+    display: grid;
+    gap: 0.75rem;
+}
+
+.planet-card {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.85rem;
+    background: rgba(15, 26, 61, 0.45);
+    border: 1px solid var(--color-border);
+    border-radius: 16px;
+    padding: 0.9rem 1rem;
+    backdrop-filter: blur(10px);
+}
+
+.planet-card strong {
+    display: block;
+    margin-bottom: 0.2rem;
+}
+
+.planet-card p {
+    color: var(--color-text-dim);
+    font-size: 0.92rem;
+}
+
+.planet-dot {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    margin-top: 0.3rem;
+    flex-shrink: 0;
+}
+
+.sun-dot {
+    background: #ffd93d;
+    box-shadow: 0 0 16px rgba(255, 217, 61, 0.6);
+}
+
+.moon-dot {
+    background: #cbd5f5;
+    box-shadow: 0 0 16px rgba(203, 213, 245, 0.45);
+}
+
+.asc-dot {
+    background: var(--color-primary);
+    box-shadow: 0 0 16px rgba(0, 217, 255, 0.55);
+}
+
+.sign-preview {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 1rem 2rem 3rem;
+}
+
+.section-header.compact {
+    margin-bottom: 2rem;
+}
+
+.sign-grid {
+    display: grid;
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    gap: 0.9rem;
+}
+
+.sign-chip {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.7rem;
+    padding: 0.95rem 1rem;
+    background: rgba(15, 26, 61, 0.45);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 16px;
+    color: var(--color-text);
+    backdrop-filter: blur(10px);
+}
+
+.sign-mark {
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, rgba(0, 217, 255, 0.22), rgba(168, 85, 247, 0.22));
+    color: var(--color-primary-light);
+    font-size: 0.85rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
 }
 
 /* ============================================
@@ -615,51 +737,53 @@ body {
 }
 
 /* ============================================
-   TESTIMONIALS SECTION
+   READING PREVIEW SECTION
    ============================================ */
 
-.testimonials {
+.reading-preview {
     padding: 6rem 2rem;
     max-width: 1200px;
     margin: 0 auto;
 }
 
-.testimonials-grid {
+.preview-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
     gap: 2rem;
     margin-top: 3rem;
 }
 
-.testimonial {
+.preview-card {
     background: rgba(15, 26, 61, 0.5);
     border: 1px solid var(--color-border);
     border-radius: 15px;
     padding: 2rem;
     transition: var(--transition);
     backdrop-filter: blur(10px);
-}
-
-.testimonial:hover {
+.preview-card:hover {
     transform: translateY(-5px);
     border-color: var(--color-primary);
 }
 
-.testimonial .stars {
-    display: block;
-    margin-bottom: 1rem;
-    font-size: 1.2rem;
-}
-
-.testimonial p {
-    color: var(--color-text);
-    margin-bottom: 1rem;
-    font-style: italic;
-}
-
-.testimonial-author {
+.preview-tag {
+    display: inline-flex;
+    padding: 0.35rem 0.7rem;
+    border-radius: 999px;
+    background: rgba(0, 217, 255, 0.12);
+    border: 1px solid var(--color-border);
+    color: var(--color-primary-light);
+    font-size: 0.82rem;
     font-weight: 600;
-    color: var(--color-primary);
+    margin-bottom: 1rem;
+}
+
+.preview-card h3 {
+    font-size: 1.25rem;
+    margin-bottom: 0.75rem;
+}
+
+.preview-card p {
+    color: var(--color-text-dim);
 }
 
 /* ============================================
@@ -759,6 +883,12 @@ body {
     font-size: 1.2rem;
     color: var(--color-text-dim);
     margin-bottom: 2rem;
+}
+
+.cta-box .btn,
+.cta-content .btn {
+    margin-inline: auto;
+    justify-content: center;
 }
 
 /* ============================================
@@ -1120,7 +1250,7 @@ body {
     }
 
     .hero-visual {
-        height: 280px;
+        height: auto;
         display: flex;
         justify-content: center;
     }
@@ -1135,6 +1265,10 @@ body {
         flex-direction: column;
         gap: 0.75rem;
         justify-content: center;
+    }
+
+    .hero-summary {
+        grid-template-columns: 1fr;
     }
 
     .btn {
@@ -1188,6 +1322,14 @@ body {
 
     .features {
         padding: 3rem 1rem;
+    }
+
+    .sign-preview {
+        padding: 1rem 1rem 2.5rem;
+    }
+
+    .sign-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 
     .steps {
@@ -1247,16 +1389,16 @@ body {
         font-size: 0.95rem;
     }
 
-    .testimonials {
+    .reading-preview {
         padding: 3rem 1rem;
     }
 
-    .testimonials-grid {
+    .preview-grid {
         grid-template-columns: 1fr;
         gap: 1.5rem;
     }
 
-    .testimonial {
+    .preview-card {
         padding: 1.5rem;
         border-radius: 14px;
     }
