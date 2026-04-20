@@ -406,12 +406,11 @@ body {
 
 .hero-visual {
     position: relative;
-    height: 400px;
+    height: 520px;
     animation: slideInRight 0.8s ease-out;
     display: flex;
-    flex-direction: column;
+    align-items: center;
     justify-content: center;
-    gap: 1.25rem;
 }
 
 @keyframes slideInRight {
@@ -427,8 +426,8 @@ body {
 
 .orbiting-planets {
     position: relative;
-    width: 320px;
-    height: 320px;
+    width: 480px;
+    height: 480px;
     margin: 0 auto;
     top: 0;
 }
@@ -438,34 +437,60 @@ body {
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-    width: 88px;
-    height: 88px;
+    width: 150px;
+    height: 150px;
     display: flex;
     align-items: center;
     justify-content: center;
 }
 
 .sun-core {
-    width: 68px;
-    height: 68px;
+    width: 112px;
+    height: 112px;
     background: radial-gradient(circle, #ffe57a 0%, #ffb347 52%, #ff8c42 100%);
     border-radius: 50%;
-    box-shadow: 0 0 40px rgba(255, 217, 61, 0.8);
+    box-shadow:
+        0 0 40px rgba(255, 217, 61, 0.75),
+        0 0 90px rgba(255, 168, 66, 0.45),
+        inset 0 0 22px rgba(255, 255, 255, 0.28);
     animation: pulse-sun 2s ease-in-out infinite;
+    position: relative;
+}
+
+.sun-core::before {
+    content: "";
+    position: absolute;
+    inset: -18px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(255, 196, 92, 0.35), transparent 68%);
+    filter: blur(10px);
+    z-index: -1;
 }
 
 .sun-name {
     position: absolute;
-    bottom: -26px;
-    font-size: 0.78rem;
-    letter-spacing: 0.12em;
+    bottom: 44px;
+    font-size: 1.15rem;
+    letter-spacing: 0.18em;
     text-transform: uppercase;
     color: rgba(255, 239, 173, 0.9);
+    font-weight: 700;
+    text-shadow: 0 0 18px rgba(255, 217, 61, 0.24);
 }
 
 @keyframes pulse-sun {
-    0%, 100% { box-shadow: 0 0 40px rgba(255, 217, 61, 0.8); }
-    50% { box-shadow: 0 0 60px rgba(255, 217, 61, 1); }
+    0%, 100% {
+        box-shadow:
+            0 0 40px rgba(255, 217, 61, 0.75),
+            0 0 90px rgba(255, 168, 66, 0.45),
+            inset 0 0 22px rgba(255, 255, 255, 0.28);
+    }
+    50% {
+        box-shadow:
+            0 0 60px rgba(255, 217, 61, 1),
+            0 0 110px rgba(255, 168, 66, 0.55),
+            inset 0 0 26px rgba(255, 255, 255, 0.34);
+    }
 }
 
 .orbit {
@@ -473,25 +498,25 @@ body {
     top: 50%;
     left: 50%;
     border-radius: 50%;
-    border: 1px dashed rgba(0, 217, 255, 0.14);
+    border: 1px dashed rgba(0, 102, 255, 0.38);
     transform: translate(-50%, -50%);
 }
 
 .orbit-venus {
-    width: 130px;
-    height: 130px;
+    width: 190px;
+    height: 190px;
     animation: orbit-spin 10s linear infinite;
 }
 
 .orbit-earth {
-    width: 196px;
-    height: 196px;
+    width: 290px;
+    height: 290px;
     animation: orbit-spin 16s linear infinite;
 }
 
 .orbit-mars {
-    width: 268px;
-    height: 268px;
+    width: 390px;
+    height: 390px;
     animation: orbit-spin 22s linear infinite;
 }
 
@@ -505,7 +530,7 @@ body {
 .planet-shell {
     display: flex;
     align-items: center;
-    gap: 0.55rem;
+    gap: 0.7rem;
 }
 
 .orbit-venus .planet-shell {
@@ -527,32 +552,35 @@ body {
 }
 
 .planet-body.earth {
-    width: 28px;
-    height: 28px;
-    background: #4f9ff0;
-    box-shadow: 0 0 20px rgba(79, 159, 240, 0.6);
+    width: 50px;
+    height: 50px;
+    background:
+        radial-gradient(circle at 35% 35%, rgba(255,255,255,0.8), transparent 18%),
+        radial-gradient(circle at 30% 35%, #6fd4ff, #347bd8 58%, #1b3f7d 100%);
+    box-shadow: 0 0 28px rgba(79, 159, 240, 0.55);
 }
 
 .planet-body.venus {
-    width: 20px;
-    height: 20px;
-    background: #ffd93d;
-    box-shadow: 0 0 15px rgba(255, 217, 61, 0.6);
+    width: 18px;
+    height: 18px;
+    background: radial-gradient(circle at 35% 35%, #ffe38a, #f7c64b 60%, #a96a22 100%);
+    box-shadow: 0 0 18px rgba(255, 217, 61, 0.45);
 }
 
 .planet-body.mars {
-    width: 24px;
-    height: 24px;
-    background: #ff6b6b;
-    box-shadow: 0 0 15px rgba(255, 107, 107, 0.6);
+    width: 56px;
+    height: 56px;
+    background: radial-gradient(circle at 35% 35%, #ffbe8a, #cf7a3b 55%, #7b341d 100%);
+    box-shadow: 0 0 24px rgba(255, 124, 78, 0.42);
 }
 
 .planet-name {
-    font-size: 0.72rem;
-    letter-spacing: 0.08em;
+    font-size: 1.05rem;
+    letter-spacing: 0.18em;
     text-transform: uppercase;
-    color: rgba(226, 232, 240, 0.84);
+    color: rgba(226, 232, 240, 0.94);
     text-shadow: 0 0 12px rgba(10, 14, 39, 0.95);
+    font-weight: 500;
 }
 
 @keyframes orbit-spin {
@@ -565,58 +593,12 @@ body {
     to { transform: rotate(-360deg); }
 }
 
-.hero-legend {
-    display: grid;
-    gap: 0.75rem;
+.earth-name {
+    transform: rotate(16deg);
 }
 
-.planet-card {
-    display: flex;
-    align-items: flex-start;
-    gap: 0.85rem;
-    background: rgba(15, 26, 61, 0.45);
-    border: 1px solid var(--color-border);
-    border-radius: 16px;
-    padding: 0.9rem 1rem;
-    backdrop-filter: blur(10px);
-}
-
-.planet-card strong {
-    display: block;
-    margin-bottom: 0.2rem;
-}
-
-.planet-card p {
-    color: var(--color-text-dim);
-    font-size: 0.92rem;
-}
-
-.planet-dot {
-    width: 14px;
-    height: 14px;
-    border-radius: 50%;
-    margin-top: 0.3rem;
-    flex-shrink: 0;
-}
-
-.sun-dot {
-    background: #ffd93d;
-    box-shadow: 0 0 16px rgba(255, 217, 61, 0.6);
-}
-
-.moon-dot {
-    background: #cbd5f5;
-    box-shadow: 0 0 16px rgba(203, 213, 245, 0.45);
-}
-
-.venus-dot {
-    background: #ffd93d;
-    box-shadow: 0 0 16px rgba(255, 217, 61, 0.6);
-}
-
-.asc-dot {
-    background: var(--color-primary);
-    box-shadow: 0 0 16px rgba(0, 217, 255, 0.55);
+.mars-name {
+    transform: rotate(14deg);
 }
 
 .sign-preview {
@@ -1331,44 +1313,59 @@ body {
     }
 
     .hero-visual {
-        height: auto;
+        height: 320px;
         display: flex;
         justify-content: center;
     }
 
     .orbiting-planets {
-        width: 240px;
-        height: 240px;
+        width: 300px;
+        height: 300px;
         top: 0;
     }
 
     .orbit-venus {
-        width: 100px;
-        height: 100px;
+        width: 126px;
+        height: 126px;
     }
 
     .orbit-earth {
-        width: 150px;
-        height: 150px;
+        width: 190px;
+        height: 190px;
     }
 
     .orbit-mars {
-        width: 210px;
-        height: 210px;
+        width: 254px;
+        height: 254px;
     }
 
     .central-sun {
-        width: 72px;
-        height: 72px;
+        width: 108px;
+        height: 108px;
     }
 
     .sun-core {
-        width: 54px;
-        height: 54px;
+        width: 82px;
+        height: 82px;
+    }
+
+    .sun-name {
+        bottom: 30px;
+        font-size: 0.9rem;
+    }
+
+    .planet-body.earth {
+        width: 36px;
+        height: 36px;
+    }
+
+    .planet-body.mars {
+        width: 38px;
+        height: 38px;
     }
 
     .planet-name {
-        font-size: 0.62rem;
+        font-size: 0.78rem;
     }
 
     .hero-buttons {
@@ -1660,12 +1657,13 @@ body {
     }
 
     .hero-visual {
-        height: 200px;
-        display: none;
+        height: 260px;
+        display: flex;
     }
 
     .orbiting-planets {
-        display: none;
+        width: 240px;
+        height: 240px;
     }
 
     .hero-buttons {
@@ -1687,6 +1685,51 @@ body {
 
     .btn svg {
         display: none;
+    }
+
+    .orbit-venus {
+        width: 96px;
+        height: 96px;
+    }
+
+    .orbit-earth {
+        width: 150px;
+        height: 150px;
+    }
+
+    .orbit-mars {
+        width: 204px;
+        height: 204px;
+    }
+
+    .central-sun {
+        width: 88px;
+        height: 88px;
+    }
+
+    .sun-core {
+        width: 66px;
+        height: 66px;
+    }
+
+    .sun-name {
+        bottom: 24px;
+        font-size: 0.72rem;
+    }
+
+    .planet-body.earth {
+        width: 28px;
+        height: 28px;
+    }
+
+    .planet-body.mars {
+        width: 30px;
+        height: 30px;
+    }
+
+    .planet-name {
+        font-size: 0.62rem;
+        letter-spacing: 0.12em;
     }
 
     .btn-secondary:hover {
