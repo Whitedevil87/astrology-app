@@ -427,8 +427,8 @@ body {
 
 .orbiting-planets {
     position: relative;
-    width: 300px;
-    height: 300px;
+    width: 320px;
+    height: 320px;
     margin: 0 auto;
     top: 0;
 }
@@ -438,12 +438,29 @@ body {
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-    width: 60px;
-    height: 60px;
-    background: radial-gradient(circle, #ffd93d, #ff8c42);
+    width: 88px;
+    height: 88px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.sun-core {
+    width: 68px;
+    height: 68px;
+    background: radial-gradient(circle, #ffe57a 0%, #ffb347 52%, #ff8c42 100%);
     border-radius: 50%;
     box-shadow: 0 0 40px rgba(255, 217, 61, 0.8);
     animation: pulse-sun 2s ease-in-out infinite;
+}
+
+.sun-name {
+    position: absolute;
+    bottom: -26px;
+    font-size: 0.78rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: rgba(255, 239, 173, 0.9);
 }
 
 @keyframes pulse-sun {
@@ -451,46 +468,101 @@ body {
     50% { box-shadow: 0 0 60px rgba(255, 217, 61, 1); }
 }
 
-.planet {
+.orbit {
     position: absolute;
+    top: 50%;
+    left: 50%;
     border-radius: 50%;
-    animation: orbit-planet 8s linear infinite;
+    border: 1px dashed rgba(0, 217, 255, 0.14);
+    transform: translate(-50%, -50%);
 }
 
-.planet.earth {
-    width: 40px;
-    height: 40px;
-    top: 60px;
-    left: 130px;
+.orbit-venus {
+    width: 130px;
+    height: 130px;
+    animation: orbit-spin 10s linear infinite;
+}
+
+.orbit-earth {
+    width: 196px;
+    height: 196px;
+    animation: orbit-spin 16s linear infinite;
+}
+
+.orbit-mars {
+    width: 268px;
+    height: 268px;
+    animation: orbit-spin 22s linear infinite;
+}
+
+.planet-anchor {
+    position: absolute;
+    top: 50%;
+    left: 100%;
+    transform: translate(-50%, -50%);
+}
+
+.planet-shell {
+    display: flex;
+    align-items: center;
+    gap: 0.55rem;
+}
+
+.orbit-venus .planet-shell {
+    animation: orbit-counter 10s linear infinite reverse;
+}
+
+.orbit-earth .planet-shell {
+    animation: orbit-counter 16s linear infinite reverse;
+}
+
+.orbit-mars .planet-shell {
+    animation: orbit-counter 22s linear infinite reverse;
+}
+
+.planet-body {
+    display: block;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.planet-body.earth {
+    width: 28px;
+    height: 28px;
     background: #4f9ff0;
     box-shadow: 0 0 20px rgba(79, 159, 240, 0.6);
 }
 
-.planet.venus {
-    width: 30px;
-    height: 30px;
-    top: 130px;
-    left: 50px;
+.planet-body.venus {
+    width: 20px;
+    height: 20px;
     background: #ffd93d;
     box-shadow: 0 0 15px rgba(255, 217, 61, 0.6);
-    animation-duration: 10s;
-    animation-delay: -3s;
 }
 
-.planet.mars {
-    width: 35px;
-    height: 35px;
-    top: 130px;
-    right: 50px;
+.planet-body.mars {
+    width: 24px;
+    height: 24px;
     background: #ff6b6b;
     box-shadow: 0 0 15px rgba(255, 107, 107, 0.6);
-    animation-duration: 12s;
-    animation-delay: -6s;
 }
 
-@keyframes orbit-planet {
-    0% { transform: rotate(0deg) translateX(120px) rotate(0deg); }
-    100% { transform: rotate(360deg) translateX(120px) rotate(-360deg); }
+.planet-name {
+    font-size: 0.72rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: rgba(226, 232, 240, 0.84);
+    text-shadow: 0 0 12px rgba(10, 14, 39, 0.95);
+}
+
+@keyframes orbit-spin {
+    from { transform: translate(-50%, -50%) rotate(0deg); }
+    to { transform: translate(-50%, -50%) rotate(360deg); }
+}
+
+@keyframes orbit-counter {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(-360deg); }
 }
 
 .hero-legend {
@@ -535,6 +607,11 @@ body {
 .moon-dot {
     background: #cbd5f5;
     box-shadow: 0 0 16px rgba(203, 213, 245, 0.45);
+}
+
+.venus-dot {
+    background: #ffd93d;
+    box-shadow: 0 0 16px rgba(255, 217, 61, 0.6);
 }
 
 .asc-dot {
@@ -1260,9 +1337,38 @@ body {
     }
 
     .orbiting-planets {
-        width: 220px;
-        height: 220px;
+        width: 240px;
+        height: 240px;
         top: 0;
+    }
+
+    .orbit-venus {
+        width: 100px;
+        height: 100px;
+    }
+
+    .orbit-earth {
+        width: 150px;
+        height: 150px;
+    }
+
+    .orbit-mars {
+        width: 210px;
+        height: 210px;
+    }
+
+    .central-sun {
+        width: 72px;
+        height: 72px;
+    }
+
+    .sun-core {
+        width: 54px;
+        height: 54px;
+    }
+
+    .planet-name {
+        font-size: 0.62rem;
     }
 
     .hero-buttons {
