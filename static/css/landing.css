@@ -760,6 +760,8 @@ body {
     padding: 2rem;
     transition: var(--transition);
     backdrop-filter: blur(10px);
+}
+
 .preview-card:hover {
     transform: translateY(-5px);
     border-color: var(--color-primary);
@@ -887,6 +889,8 @@ body {
 
 .cta-box .btn,
 .cta-content .btn {
+    display: inline-flex;
+    width: auto;
     margin-inline: auto;
     justify-content: center;
 }
@@ -1928,8 +1932,6 @@ body {
         width: 60px;
         height: 60px;
         font-size: 1.4rem;
-    }
-}
     }
 }
 
