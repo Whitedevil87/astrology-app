@@ -71,18 +71,14 @@ body {
     pointer-events: none;
 }
 
-.stars {
+/* Static star dots replaced by canvas starfield */
+.starfield-canvas {
     position: absolute;
     inset: 0;
-    background-image: radial-gradient(circle, rgba(255,255,255,0.8) 1px, transparent 1px);
-    background-size: 40px 40px;
-    opacity: 0.15;
-    animation: twinkle 8s ease-in-out infinite;
-}
-
-@keyframes twinkle {
-    0%, 100% { opacity: 0.15; }
-    50% { opacity: 0.3; }
+    width: 100%;
+    height: 100%;
+    display: block;
+    pointer-events: none;
 }
 
 .nebula {
@@ -440,8 +436,8 @@ body {
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-    width: 120px;
-    height: 120px;
+    width: 155px;
+    height: 155px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -450,7 +446,7 @@ body {
 
 .sun-corona {
     position: absolute;
-    inset: -28px;
+    inset: -22px;
     border-radius: 50%;
     background: radial-gradient(
         circle,
@@ -463,15 +459,15 @@ body {
 }
 
 .sun-image {
-    width: 105px;
-    height: 105px;
+    width: 140px;
+    height: 140px;
     border-radius: 50%;
     object-fit: cover;
     box-shadow:
-        0 0 0 3px rgba(255, 220, 80, 0.25),
-        0 0 30px rgba(255, 200, 50, 0.9),
-        0 0 70px rgba(255, 160, 30, 0.5),
-        0 0 130px rgba(255, 120, 20, 0.25);
+        0 0 0 3px rgba(255, 220, 80, 0.3),
+        0 0 30px rgba(255, 200, 50, 0.95),
+        0 0 70px rgba(255, 160, 30, 0.55),
+        0 0 140px rgba(255, 120, 20, 0.28);
     animation: pulse-sun 3s ease-in-out infinite;
     z-index: 2;
     position: relative;
@@ -1328,9 +1324,9 @@ body {
     .orbit-earth  { width: 218px; height: 218px; }
     .orbit-mars   { width: 294px; height: 294px; }
 
-    .central-sun  { width: 80px; height: 80px; }
-    .sun-image    { width: 68px; height: 68px; }
-    .sun-corona   { inset: -16px; }
+    .central-sun  { width: 100px; height: 100px; }
+    .sun-image    { width: 88px; height: 88px; }
+    .sun-corona   { inset: -14px; }
 
     .venus-img  { width: 30px; height: 30px; }
     .earth-img  { width: 40px; height: 40px; }
@@ -1640,9 +1636,9 @@ body {
     .orbit-earth  { width: 176px; height: 176px; }
     .orbit-mars   { width: 238px; height: 238px; }
 
-    .central-sun  { width: 64px; height: 64px; }
-    .sun-image    { width: 54px; height: 54px; }
-    .sun-corona   { inset: -12px; }
+    .central-sun  { width: 80px; height: 80px; }
+    .sun-image    { width: 70px; height: 70px; }
+    .sun-corona   { inset: -10px; }
 
     .venus-img  { width: 24px; height: 24px; }
     .earth-img  { width: 32px; height: 32px; }

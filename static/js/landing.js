@@ -25,7 +25,142 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Add keyboard navigation
     setupSlideKeyboardNavigation();
+
+    // Live animated starfield
+    initStarfield();
 });
+
+// ============================================
+// LIVE STARFIELD ANIMATION (Canvas)
+// ============================================
+
+function initStarfield() {
+    const canvas = document.getElementById('starfield-canvas');
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+
+    function resize() {
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+    }
+    resize();
+    window.addEventListener('resize', resize);
+
+    // --- Static twinkling stars ---
+    const STAR_COLORS = ['#ffffff', '#cce8ff', '#ffe8b0', '#d4c8ff', '#b8e8ff'];
+    const stars = Array.from({ length: 220 }, () => ({
+        x: Math.random(),
+        y: Math.random(),
+        r: Math.random() * 1.6 + 0.25,
+        baseOp: Math.random() * 0.55 + 0.15,
+        speed: Math.random() * 0.022 + 0.005,
+        phase: Math.random() * Math.PI * 2,
+        color: STAR_COLORS[Math.floor(Math.random() * STAR_COLORS.length)]
+    }));
+
+    // --- Shooting stars ---
+    const shooters = [];
+
+    function spawnShooter() {
+        if (document.hidden) return;
+        const angle = (Math.PI / 5) + (Math.random() - 0.5) * 0.5;
+        const speed = Math.random() * 8 + 5;
+        shooters.push({
+            x: Math.random() * canvas.width * 0.75,
+            y: Math.random() * canvas.height * 0.45,
+            vx: Math.cos(angle) * speed,
+            vy: Math.sin(angle) * speed,
+            len: Math.random() * 100 + 55,
+            life: 0,
+            maxLife: Math.random() * 45 + 28
+        });
+    }
+
+    // First one appears quickly
+    setTimeout(spawnShooter, 800);
+    let shootTimer = setInterval(spawnShooter, 3200);
+
+    let frame = 0;
+    let animId;
+
+    function animate() {
+        animId = requestAnimationFrame(animate);
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        frame++;
+
+        // Twinkling stars
+        stars.forEach(s => {
+            const tw = Math.sin(frame * s.speed + s.phase);
+            const op = Math.max(0.04, s.baseOp + tw * 0.32);
+
+            ctx.globalAlpha = op;
+            ctx.fillStyle = s.color;
+            ctx.beginPath();
+            ctx.arc(s.x * canvas.width, s.y * canvas.height, s.r, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Soft halo glow on larger stars
+            if (s.r > 1.15) {
+                ctx.globalAlpha = op * 0.22;
+                ctx.beginPath();
+                ctx.arc(s.x * canvas.width, s.y * canvas.height, s.r * 3.2, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        });
+
+        // Shooting stars
+        for (let i = shooters.length - 1; i >= 0; i--) {
+            const ss = shooters[i];
+            ss.life++;
+            ss.x += ss.vx;
+            ss.y += ss.vy;
+
+            const prog = ss.life / ss.maxLife;
+            const fade = prog < 0.25 ? prog / 0.25 : 1 - (prog - 0.25) / 0.75;
+            const mag = Math.hypot(ss.vx, ss.vy);
+            const tailX = ss.x - (ss.vx / mag) * ss.len;
+            const tailY = ss.y - (ss.vy / mag) * ss.len;
+
+            const grad = ctx.createLinearGradient(tailX, tailY, ss.x, ss.y);
+            grad.addColorStop(0, 'rgba(255,255,255,0)');
+            grad.addColorStop(0.6, `rgba(180,220,255,${fade * 0.5})`);
+            grad.addColorStop(1, `rgba(220,240,255,${fade * 0.95})`);
+
+            ctx.globalAlpha = 1;
+            ctx.beginPath();
+            ctx.moveTo(tailX, tailY);
+            ctx.lineTo(ss.x, ss.y);
+            ctx.strokeStyle = grad;
+            ctx.lineWidth = 1.8;
+            ctx.lineCap = 'round';
+            ctx.stroke();
+
+            // Bright head dot
+            ctx.globalAlpha = fade * 0.9;
+            ctx.fillStyle = '#dff0ff';
+            ctx.beginPath();
+            ctx.arc(ss.x, ss.y, 1.8, 0, Math.PI * 2);
+            ctx.fill();
+
+            if (ss.life >= ss.maxLife) shooters.splice(i, 1);
+        }
+
+        ctx.globalAlpha = 1;
+    }
+
+    animate();
+
+    // Pause when tab is hidden for performance
+    document.addEventListener('visibilitychange', () => {
+        if (document.hidden) {
+            cancelAnimationFrame(animId);
+            clearInterval(shootTimer);
+        } else {
+            animate();
+            shootTimer = setInterval(spawnShooter, 3200);
+        }
+    });
+}
 
 function initializeSlides() {
     // Gather all slide sections
