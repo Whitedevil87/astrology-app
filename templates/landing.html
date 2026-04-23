@@ -13,7 +13,7 @@
     <link
         href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600;700;800;900&family=Poppins:wght@300;400;500;600;700&display=swap"
         rel="stylesheet">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/landing.css', v='20260423e') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/landing.css') }}">
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
 
@@ -35,6 +35,7 @@
             <div class="nav-links">
                 <a href="#features" class="nav-link">Features</a>
                 <a href="#how" class="nav-link">How It Works</a>
+                <a href="/horoscope" class="nav-link">Horoscope</a>
                 <a href="#faq" class="nav-link">FAQ</a>
             </div>
             <button class="cta-nav-btn" onclick="scrollToApp()">Open Reading</button>
@@ -49,8 +50,10 @@
     <div class="mobile-menu" id="mobileMenu">
         <a href="#features" class="mobile-menu-link" onclick="closeMobileMenu()">Features</a>
         <a href="#how" class="mobile-menu-link" onclick="closeMobileMenu()">How It Works</a>
+        <a href="/horoscope" class="mobile-menu-link" onclick="closeMobileMenu()">Horoscope</a>
         <a href="#faq" class="mobile-menu-link" onclick="closeMobileMenu()">FAQ</a>
-        <button class="cta-nav-btn" style="width: 100%; margin-top: 1rem;" onclick="scrollToApp(); closeMobileMenu();">Open Reading</button>
+        <button class="cta-nav-btn" style="width: 100%; margin-top: 1rem;"
+            onclick="scrollToApp(); closeMobileMenu();">Open Reading</button>
     </div>
 
     <section class="hero">
@@ -96,46 +99,65 @@
         </div>
 
         <div class="hero-visual">
-            <div class="astrology-system" id="astrologySystem" aria-hidden="true">
+            <div class="astrology-system" aria-hidden="true">
                 <div class="system-ambient ambient-one"></div>
                 <div class="system-ambient ambient-two"></div>
                 <div class="system-ambient ambient-three"></div>
 
-                <div class="orbit orbit-venus">
-                    <span class="orbit-path"></span>
+                <div class="zodiac-wheel">
+                    <div class="zodiac-ring zodiac-ring-outer"></div>
+                    <div class="zodiac-ring zodiac-ring-inner"></div>
+                    <div class="house-grid">
+                        <div class="house-line"></div>
+                        <div class="house-line"></div>
+                        <div class="house-line"></div>
+                        <div class="house-line"></div>
+                        <div class="house-line"></div>
+                        <div class="house-line"></div>
+                    </div>
+                </div>
+
+                <div class="orbit orbit-mars">
+                    <div class="orbit-path"></div>
                     <div class="planet-anchor">
                         <div class="planet-shell">
-                            <span class="planet-glow planet-glow-venus"></span>
-                            <img src="{{ url_for('static', filename='images/venus.png') }}" alt="" class="planet-image planet-image-venus">
+                            <div class="planet-glow planet-glow-mars"></div>
+                            <img src="{{ url_for('static', filename='images/mars.png') }}" class="planet-image planet-image-mars" alt="Mars">
+                            <div class="planet-name">Mars</div>
                         </div>
                     </div>
                 </div>
 
                 <div class="orbit orbit-earth">
-                    <span class="orbit-path"></span>
+                    <div class="orbit-path"></div>
                     <div class="planet-anchor">
                         <div class="planet-shell">
-                            <span class="planet-glow planet-glow-earth"></span>
-                            <img src="{{ url_for('static', filename='images/earth.png') }}" alt="" class="planet-image planet-image-earth">
+                            <div class="planet-glow planet-glow-earth"></div>
+                            <img src="{{ url_for('static', filename='images/earth.png') }}" class="planet-image planet-image-earth" alt="Earth">
+                            <div class="planet-name">Earth</div>
                         </div>
                     </div>
                 </div>
 
-                <div class="orbit orbit-mars">
-                    <span class="orbit-path"></span>
+                <div class="orbit orbit-venus">
+                    <div class="orbit-path"></div>
                     <div class="planet-anchor">
                         <div class="planet-shell">
-                            <span class="planet-glow planet-glow-mars"></span>
-                            <img src="{{ url_for('static', filename='images/mars.png') }}" alt="" class="planet-image planet-image-mars">
+                            <div class="planet-glow planet-glow-venus"></div>
+                            <img src="{{ url_for('static', filename='images/venus.png') }}" class="planet-image planet-image-venus" alt="Venus">
+                            <div class="planet-name">Venus</div>
                         </div>
                     </div>
                 </div>
 
                 <div class="solar-core">
-                    <span class="solar-aura solar-aura-primary"></span>
-                    <span class="solar-aura solar-aura-secondary"></span>
-                    <span class="solar-aura solar-aura-tertiary"></span>
-                    <img src="{{ url_for('static', filename='images/sun.png') }}" alt="" class="sun-image">
+                    <div class="solar-aura solar-aura-primary"></div>
+                    <div class="solar-aura solar-aura-secondary"></div>
+                    <img src="{{ url_for('static', filename='images/sun.png') }}" class="sun-image" alt="Sun">
+                    <div class="solar-caption">
+                        <span class="solar-kicker">Stellar Core</span>
+                        <strong>Astrology Engine</strong>
+                    </div>
                 </div>
             </div>
         </div>
@@ -366,7 +388,8 @@
         </div>
         <div class="chat-messages" id="chatMessages">
             <div class="chat-message guru">
-                <p>Hello. Ask a sample astrology question here, then open your full reading for personal chart details.</p>
+                <p>Hello. Ask a sample astrology question here, then open your full reading for personal chart details.
+                </p>
             </div>
         </div>
         <div class="chat-input-box">
@@ -442,7 +465,7 @@
         }
     </script>
 
-    <script src="{{ url_for('static', filename='js/landing.js', v='20260423e') }}"></script>
+    <script src="{{ url_for('static', filename='js/landing.js') }}"></script>
 </body>
 
 </html>
