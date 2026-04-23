@@ -84,37 +84,31 @@
         </div>
 
         <div class="hero-visual">
-            <div class="orbiting-planets" aria-hidden="true">
+            <div class="solar-system" aria-hidden="true">
                 <div class="orbit orbit-venus">
-                    <span class="orbit-path"></span>
                     <div class="planet-anchor">
                         <div class="planet-shell">
-                            <img src="{{ url_for('static', filename='images/venus.png') }}" alt="Venus" class="planet-image">
-                            <span class="planet-name venus-name">Venus</span>
+                            <img src="{{ url_for('static', filename='images/venus.png') }}" alt="Venus" class="planet-image venus-img">
                         </div>
                     </div>
                 </div>
                 <div class="orbit orbit-earth">
-                    <span class="orbit-path"></span>
                     <div class="planet-anchor">
                         <div class="planet-shell">
-                            <img src="{{ url_for('static', filename='images/earth.png') }}" alt="Earth" class="planet-image">
-                            <span class="planet-name earth-name">Earth</span>
+                            <img src="{{ url_for('static', filename='images/earth.png') }}" alt="Earth" class="planet-image earth-img">
                         </div>
                     </div>
                 </div>
                 <div class="orbit orbit-mars">
-                    <span class="orbit-path"></span>
                     <div class="planet-anchor">
                         <div class="planet-shell">
-                            <img src="{{ url_for('static', filename='images/mars.png') }}" alt="Mars" class="planet-image">
-                            <span class="planet-name mars-name">Mars</span>
+                            <img src="{{ url_for('static', filename='images/mars.png') }}" alt="Mars" class="planet-image mars-img">
                         </div>
                     </div>
                 </div>
                 <div class="central-sun">
+                    <div class="sun-corona"></div>
                     <img src="{{ url_for('static', filename='images/sun.png') }}" alt="Sun" class="sun-image">
-                    <span class="sun-name">Sun</span>
                 </div>
             </div>
         </div>
