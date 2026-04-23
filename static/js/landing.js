@@ -1,53 +1,7 @@
 /**
- * Celestial Arc - Landing Page JavaScript (Enhanced)
- * Premium slide-based scroll experience with mobile support
+ * Celestial Arc - Landing Page JavaScript
+ * Premium slide-based scroll experience
  */
-
-// ============================================
-// MOBILE MENU MANAGEMENT
-// ============================================
-
-function toggleMobileMenu() {
-    const menu = document.getElementById('mobileMenu');
-    const hamburger = document.getElementById('menuToggle');
-    
-    if (menu && hamburger) {
-        menu.classList.toggle('active');
-        hamburger.classList.toggle('active');
-        hamburger.setAttribute('aria-expanded', menu.classList.contains('active'));
-    }
-}
-
-function closeMobileMenu() {
-    const menu = document.getElementById('mobileMenu');
-    const hamburger = document.getElementById('menuToggle');
-    
-    if (menu && hamburger) {
-        menu.classList.remove('active');
-        hamburger.classList.remove('active');
-        hamburger.setAttribute('aria-expanded', 'false');
-    }
-}
-
-// Close mobile menu when clicking on a link
-document.addEventListener('click', (e) => {
-    const menu = document.getElementById('mobileMenu');
-    const hamburger = document.getElementById('menuToggle');
-    
-    if (menu && hamburger && menu.classList.contains('active')) {
-        if (e.target.closest('.mobile-menu-link')) {
-            closeMobileMenu();
-        }
-    }
-});
-
-// Mobile menu toggle button
-document.addEventListener('DOMContentLoaded', () => {
-    const menuToggle = document.getElementById('menuToggle');
-    if (menuToggle) {
-        menuToggle.addEventListener('click', toggleMobileMenu);
-    }
-});
 
 // ============================================
 // SLIDE NAVIGATION SYSTEM
@@ -71,9 +25,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Add keyboard navigation
     setupSlideKeyboardNavigation();
-
-    // Subtle 3D motion for the hero planetary system
-    setupAstrologySystemMotion();
 });
 
 function initializeSlides() {
@@ -163,52 +114,10 @@ function setupSlideKeyboardNavigation() {
 }
 
 // ============================================
-// HERO ASTROLOGY SYSTEM PARALLAX
-// ============================================
-
-function setupAstrologySystemMotion() {
-    const system = document.getElementById('astrologySystem');
-
-    if (!system || window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-        return;
-    }
-
-    const resetSystem = () => {
-        system.style.setProperty('--tilt-x', '4deg');
-        system.style.setProperty('--tilt-y', '-2deg');
-        system.style.setProperty('--glow-x', '50%');
-        system.style.setProperty('--glow-y', '38%');
-    };
-
-    resetSystem();
-
-    system.addEventListener('pointermove', (event) => {
-        const rect = system.getBoundingClientRect();
-        const relativeX = (event.clientX - rect.left) / rect.width - 0.5;
-        const relativeY = (event.clientY - rect.top) / rect.height - 0.5;
-
-        const tiltX = 4 - relativeY * 4;
-        const tiltY = -2 + relativeX * 5;
-        const glowX = 50 + relativeX * 16;
-        const glowY = 38 + relativeY * 16;
-
-        system.style.setProperty('--tilt-x', `${tiltX.toFixed(2)}deg`);
-        system.style.setProperty('--tilt-y', `${tiltY.toFixed(2)}deg`);
-        system.style.setProperty('--glow-x', `${glowX.toFixed(2)}%`);
-        system.style.setProperty('--glow-y', `${glowY.toFixed(2)}%`);
-    });
-
-    system.addEventListener('pointerleave', resetSystem);
-}
-
-// ============================================
 // SCROLL TO APP FUNCTION
 // ============================================
 
 function scrollToApp() {
-    // Close mobile menu if open
-    closeMobileMenu();
-    
     // Navigate to the astrology app with smooth transition
     document.body.style.opacity = '0.7';
     document.body.style.transition = 'opacity 0.4s ease-in';
@@ -219,21 +128,18 @@ function scrollToApp() {
 }
 
 // ============================================
-// FAQ TOGGLE (ENHANCED WITH ARIA)
+// FAQ TOGGLE
 // ============================================
 
 function toggleFAQ(button) {
-    const faqItem = button.closest('.faq-item');
+    const faqItem = button.closest('.faq-item') || button.closest('.faq-card') || button.parentElement;
 
     // Close all other FAQ items (single-open behavior)
-    document.querySelectorAll('.faq-item').forEach(item => {
+    document.querySelectorAll('.faq-item, .faq-card').forEach(item => {
         if (item !== faqItem) {
             const otherContent = item.querySelector('.faq-content');
             const otherToggle = item.querySelector('.faq-toggle');
-            if (otherContent) {
-                otherContent.classList.remove('active');
-                otherContent.setAttribute('aria-hidden', 'true');
-            }
+            if (otherContent) otherContent.classList.remove('active');
             if (otherToggle) otherToggle.textContent = '+';
         }
     });
@@ -243,9 +149,7 @@ function toggleFAQ(button) {
     const toggle = button.querySelector('.faq-toggle');
     if (content) {
         content.classList.toggle('active');
-        const isOpen = content.classList.contains('active');
-        content.setAttribute('aria-hidden', !isOpen);
-        if (toggle) toggle.textContent = isOpen ? '−' : '+';
+        if (toggle) toggle.textContent = content.classList.contains('active') ? '−' : '+';
     }
 }
 
@@ -270,7 +174,7 @@ const observer = new IntersectionObserver((entries) => {
 // Observe feature cards for lazy animation
 document.addEventListener('DOMContentLoaded', () => {
     const featureCards = document.querySelectorAll(
-        '.feature-card, .step, .preview-card, .faq-item'
+        '.feature-card, .feature-bento-item, .step, .step-card, .faq-card, .faq-item'
     );
     featureCards.forEach(card => {
         observer.observe(card);
@@ -282,7 +186,7 @@ document.addEventListener('DOMContentLoaded', () => {
 // ============================================
 
 function setupKeyboardAccessibility() {
-    const ctaButtons = document.querySelectorAll('.cta-button, .faq-header, .cta-nav-btn');
+    const ctaButtons = document.querySelectorAll('.cta-button, .faq-question, .faq-header, .cta-nav-btn');
 
     ctaButtons.forEach(button => {
         button.addEventListener('keydown', (e) => {
@@ -292,57 +196,6 @@ function setupKeyboardAccessibility() {
             }
         });
     });
-}
-
-// ============================================
-// NUMBER COUNTER ANIMATION
-// ============================================
-
-function animateCountUp(element, target, duration = 2000) {
-    let current = 0;
-    const increment = target / (duration / 16);
-    
-    const timer = setInterval(() => {
-        current += increment;
-        if (current >= target) {
-            element.textContent = target;
-            clearInterval(timer);
-        } else {
-            element.textContent = Math.floor(current);
-        }
-    }, 16);
-}
-
-// Initialize counter animations on scroll
-document.addEventListener('DOMContentLoaded', () => {
-    const statsObserver = new IntersectionObserver((entries) => {
-        entries.forEach(entry => {
-            if (entry.isIntersecting && !entry.target.dataset.animated) {
-                entry.target.dataset.animated = 'true';
-                const statValues = entry.target.querySelectorAll('.stat-value');
-                statValues.forEach(stat => {
-                    const target = parseInt(stat.textContent, 10);
-                    if (!isNaN(target)) {
-                        animateCountUp(stat, target);
-                    }
-                });
-                statsObserver.unobserve(entry.target);
-            }
-        });
-    }, { threshold: 0.5 });
-
-    const statsSection = document.querySelector('.hero-stats');
-    if (statsSection) {
-        statsObserver.observe(statsSection);
-    }
-});
-
-// ============================================
-// SMOOTH SCROLL POLYFILL
-// ============================================
-
-if (!('scrollBehavior' in document.documentElement.style)) {
-    console.log('Smooth scroll not supported, using polyfill');
 }
 
 // ============================================
@@ -403,7 +256,6 @@ if (typeof module !== 'undefined' && module.exports) {
     module.exports = {
         scrollToApp,
         toggleFAQ,
-        setupKeyboardAccessibility,
-        setupAstrologySystemMotion
+        setupKeyboardAccessibility
     };
 }

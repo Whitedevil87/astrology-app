@@ -13,8 +13,7 @@
     <link
         href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600;700;800;900&family=Poppins:wght@300;400;500;600;700&display=swap"
         rel="stylesheet">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/landing.css', v='20260423e') }}">
-    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/landing.css') }}">
 </head>
 
 <body class="slide-scroll-container">
@@ -35,23 +34,12 @@
             <div class="nav-links">
                 <a href="#features" class="nav-link">Features</a>
                 <a href="#how" class="nav-link">How It Works</a>
+                <a href="/horoscope" class="nav-link">Horoscope</a>
                 <a href="#faq" class="nav-link">FAQ</a>
             </div>
             <button class="cta-nav-btn" onclick="scrollToApp()">Open Reading</button>
-            <button class="hamburger-menu" id="menuToggle" aria-label="Toggle mobile menu" aria-expanded="false">
-                <span></span>
-                <span></span>
-                <span></span>
-            </button>
         </div>
     </nav>
-
-    <div class="mobile-menu" id="mobileMenu">
-        <a href="#features" class="mobile-menu-link" onclick="closeMobileMenu()">Features</a>
-        <a href="#how" class="mobile-menu-link" onclick="closeMobileMenu()">How It Works</a>
-        <a href="#faq" class="mobile-menu-link" onclick="closeMobileMenu()">FAQ</a>
-        <button class="cta-nav-btn" style="width: 100%; margin-top: 1rem;" onclick="scrollToApp(); closeMobileMenu();">Open Reading</button>
-    </div>
 
     <section class="hero">
         <div class="hero-content">
@@ -96,46 +84,37 @@
         </div>
 
         <div class="hero-visual">
-            <div class="astrology-system" id="astrologySystem" aria-hidden="true">
-                <div class="system-ambient ambient-one"></div>
-                <div class="system-ambient ambient-two"></div>
-                <div class="system-ambient ambient-three"></div>
-
+            <div class="orbiting-planets" aria-hidden="true">
                 <div class="orbit orbit-venus">
                     <span class="orbit-path"></span>
                     <div class="planet-anchor">
                         <div class="planet-shell">
-                            <span class="planet-glow planet-glow-venus"></span>
-                            <img src="{{ url_for('static', filename='images/venus.png') }}" alt="" class="planet-image planet-image-venus">
+                            <img src="{{ url_for('static', filename='images/venus.png') }}" alt="Venus" class="planet-image">
+                            <span class="planet-name venus-name">Venus</span>
                         </div>
                     </div>
                 </div>
-
                 <div class="orbit orbit-earth">
                     <span class="orbit-path"></span>
                     <div class="planet-anchor">
                         <div class="planet-shell">
-                            <span class="planet-glow planet-glow-earth"></span>
-                            <img src="{{ url_for('static', filename='images/earth.png') }}" alt="" class="planet-image planet-image-earth">
+                            <img src="{{ url_for('static', filename='images/earth.png') }}" alt="Earth" class="planet-image">
+                            <span class="planet-name earth-name">Earth</span>
                         </div>
                     </div>
                 </div>
-
                 <div class="orbit orbit-mars">
                     <span class="orbit-path"></span>
                     <div class="planet-anchor">
                         <div class="planet-shell">
-                            <span class="planet-glow planet-glow-mars"></span>
-                            <img src="{{ url_for('static', filename='images/mars.png') }}" alt="" class="planet-image planet-image-mars">
+                            <img src="{{ url_for('static', filename='images/mars.png') }}" alt="Mars" class="planet-image">
+                            <span class="planet-name mars-name">Mars</span>
                         </div>
                     </div>
                 </div>
-
-                <div class="solar-core">
-                    <span class="solar-aura solar-aura-primary"></span>
-                    <span class="solar-aura solar-aura-secondary"></span>
-                    <span class="solar-aura solar-aura-tertiary"></span>
-                    <img src="{{ url_for('static', filename='images/sun.png') }}" alt="" class="sun-image">
+                <div class="central-sun">
+                    <img src="{{ url_for('static', filename='images/sun.png') }}" alt="Sun" class="sun-image">
+                    <span class="sun-name">Sun</span>
                 </div>
             </div>
         </div>
@@ -147,18 +126,18 @@
             <p>We support a full reading for every sign.</p>
         </div>
         <div class="sign-grid">
-            <div class="sign-chip sign-aries"><span class="sign-mark">♈</span><span>Aries</span></div>
-            <div class="sign-chip sign-taurus"><span class="sign-mark">♉</span><span>Taurus</span></div>
-            <div class="sign-chip sign-gemini"><span class="sign-mark">♊</span><span>Gemini</span></div>
-            <div class="sign-chip sign-cancer"><span class="sign-mark">♋</span><span>Cancer</span></div>
-            <div class="sign-chip sign-leo"><span class="sign-mark">♌</span><span>Leo</span></div>
-            <div class="sign-chip sign-virgo"><span class="sign-mark">♍</span><span>Virgo</span></div>
-            <div class="sign-chip sign-libra"><span class="sign-mark">♎</span><span>Libra</span></div>
-            <div class="sign-chip sign-scorpio"><span class="sign-mark">♏</span><span>Scorpio</span></div>
-            <div class="sign-chip sign-sagittarius"><span class="sign-mark">♐</span><span>Sagittarius</span></div>
-            <div class="sign-chip sign-capricorn"><span class="sign-mark">♑</span><span>Capricorn</span></div>
-            <div class="sign-chip sign-aquarius"><span class="sign-mark">♒</span><span>Aquarius</span></div>
-            <div class="sign-chip sign-pisces"><span class="sign-mark">♓</span><span>Pisces</span></div>
+            <div class="sign-chip"><span class="sign-mark">Ar</span><span>Aries</span></div>
+            <div class="sign-chip"><span class="sign-mark">Ta</span><span>Taurus</span></div>
+            <div class="sign-chip"><span class="sign-mark">Ge</span><span>Gemini</span></div>
+            <div class="sign-chip"><span class="sign-mark">Cn</span><span>Cancer</span></div>
+            <div class="sign-chip"><span class="sign-mark">Le</span><span>Leo</span></div>
+            <div class="sign-chip"><span class="sign-mark">Vi</span><span>Virgo</span></div>
+            <div class="sign-chip"><span class="sign-mark">Li</span><span>Libra</span></div>
+            <div class="sign-chip"><span class="sign-mark">Sc</span><span>Scorpio</span></div>
+            <div class="sign-chip"><span class="sign-mark">Sg</span><span>Sagittarius</span></div>
+            <div class="sign-chip"><span class="sign-mark">Cp</span><span>Capricorn</span></div>
+            <div class="sign-chip"><span class="sign-mark">Aq</span><span>Aquarius</span></div>
+            <div class="sign-chip"><span class="sign-mark">Pi</span><span>Pisces</span></div>
         </div>
     </section>
 
@@ -442,7 +421,7 @@
         }
     </script>
 
-    <script src="{{ url_for('static', filename='js/landing.js', v='20260423e') }}"></script>
+    <script src="{{ url_for('static', filename='js/landing.js') }}"></script>
 </body>
 
 </html>
