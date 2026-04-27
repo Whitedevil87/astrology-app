@@ -182,6 +182,7 @@ def protect_requests():
 
 
 
+
 def ensure_directories() -> None:
     """Create required folders if missing."""
     try:
@@ -193,14 +194,25 @@ def ensure_directories() -> None:
         raise
 
 
+def parse_date(date_str: str) -> date:
+    """Parse date from YYYY-MM-DD string."""
+    return datetime.strptime(date_str, "%Y-%m-%d").date()
 
 
+def parse_time(time_str: str) -> time:
+    """Parse time from HH:MM string."""
+    return datetime.strptime(time_str, "%H:%M").time()
 
 
+def allowed_file(filename: str) -> bool:
+    """Check if the file extension is allowed."""
+    return "." in filename and filename.rsplit(".", 1)[1].lower() in ALLOWED_EXTENSIONS
 
 
-
-
+def make_upload_filename(filename: str) -> str:
+    """Generate a secure, random filename while preserving the extension."""
+    ext = filename.rsplit(".", 1)[1].lower() if "." in filename else "bin"
+    return f"{uuid.uuid4().hex}.{ext}"
 
 
 def openai_guru_reply(system: str, user: str) -> Optional[str]:

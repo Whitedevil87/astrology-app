@@ -26,13 +26,20 @@
     --color-error: #ef4444;
 
     /* ===== SPACING SCALE (8px base) ===== */
-    --space-xs: 0.5rem;     /* 8px */
-    --space-sm: 1rem;       /* 16px */
-    --space-md: 1.5rem;     /* 24px */
-    --space-lg: 2rem;       /* 32px */
-    --space-xl: 3rem;       /* 48px */
-    --space-2xl: 4rem;      /* 64px */
-    --space-3xl: 6rem;      /* 96px */
+    --space-xs: 0.5rem;
+    /* 8px */
+    --space-sm: 1rem;
+    /* 16px */
+    --space-md: 1.5rem;
+    /* 24px */
+    --space-lg: 2rem;
+    /* 32px */
+    --space-xl: 3rem;
+    /* 48px */
+    --space-2xl: 4rem;
+    /* 64px */
+    --space-3xl: 6rem;
+    /* 96px */
 
     /* ===== TYPOGRAPHY SCALE ===== */
     --font-display: 3.5rem;
@@ -85,6 +92,7 @@ body {
 
 /* ===== ACCESSIBILITY: REDUCED MOTION ===== */
 @media (prefers-reduced-motion: reduce) {
+
     *,
     *::before,
     *::after {
@@ -110,15 +118,22 @@ body {
 .stars {
     position: absolute;
     inset: 0;
-    background-image: radial-gradient(circle, rgba(255,255,255,0.8) 1px, transparent 1px);
+    background-image: radial-gradient(circle, rgba(255, 255, 255, 0.8) 1px, transparent 1px);
     background-size: 40px 40px;
     opacity: 0.15;
     animation: twinkle 8s ease-in-out infinite;
 }
 
 @keyframes twinkle {
-    0%, 100% { opacity: 0.15; }
-    50% { opacity: 0.3; }
+
+    0%,
+    100% {
+        opacity: 0.15;
+    }
+
+    50% {
+        opacity: 0.3;
+    }
 }
 
 .nebula {
@@ -129,8 +144,8 @@ body {
 }
 
 .nebula-1 {
-    width: 600px;
-    height: 600px;
+    width: 900px;
+    height: 900px;
     top: -200px;
     right: -100px;
     background: radial-gradient(ellipse at center, rgba(0, 217, 255, 0.5), transparent);
@@ -157,8 +172,15 @@ body {
 }
 
 @keyframes float {
-    0%, 100% { transform: translateY(0px); }
-    50% { transform: translateY(20px); }
+
+    0%,
+    100% {
+        transform: translateY(0px);
+    }
+
+    50% {
+        transform: translateY(20px);
+    }
 }
 
 .aurora-border {
@@ -166,11 +188,11 @@ body {
     top: 0;
     left: 0;
     inset: 0;
-    background: linear-gradient(45deg, 
-        rgba(0, 217, 255, 0.05) 0%, 
-        transparent 30%, 
-        transparent 70%, 
-        rgba(168, 85, 247, 0.05) 100%);
+    background: linear-gradient(45deg,
+            rgba(0, 217, 255, 0.05) 0%,
+            transparent 30%,
+            transparent 70%,
+            rgba(168, 85, 247, 0.05) 100%);
     pointer-events: none;
 }
 
@@ -230,8 +252,15 @@ body {
 }
 
 @keyframes pulse-orb {
-    0%, 100% { box-shadow: 0 0 20px rgba(0, 217, 255, 0.4); }
-    50% { box-shadow: 0 0 40px rgba(0, 217, 255, 0.8); }
+
+    0%,
+    100% {
+        box-shadow: 0 0 20px rgba(0, 217, 255, 0.4);
+    }
+
+    50% {
+        box-shadow: 0 0 40px rgba(0, 217, 255, 0.8);
+    }
 }
 
 .nav-links {
@@ -355,6 +384,7 @@ body {
         opacity: 0;
         transform: translateX(-30px);
     }
+
     to {
         opacity: 1;
         transform: translateX(0);
@@ -516,6 +546,7 @@ body {
         opacity: 0;
         transform: translateX(30px);
     }
+
     to {
         opacity: 1;
         transform: translateX(0);
@@ -576,12 +607,15 @@ body {
 }
 
 @keyframes pulse-sun {
-    0%, 100% {
+
+    0%,
+    100% {
         box-shadow:
             0 0 40px rgba(255, 217, 61, 0.75),
             0 0 90px rgba(255, 168, 66, 0.45),
             inset 0 0 22px rgba(255, 255, 255, 0.28);
     }
+
     50% {
         box-shadow:
             0 0 60px rgba(255, 217, 61, 1),
@@ -652,7 +686,7 @@ body {
     width: 50px;
     height: 50px;
     background:
-        radial-gradient(circle at 35% 35%, rgba(255,255,255,0.8), transparent 18%),
+        radial-gradient(circle at 35% 35%, rgba(255, 255, 255, 0.8), transparent 18%),
         radial-gradient(circle at 30% 35%, #6fd4ff, #347bd8 58%, #1b3f7d 100%);
     box-shadow: 0 0 28px rgba(79, 159, 240, 0.55);
 }
@@ -681,13 +715,23 @@ body {
 }
 
 @keyframes orbit-spin {
-    from { transform: translate(-50%, -50%) rotate(0deg); }
-    to { transform: translate(-50%, -50%) rotate(360deg); }
+    from {
+        transform: translate(-50%, -50%) rotate(0deg);
+    }
+
+    to {
+        transform: translate(-50%, -50%) rotate(360deg);
+    }
 }
 
 @keyframes orbit-counter {
-    from { transform: rotate(0deg); }
-    to { transform: rotate(-360deg); }
+    from {
+        transform: rotate(0deg);
+    }
+
+    to {
+        transform: rotate(-360deg);
+    }
 }
 
 .earth-name {
@@ -756,18 +800,53 @@ body {
 }
 
 /* ===== ZODIAC COLORS ===== */
-.sign-aries .sign-mark { background: linear-gradient(135deg, rgba(255, 100, 100, 0.3), rgba(255, 150, 150, 0.3)); }
-.sign-taurus .sign-mark { background: linear-gradient(135deg, rgba(100, 200, 100, 0.3), rgba(150, 255, 150, 0.3)); }
-.sign-gemini .sign-mark { background: linear-gradient(135deg, rgba(100, 200, 255, 0.3), rgba(150, 200, 255, 0.3)); }
-.sign-cancer .sign-mark { background: linear-gradient(135deg, rgba(255, 200, 100, 0.3), rgba(255, 220, 150, 0.3)); }
-.sign-leo .sign-mark { background: linear-gradient(135deg, rgba(255, 150, 50, 0.3), rgba(255, 180, 100, 0.3)); }
-.sign-virgo .sign-mark { background: linear-gradient(135deg, rgba(150, 200, 100, 0.3), rgba(180, 220, 150, 0.3)); }
-.sign-libra .sign-mark { background: linear-gradient(135deg, rgba(200, 150, 255, 0.3), rgba(220, 180, 255, 0.3)); }
-.sign-scorpio .sign-mark { background: linear-gradient(135deg, rgba(200, 50, 200, 0.3), rgba(220, 100, 220, 0.3)); }
-.sign-sagittarius .sign-mark { background: linear-gradient(135deg, rgba(255, 180, 100, 0.3), rgba(255, 200, 150, 0.3)); }
-.sign-capricorn .sign-mark { background: linear-gradient(135deg, rgba(100, 100, 200, 0.3), rgba(150, 150, 220, 0.3)); }
-.sign-aquarius .sign-mark { background: linear-gradient(135deg, rgba(100, 255, 255, 0.3), rgba(150, 255, 200, 0.3)); }
-.sign-pisces .sign-mark { background: linear-gradient(135deg, rgba(200, 150, 200, 0.3), rgba(230, 180, 230, 0.3)); }
+.sign-aries .sign-mark {
+    background: linear-gradient(135deg, rgba(255, 100, 100, 0.3), rgba(255, 150, 150, 0.3));
+}
+
+.sign-taurus .sign-mark {
+    background: linear-gradient(135deg, rgba(100, 200, 100, 0.3), rgba(150, 255, 150, 0.3));
+}
+
+.sign-gemini .sign-mark {
+    background: linear-gradient(135deg, rgba(100, 200, 255, 0.3), rgba(150, 200, 255, 0.3));
+}
+
+.sign-cancer .sign-mark {
+    background: linear-gradient(135deg, rgba(255, 200, 100, 0.3), rgba(255, 220, 150, 0.3));
+}
+
+.sign-leo .sign-mark {
+    background: linear-gradient(135deg, rgba(255, 150, 50, 0.3), rgba(255, 180, 100, 0.3));
+}
+
+.sign-virgo .sign-mark {
+    background: linear-gradient(135deg, rgba(150, 200, 100, 0.3), rgba(180, 220, 150, 0.3));
+}
+
+.sign-libra .sign-mark {
+    background: linear-gradient(135deg, rgba(200, 150, 255, 0.3), rgba(220, 180, 255, 0.3));
+}
+
+.sign-scorpio .sign-mark {
+    background: linear-gradient(135deg, rgba(200, 50, 200, 0.3), rgba(220, 100, 220, 0.3));
+}
+
+.sign-sagittarius .sign-mark {
+    background: linear-gradient(135deg, rgba(255, 180, 100, 0.3), rgba(255, 200, 150, 0.3));
+}
+
+.sign-capricorn .sign-mark {
+    background: linear-gradient(135deg, rgba(100, 100, 200, 0.3), rgba(150, 150, 220, 0.3));
+}
+
+.sign-aquarius .sign-mark {
+    background: linear-gradient(135deg, rgba(100, 255, 255, 0.3), rgba(150, 255, 200, 0.3));
+}
+
+.sign-pisces .sign-mark {
+    background: linear-gradient(135deg, rgba(200, 150, 200, 0.3), rgba(230, 180, 230, 0.3));
+}
 
 /* ===== FEATURES SECTION ===== */
 .features {
@@ -924,8 +1003,15 @@ body {
 }
 
 @keyframes bounce {
-    0%, 100% { transform: translateY(0); }
-    50% { transform: translateY(-10px); }
+
+    0%,
+    100% {
+        transform: translateY(0);
+    }
+
+    50% {
+        transform: translateY(-10px);
+    }
 }
 
 .cta-box {
@@ -1214,6 +1300,7 @@ body {
         opacity: 0;
         transform: translateY(10px);
     }
+
     to {
         opacity: 1;
         transform: translateY(0);
@@ -1269,10 +1356,14 @@ body {
 }
 
 @keyframes typing {
-    0%, 60%, 100% {
+
+    0%,
+    60%,
+    100% {
         opacity: 0.3;
         transform: translateY(0);
     }
+
     30% {
         opacity: 1;
         transform: translateY(-10px);
@@ -1378,8 +1469,15 @@ body {
 }
 
 @keyframes bounce-button {
-    0%, 100% { transform: scale(1); }
-    50% { transform: scale(1.05); }
+
+    0%,
+    100% {
+        transform: scale(1);
+    }
+
+    50% {
+        transform: scale(1.05);
+    }
 }
 
 /* ===== RESPONSIVE DESIGN ===== */
