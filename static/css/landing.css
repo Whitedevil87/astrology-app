@@ -283,11 +283,13 @@ body {
 }
 
 .hero-title {
-    font-size: clamp(2.5rem, 5vw, 4.5rem);
+    font-family: 'Cinzel', serif;
+    font-size: clamp(2.8rem, 6vw, 4.8rem);
     font-weight: 800;
-    line-height: 1.2;
+    line-height: 1.1;
     margin-bottom: 1.5rem;
     letter-spacing: -1px;
+    text-transform: uppercase;
 }
 
 .gradient-text {
@@ -421,27 +423,27 @@ body {
     }
 }
 
-/* ===== SOLAR SYSTEM ===== */
+/* ===== SOLAR SYSTEM (REMASTERED v5.0) ===== */
 .solar-system {
     --sys-size: 520px;
     position: relative;
     width: var(--sys-size);
     height: var(--sys-size);
     margin: 0 auto;
-}
-
-/* Central Sun */
-.central-sun {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    width: 160px;
-    height: 160px;
     display: flex;
     align-items: center;
     justify-content: center;
+}
+
+/* Central Sun - Cinematic Fire Orb */
+.central-sun {
+    position: absolute;
+    width: 175px;
+    height: 175px;
     z-index: 10;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .sun-corona {
@@ -450,113 +452,112 @@ body {
     border-radius: 50%;
     background: radial-gradient(
         circle,
-        rgba(255, 220, 80, 0.5) 0%,
-        rgba(255, 180, 40, 0.25) 35%,
-        rgba(255, 140, 20, 0.1) 55%,
+        rgba(255, 230, 100, 0.45) 0%,
+        rgba(255, 160, 30, 0.25) 35%,
+        rgba(255, 80, 10, 0.1) 55%,
         transparent 75%
     );
-    animation: sun-corona-pulse 3s ease-in-out infinite;
+    animation: sun-fire-pulse 3s ease-in-out infinite;
+    mix-blend-mode: screen;
     z-index: -1;
 }
 
-/* Secondary outer corona for depth */
+/* Secondary Outer Glow for massive depth */
 .central-sun::before {
     content: '';
     position: absolute;
-    inset: -60px;
+    inset: -65px;
     border-radius: 50%;
     background: radial-gradient(
         circle,
-        rgba(255, 200, 60, 0.12) 0%,
-        rgba(255, 160, 30, 0.05) 40%,
+        rgba(255, 180, 60, 0.15) 0%,
+        rgba(255, 120, 20, 0.05) 45%,
         transparent 70%
     );
-    animation: sun-corona-pulse 4s ease-in-out infinite reverse;
+    animation: sun-fire-pulse 4.5s ease-in-out infinite reverse;
     z-index: -2;
     pointer-events: none;
 }
 
+/* Rotating surface solar flare effect */
+.central-sun::after {
+    content: '';
+    position: absolute;
+    inset: -12px;
+    border-radius: 50%;
+    background: conic-gradient(
+        from 0deg,
+        transparent,
+        rgba(255, 210, 80, 0.2),
+        transparent,
+        rgba(255, 130, 30, 0.2),
+        transparent
+    );
+    animation: rotate-fire 12s linear infinite;
+    mix-blend-mode: color-dodge;
+    filter: blur(12px);
+    z-index: 1;
+}
+
 .sun-image {
-    width: 145px;
-    height: 145px;
+    width: 150px;
+    height: 150px;
     border-radius: 50%;
     object-fit: cover;
-    box-shadow:
-        0 0 20px rgba(255, 220, 80, 0.9),
-        0 0 50px rgba(255, 180, 40, 0.6),
-        0 0 100px rgba(255, 140, 20, 0.3),
-        0 0 180px rgba(255, 100, 10, 0.15);
-    animation: pulse-sun 3s ease-in-out infinite;
-    z-index: 2;
+    mix-blend-mode: screen; /* CRITICAL: Removes black image background */
     position: relative;
-    /* Remove any visible border — seamless glow into space */
+    z-index: 2;
+    filter: brightness(1.2) contrast(1.1) drop-shadow(0 0 25px rgba(255, 180, 0, 0.6));
+    animation: pulse-sun-core 3s ease-in-out infinite;
     border: none;
     outline: none;
 }
 
-@keyframes sun-corona-pulse {
-    0%, 100% { transform: scale(1); opacity: 0.85; }
-    50% { transform: scale(1.15); opacity: 1; }
+@keyframes sun-fire-pulse {
+    0%, 100% { transform: scale(1); opacity: 0.8; }
+    50% { transform: scale(1.18); opacity: 1; }
 }
 
-@keyframes pulse-sun {
-    0%, 100% {
-        box-shadow:
-            0 0 20px rgba(255, 220, 80, 0.9),
-            0 0 50px rgba(255, 180, 40, 0.6),
-            0 0 100px rgba(255, 140, 20, 0.3),
-            0 0 180px rgba(255, 100, 10, 0.15);
-    }
-    50% {
-        box-shadow:
-            0 0 30px rgba(255, 230, 90, 1),
-            0 0 70px rgba(255, 200, 60, 0.75),
-            0 0 130px rgba(255, 150, 25, 0.4),
-            0 0 220px rgba(255, 100, 10, 0.2);
-    }
+@keyframes pulse-sun-core {
+    0%, 100% { transform: scale(1); filter: brightness(1.2) contrast(1.1); }
+    50% { transform: scale(1.04); filter: brightness(1.4) contrast(1.2); }
 }
 
-/* Orbit rings — ethereal gradient arcs */
+@keyframes rotate-fire {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+/* Technical Dotted Orbits - Professional data-viz style */
 .orbit {
     position: absolute;
     top: 50%;
     left: 50%;
     border-radius: 50%;
     transform: translate(-50%, -50%);
-    border: none;
+    border: 1px dashed rgba(255, 255, 255, 0.12); /* TECHNICAL STYLE */
+    pointer-events: none;
 }
 
 .orbit-venus {
-    width: 230px;
-    height: 230px;
-    background: transparent;
-    box-shadow:
-        inset 0 0 0 1px rgba(255, 210, 120, 0.15),
-        0 0 8px rgba(255, 200, 100, 0.04);
-    animation: orbit-spin 10s linear infinite;
+    width: 240px;
+    height: 240px;
+    animation: orbit-spin 12s linear infinite;
 }
 
 .orbit-earth {
-    width: 350px;
-    height: 350px;
-    background: transparent;
-    box-shadow:
-        inset 0 0 0 1px rgba(100, 170, 255, 0.15),
-        0 0 8px rgba(80, 160, 255, 0.04);
-    animation: orbit-spin 20s linear infinite;
+    width: 360px;
+    height: 360px;
+    animation: orbit-spin 22s linear infinite;
 }
 
 .orbit-mars {
-    width: 470px;
-    height: 470px;
-    background: transparent;
-    box-shadow:
-        inset 0 0 0 1px rgba(255, 130, 80, 0.13),
-        0 0 8px rgba(255, 110, 70, 0.04);
-    animation: orbit-spin 30s linear infinite;
+    width: 490px;
+    height: 490px;
+    animation: orbit-spin 35s linear infinite;
 }
 
-/* Planet anchor — sits at the right edge of each orbit */
+/* Planet Anchor & Shell */
 .planet-anchor {
     position: absolute;
     top: 50%;
@@ -571,61 +572,35 @@ body {
     position: relative;
 }
 
-/* Counter-rotate so planets stay upright */
-.orbit-venus .planet-shell {
-    animation: orbit-counter 10s linear infinite reverse;
+/* Atmospheric Refraction Halo around planets */
+.planet-shell::after {
+    content: '';
+    position: absolute;
+    inset: -8px;
+    border-radius: 50%;
+    z-index: -1;
+    opacity: 0.6;
+    filter: blur(8px);
 }
 
-.orbit-earth .planet-shell {
-    animation: orbit-counter 20s linear infinite reverse;
-}
+.orbit-venus .planet-shell::after { background: radial-gradient(circle, rgba(255, 200, 100, 0.4), transparent 70%); }
+.orbit-earth .planet-shell::after { background: radial-gradient(circle, rgba(80, 160, 255, 0.4), transparent 70%); }
+.orbit-mars .planet-shell::after { background: radial-gradient(circle, rgba(255, 100, 60, 0.4), transparent 70%); }
 
-.orbit-mars .planet-shell {
-    animation: orbit-counter 30s linear infinite reverse;
-}
-
-/* Planet images — no harsh borders, atmospheric glow only */
 .planet-image {
     display: block;
     border-radius: 50%;
     object-fit: cover;
     flex-shrink: 0;
+    mix-blend-mode: screen; /* CRITICAL: Removes black border/background */
+    filter: brightness(1.1) drop-shadow(0 0 8px rgba(255, 255, 255, 0.15));
     border: none;
     outline: none;
 }
 
-/* Venus — warm golden glow */
-.venus-img {
-    width: 40px;
-    height: 40px;
-    box-shadow:
-        0 0 10px rgba(255, 210, 120, 0.7),
-        0 0 25px rgba(255, 180, 80, 0.35),
-        0 0 50px rgba(255, 160, 60, 0.15);
-    filter: brightness(1.05);
-}
-
-/* Earth — cool blue atmospheric halo */
-.earth-img {
-    width: 54px;
-    height: 54px;
-    box-shadow:
-        0 0 12px rgba(80, 160, 255, 0.8),
-        0 0 30px rgba(50, 130, 240, 0.4),
-        0 0 60px rgba(30, 100, 220, 0.18);
-    filter: brightness(1.08);
-}
-
-/* Mars — reddish atmospheric haze */
-.mars-img {
-    width: 46px;
-    height: 46px;
-    box-shadow:
-        0 0 10px rgba(255, 120, 70, 0.75),
-        0 0 28px rgba(220, 90, 50, 0.35),
-        0 0 55px rgba(180, 60, 30, 0.15);
-    filter: brightness(1.05);
-}
+.venus-img { width: 44px; height: 44px; }
+.earth-img { width: 58px; height: 58px; }
+.mars-img { width: 50px; height: 50px; }
 
 @keyframes orbit-spin {
     from { transform: translate(-50%, -50%) rotate(0deg); }
@@ -637,6 +612,11 @@ body {
     to   { transform: rotate(-360deg); }
 }
 
+.orbit-venus .planet-shell { animation: orbit-counter 12s linear infinite reverse; }
+.orbit-earth .planet-shell { animation: orbit-counter 22s linear infinite reverse; }
+.orbit-mars .planet-shell { animation: orbit-counter 35s linear infinite reverse; }
+
+/* Sign Preview & Other Sections */
 .sign-preview {
     max-width: 1200px;
     margin: 0 auto;
