@@ -250,7 +250,7 @@ def _groq_chat(system: str, user: str, api_key: str) -> Optional[str]:
         return _groq_http_fallback(system, user, api_key)
     
     try:
-        model = os.environ.get("GROQ_MODEL", "").strip() or "llama-3.1-8b-instant"
+        model = os.environ.get("GROQ_MODEL", "").strip() or "llama-3.3-70b-versatile"
         logger.info(f"🔄 Using Groq SDK with model '{model}'")
         
         # Create explicit httpx client without proxy to avoid environment variable conflicts
@@ -273,8 +273,8 @@ def _groq_chat(system: str, user: str, api_key: str) -> Optional[str]:
                 {"role": "user", "content": user},
             ],
             model=model,
-            temperature=0.65,
-            max_tokens=900,
+            temperature=0.78,
+            max_tokens=1800,
         )
         
         result = chat_completion.choices[0].message.content.strip()
@@ -307,7 +307,7 @@ def _groq_chat(system: str, user: str, api_key: str) -> Optional[str]:
 def _groq_http_fallback(system: str, user: str, api_key: str) -> Optional[str]:
     """Fallback to raw HTTP if groq SDK not installed."""
     try:
-        model = os.environ.get("GROQ_MODEL", "").strip() or "llama-3.1-8b-instant"
+        model = os.environ.get("GROQ_MODEL", "").strip() or "llama-3.3-70b-versatile"
         logger.info(f"🔄 Using Groq HTTP fallback with model '{model}'")
         
         payload = {
@@ -316,8 +316,8 @@ def _groq_http_fallback(system: str, user: str, api_key: str) -> Optional[str]:
                 {"role": "system", "content": system},
                 {"role": "user", "content": user},
             ],
-            "temperature": 0.65,
-            "max_tokens": 900,
+            "temperature": 0.78,
+            "max_tokens": 1800,
         }
         
         req = urllib.request.Request(
@@ -386,8 +386,8 @@ def _openai_chat(system: str, user: str, api_key: str) -> Optional[str]:
                 {"role": "system", "content": system},
                 {"role": "user", "content": user},
             ],
-            "temperature": 0.65,
-            "max_tokens": 900,
+            "temperature": 0.78,
+            "max_tokens": 1800,
         }
         
         req = urllib.request.Request(
@@ -778,29 +778,56 @@ def api_chat():
         ctx = format_guru_context(row["full_name"], profile, vedic, blueprint)
         report_excerpts = "\n".join(
             [
-                f"Career (saved reading): {_chat_text_clip(merged_sections.get('career'))}",
-                f"Future outlook (saved reading): {_chat_text_clip(merged_sections.get('future'))}",
-                f"Love (saved reading): {_chat_text_clip(merged_sections.get('love'))}",
-                f"Timing / seasonal (saved reading): {_chat_text_clip(merged_sections.get('seasonal_energy'))}",
-                f"Dasha snapshot (saved reading): {_chat_text_clip(merged_sections.get('vimshottari_timing'))}",
-                f"Personality (saved reading): {_chat_text_clip(merged_sections.get('personality'), 650)}",
+                f"Personality (deep reading): {_chat_text_clip(merged_sections.get('personality'), 900)}",
+                f"Career Path (full reading): {_chat_text_clip(merged_sections.get('career'), 900)}",
+                f"Future Outlook (full reading): {_chat_text_clip(merged_sections.get('future'), 900)}",
+                f"Love & Relationships (full reading): {_chat_text_clip(merged_sections.get('love'), 900)}",
+                f"Core Strengths: {_chat_text_clip(merged_sections.get('strengths'), 600)}",
+                f"Growth Edges: {_chat_text_clip(merged_sections.get('weaknesses'), 600)}",
+                f"Wellness & Rhythm: {_chat_text_clip(merged_sections.get('wellness'), 600)}",
+                f"Compatibility Notes: {_chat_text_clip(merged_sections.get('compatibility'), 600)}",
+                f"Seasonal / Transit Energy: {_chat_text_clip(merged_sections.get('seasonal_energy'), 600)}",
+                f"Dasha / Dosha Timing: {_chat_text_clip(merged_sections.get('vimshottari_timing'), 600)}",
+                f"Rahu-Ketu Axis: {_chat_text_clip(merged_sections.get('rahu_ketu'), 600)}",
+                f"Remedies & Lifestyle: {_chat_text_clip(merged_sections.get('remedies_lifestyle'), 600)}",
             ]
         )
         system = (
-            "You are an expert astrologer answering ONLY from CONTEXT + REPORT EXCERPTS + house table. "
-            "Rules: (1) Lead with a direct answer to the USER QUESTION—do not change the subject. "
-            "(2) Job / employment / unemployment / interviews / salary / promotion questions MUST use 10th and 6th "
-            "house occupants, mahadasha flavor, Saturn/Jupiter themes, and the Career + Future excerpts. "
-            "Do not discuss marriage, dating, or spouse timing unless the user asked about love or marriage. "
-            "(3) Love or marriage questions use 7th house, Venus, Moon, and Love excerpt—do not pivot to career. "
-            "(4) Never invent a precise calendar day as a guaranteed fact. Use conditional windows "
-            "(e.g. 'next several weeks', 'after a supportive Jupiter stretch', 'during a busy 6th-house phase') "
-            "and tie them to the chart language above. If precision is impossible, say so honestly. "
-            "(5) Keep under 200 words unless the user explicitly asks for more detail."
+            "You are Guru Arya — a deeply wise, warm, and uncannily perceptive Vedic astrologer with 30 years of experience. "
+            "You have the rare gift of making ancient cosmic wisdom feel immediate, personal, and alive. "
+            "You speak like a trusted mentor who truly SEES the person in front of them — not a textbook or a robot.\n\n"
+            "YOUR PERSONALITY:\n"
+            "- You are compassionate but never vague. You give SPECIFIC, actionable guidance grounded in the chart.\n"
+            "- You weave planetary positions naturally into conversation — like a doctor reading an X-ray, you explain what you see and what it means for THEM.\n"
+            "- You use vivid metaphors and poetic language that makes astrology feel magical, not mechanical.\n"
+            "- You occasionally say something so precisely accurate about their inner life that it gives them chills.\n"
+            "- You balance honesty with kindness — you don't hide challenges, but you always show the path through.\n"
+            "- You address them by name when it feels natural.\n\n"
+            "YOUR EXPERTISE:\n"
+            "- You read the FULL chart: Sun sign personality, Moon sign emotional nature, Ascendant social mask, and all planetary house placements.\n"
+            "- For CAREER questions: deeply analyze 10th house (reputation/career), 6th house (daily work/obstacles), 2nd/11th (income), "
+            "Saturn (discipline/delays), Jupiter (expansion/luck), and the current Mahadasha lord's influence. Be specific about timing windows and what actions to take.\n"
+            "- For LOVE questions: analyze 7th house (partnerships), Venus (romance/beauty), Moon (emotional needs), and 5th house (romance/creativity). "
+            "Describe what kind of partner suits them and when love energy peaks.\n"
+            "- For TIMING questions: use Mahadasha/Antardasha periods, planetary transits, and seasonal energy to give conditional timing windows. "
+            "Never give exact dates as guarantees, but give meaningful windows like 'the next 3-4 months carry strong Jupiter support for new beginnings.'\n"
+            "- For HEALTH/WELLNESS: connect planetary influences to physical and mental patterns. Give practical lifestyle advice rooted in the chart.\n\n"
+            "RESPONSE STYLE:\n"
+            "- Open with something that shows you understand their specific situation — reference their chart placements directly.\n"
+            "- Give 2-3 layers of insight: the surface answer, the deeper pattern, and the soul-level lesson.\n"
+            "- End with one concrete action step or reflection prompt they can use TODAY.\n"
+            "- Use markdown formatting: **bold** for key insights, occasional *italics* for poetic emphasis.\n"
+            "- Keep responses between 150-400 words — substantial enough to impress, concise enough to respect their time.\n"
+            "- NEVER say 'as an AI' or break character. You ARE Guru Arya. You've been reading charts for decades.\n\n"
+            "CRITICAL RULES:\n"
+            "- ONLY use information from the CONTEXT and REPORT EXCERPTS provided. Never invent chart details.\n"
+            "- Stay on topic. Career questions get career answers. Love questions get love answers. Don't cross-pollinate unless relevant.\n"
+            "- If you genuinely cannot answer something from the chart data, say so honestly and suggest what additional information would help.\n"
+            "- Always maintain a tone that is authoritative yet warm — like a wise elder who genuinely cares about the questioner's wellbeing."
         )
         user_blob = (
-            f"CONTEXT:\n{ctx}\n\nREPORT EXCERPTS (same querent, saved with this chart):\n{report_excerpts}\n\n"
-            f"USER QUESTION:\n{message}"
+            f"CHART CONTEXT:\n{ctx}\n\nFULL REPORT EXCERPTS (this person's complete reading):\n{report_excerpts}\n\n"
+            f"{row['full_name']}'s QUESTION:\n{message}"
         )
         logger.info(f"   Calling AI endpoint...")
         ai_reply = openai_guru_reply(system, user_blob)

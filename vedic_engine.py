@@ -354,26 +354,57 @@ def _planets_in_house(houses: Dict[str, Any], house_num: int) -> str:
 
 
 def format_guru_context(name: str, profile: Dict[str, str], vedic: Dict[str, Any], blueprint: Dict[str, Any]) -> str:
-    """Compact text for LLM or logging."""
+    """Rich astrological context for the Guru Arya AI persona."""
     h = vedic.get("houses") or {}
     career_hint = ""
     if blueprint:
         career_hint = (
             f"Blueprint cues — energy focus: {blueprint.get('energy_focus', 'n/a')}; "
-            f"ruling planet: {blueprint.get('ruling_planet', 'n/a')}.\n"
+            f"ruling planet: {blueprint.get('ruling_planet', 'n/a')}; "
+            f"element: {blueprint.get('element', 'n/a')}; modality: {blueprint.get('modality', 'n/a')}; "
+            f"lucky day: {blueprint.get('lucky_day', 'n/a')}; lucky color: {blueprint.get('lucky_color', 'n/a')}; "
+            f"lucky number: {blueprint.get('lucky_number', 'n/a')}.\n"
+            f"Best compatibility matches: {blueprint.get('best_matches', 'n/a')}. "
+            f"Growth-tension signs: {blueprint.get('growth_signs', 'n/a')}.\n"
         )
+    
+    dosha_info = vedic.get('dosha_flags') or ['none flagged']
+    mahadasha = vedic.get('mahadasha', 'unknown')
+    antardasha = vedic.get('antardasha_demo', 'unknown')
+    
     return (
-        f"Querent: {name}. Sun {profile.get('zodiac')}, Moon {profile.get('moon_sign')}, Asc {profile.get('ascendant')}.\n"
+        f"Querent: {name}.\n"
+        f"Sun Sign: {profile.get('zodiac')} (core identity, ego, life purpose).\n"
+        f"Moon Sign: {profile.get('moon_sign')} (emotional nature, subconscious patterns, how they nurture and heal).\n"
+        f"Ascendant (Lagna): {profile.get('ascendant')} (how the world sees them, first impressions, physical constitution).\n\n"
         f"{career_hint}"
-        f"Mathematical House Placements (1-12) based on True Ecliptic Longitude:\n"
-        f"Sun {h.get('sun')}, Moon {h.get('moon')}, Mars {h.get('mars')}, Mercury {h.get('mercury')}, Venus {h.get('venus')},\n"
-        f"Jupiter {h.get('jupiter')}, Saturn {h.get('saturn')}, Rahu {h.get('rahu')}, Ketu {h.get('ketu')}.\n"
-        f"10th house (career / reputation) hosts: {_planets_in_house(h, 10)}.\n"
-        f"6th house (daily work / service / obstacles) hosts: {_planets_in_house(h, 6)}.\n"
-        f"2nd/11th money houses snapshot — 2nd hosts {_planets_in_house(h, 2)}; 11th hosts {_planets_in_house(h, 11)}.\n"
-        f"Mahadasha flavor: {vedic.get('mahadasha')}. Dosha flags: {', '.join(vedic.get('dosha_flags') or ['none flagged'])}.\n"
-        "When answering career or job questions, cite 10th and 6th from above and Saturn/Jupiter flavor; "
-        "for love/marriage, cite 7th and Venus/Moon—not the other way around.\n"
+        f"PLANETARY HOUSE PLACEMENTS (Whole-Sign, 1-12):\n"
+        f"  Sun → House {h.get('sun', '?')} | Moon → House {h.get('moon', '?')} | Mars → House {h.get('mars', '?')}\n"
+        f"  Mercury → House {h.get('mercury', '?')} | Venus → House {h.get('venus', '?')} | Jupiter → House {h.get('jupiter', '?')}\n"
+        f"  Saturn → House {h.get('saturn', '?')} | Rahu → House {h.get('rahu', '?')} | Ketu → House {h.get('ketu', '?')}\n\n"
+        f"KEY HOUSE ANALYSIS:\n"
+        f"  1st (Self/Identity): Lagna in {profile.get('ascendant')}.\n"
+        f"  4th (Home/Mother/Comfort) hosts: {_planets_in_house(h, 4)}.\n"
+        f"  5th (Romance/Creativity/Children) hosts: {_planets_in_house(h, 5)}.\n"
+        f"  6th (Daily work/Service/Health obstacles) hosts: {_planets_in_house(h, 6)}.\n"
+        f"  7th (Marriage/Partnerships/Contracts) hosts: {_planets_in_house(h, 7)}.\n"
+        f"  8th (Transformation/Shared resources/Longevity) hosts: {_planets_in_house(h, 8)}.\n"
+        f"  9th (Dharma/Higher learning/Luck/Guru) hosts: {_planets_in_house(h, 9)}.\n"
+        f"  10th (Career/Status/Authority/Reputation) hosts: {_planets_in_house(h, 10)}.\n"
+        f"  11th (Gains/Friends/Income streams) hosts: {_planets_in_house(h, 11)}.\n"
+        f"  12th (Spirituality/Foreign lands/Losses/Liberation) hosts: {_planets_in_house(h, 12)}.\n"
+        f"  2nd (Wealth/Speech/Family values) hosts: {_planets_in_house(h, 2)}.\n"
+        f"  3rd (Siblings/Courage/Communication/Skills) hosts: {_planets_in_house(h, 3)}.\n\n"
+        f"TIMING:\n"
+        f"  Mahadasha lord: {mahadasha} (major life theme period).\n"
+        f"  Antardasha flavor: {antardasha} (sub-period coloring).\n"
+        f"  Dosha flags: {', '.join(dosha_info)}.\n\n"
+        "INTERPRETATION GUIDELINES:\n"
+        "When answering career/job questions, prioritize 10th house, 6th house, Saturn, Jupiter, and Mahadasha themes.\n"
+        "When answering love/marriage questions, prioritize 7th house, Venus, Moon, and 5th house themes.\n"
+        "When answering money questions, prioritize 2nd house, 11th house, and Jupiter themes.\n"
+        "When answering health questions, prioritize 6th house, 8th house, and Mars/Saturn themes.\n"
+        "When answering spiritual questions, prioritize 9th house, 12th house, Ketu, and Jupiter themes.\n"
     )
 
 
