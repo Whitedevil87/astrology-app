@@ -114,12 +114,33 @@ def add_security_headers(resp):
     return resp
 
 
-# --- Basic request protections (CSRF + light rate limiting) ---
+# --- Production-grade rate limiting + CSRF ---
 _RATE_BUCKETS: Dict[str, list[float]] = {}
+_LAST_CLEANUP: float = time_mod.time()
+_CLEANUP_INTERVAL_S: int = 300  # Purge stale keys every 5 minutes
+
+# ── Rate Limit Configuration ──────────────────────────────────────────
+# Format: (per-minute limit, per-day limit)
+_LIMITS = {
+    "analyze":   (5,  15),   # Chart generation (heavy AI call)
+    "chat":      (10, 50),   # Guru Arya chat messages
+    "places":    (30, 500),  # Geocoding autocomplete
+    "horoscope": (10, 100),  # Daily horoscope lookups
+    "kundli":    (5,  20),   # Kundli chart generation
+}
+
+# Themed error messages so rate-limit responses feel on-brand
+_RATE_MESSAGES = {
+    "analyze":   "🪐 The celestial energies need a moment to realign. You've generated too many charts — please wait before trying again.",
+    "chat":      "🔮 Guru Arya is meditating to channel deeper wisdom. Please wait a moment before sending another message.",
+    "places":    None,  # Silent fail for autocomplete (returns empty list)
+    "horoscope": "⭐ The stars are aligning your horoscope. Please try again in a moment.",
+    "kundli":    "🕉️ Your Kundli chart requires cosmic precision. Please wait before generating another.",
+}
 
 
 def _client_ip() -> str:
-    # Render sets X-Forwarded-For. We only need a best-effort IP for rate limiting.
+    """Extract the real client IP behind Render's proxy."""
     fwd = (request.headers.get("X-Forwarded-For") or "").split(",")[0].strip()
     return fwd or (request.remote_addr or "unknown")
 
@@ -136,6 +157,53 @@ def _rate_limit(key: str, limit: int, window_s: int) -> bool:
     bucket.append(now)
     _RATE_BUCKETS[key] = bucket
     return True
+
+
+def _check_rate_limits(ip: str, action: str) -> Optional[Tuple]:
+    """
+    Check both per-minute AND per-day rate limits for a given action.
+    Returns a (response, status_code) tuple if blocked, or None if allowed.
+    """
+    per_min, per_day = _LIMITS.get(action, (30, 200))
+    msg = _RATE_MESSAGES.get(action)
+
+    # Per-minute check
+    if not _rate_limit(f"{ip}:{action}:min", per_min, 60):
+        if action == "places":
+            return jsonify({"success": False, "places": []}), 429
+        return jsonify({"success": False, "error": msg or "Too many requests. Please wait a minute."}), 429
+
+    # Per-day check (86400 seconds = 24 hours)
+    if not _rate_limit(f"{ip}:{action}:day", per_day, 86400):
+        daily_msg = f"{msg or 'Daily limit reached.'} You've reached your daily limit — come back tomorrow for more cosmic insights! 🌙"
+        if action == "places":
+            return jsonify({"success": False, "places": []}), 429
+        return jsonify({"success": False, "error": daily_msg}), 429
+
+    return None
+
+
+def _cleanup_stale_buckets() -> None:
+    """Periodically remove expired keys from _RATE_BUCKETS to prevent memory leaks."""
+    global _LAST_CLEANUP
+    now = time_mod.time()
+    if now - _LAST_CLEANUP < _CLEANUP_INTERVAL_S:
+        return
+    _LAST_CLEANUP = now
+    stale_keys = []
+    for key, timestamps in _RATE_BUCKETS.items():
+        # Keys with ":day" have a 24-hour window; all others are 60 seconds
+        window = 86400 if ":day" in key else 60
+        cutoff = now - window
+        live = [t for t in timestamps if t >= cutoff]
+        if not live:
+            stale_keys.append(key)
+        else:
+            _RATE_BUCKETS[key] = live
+    for k in stale_keys:
+        del _RATE_BUCKETS[k]
+    if stale_keys:
+        logger.debug(f"🧹 Rate-limiter cleanup: removed {len(stale_keys)} stale keys")
 
 
 def _ensure_csrf() -> str:
@@ -158,17 +226,30 @@ def api_csrf():
 
 @app.before_request
 def protect_requests():
-    # Rate limiting for expensive endpoints
+    # Periodic memory cleanup
+    _cleanup_stale_buckets()
+
+    # Skip rate limiting for static files and non-API routes
+    if not request.path.startswith("/api/"):
+        return
+
     ip = _client_ip()
-    if request.path == "/api/analyze" and request.method == "POST":
-        if not _rate_limit(f"{ip}:analyze", limit=20, window_s=60):
-            return jsonify({"success": False, "error": "Too many requests. Please wait a minute and try again."}), 429
-    if request.path == "/api/chat" and request.method == "POST":
-        if not _rate_limit(f"{ip}:chat", limit=40, window_s=60):
-            return jsonify({"success": False, "error": "Too many chat messages. Please slow down."}), 429
-    if request.path == "/api/places" and request.method == "GET":
-        if not _rate_limit(f"{ip}:places", limit=60, window_s=60):
-            return jsonify({"success": False, "places": []}), 429
+
+    # ── Rate limiting per endpoint ──────────────────────────────────
+    rate_map = {
+        ("/api/analyze", "POST"):    "analyze",
+        ("/api/chat",    "POST"):    "chat",
+        ("/api/places",  "GET"):     "places",
+        ("/api/horoscope", "GET"):   "horoscope",
+        ("/api/kundli-chart", "POST"): "kundli",
+    }
+
+    action = rate_map.get((request.path, request.method))
+    if action:
+        blocked = _check_rate_limits(ip, action)
+        if blocked:
+            logger.warning(f"⛔ Rate limited: {ip} on {action}")
+            return blocked
 
     # CSRF protection for browser-origin POSTs
     if request.method == "POST" and request.path in {"/api/analyze", "/api/chat"}:
