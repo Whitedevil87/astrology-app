@@ -1,3 +1,10 @@
+"""
+Celestial Arc — Analysis service.
+Computes Vedic (sidereal) Big Three, Nakshatra, blueprint, and predictions.
+All zodiac logic uses KP Ayanamsa sidereal positions.
+Prediction text: Simple English + light Hinglish.
+"""
+
 import math
 from datetime import date, datetime, time, timezone
 from html import escape
@@ -6,44 +13,81 @@ from zoneinfo import ZoneInfo
 
 from astrology_constants import (
     PERSONALITY_RULES, CAREER_RULES, ZODIAC_ORDER, ZODIAC_META,
-    STRENGTH_BLURBS, WEAKNESS_BLURBS, LUCKY_DAYS, ELEMENT_COLORS
+    STRENGTH_BLURBS, WEAKNESS_BLURBS, LUCKY_DAYS, ELEMENT_COLORS,
+    NAKSHATRA_DATA, VIMSHOTTARI_ORDER, VIMSHOTTARI_PERIODS,
 )
 from astrology_math import (
     julian_day, sun_ecliptic_longitude_deg, moon_ecliptic_longitude_deg,
-    ascendant_longitude_deg, _norm360
+    ascendant_longitude_deg, _norm360,
+    nakshatra_index, nakshatra_pada, nakshatra_fraction,
+    moon_sidereal_longitude_deg,
 )
 
+# ── Sidereal Zodiac Sign from Date (Fallback) ───────────────────────
+# Approximate sidereal Sun-transit dates (KP system).
+# Used ONLY when geocoding fails and we can't compute exact longitude.
+
+_SIDEREAL_SUN_TRANSITS = [
+    # (month, day, sign) — Sun enters this sidereal sign on approximately this date
+    (1, 14, "Capricorn"),    # Makara
+    (2, 13, "Aquarius"),     # Kumbha
+    (3, 14, "Pisces"),       # Meena
+    (4, 14, "Aries"),        # Mesha
+    (5, 15, "Taurus"),       # Vrishabha
+    (6, 15, "Gemini"),       # Mithuna
+    (7, 17, "Cancer"),       # Karka
+    (8, 17, "Leo"),          # Simha
+    (9, 17, "Virgo"),        # Kanya
+    (10, 18, "Libra"),       # Tula
+    (11, 16, "Scorpio"),     # Vrishchika
+    (12, 16, "Sagittarius"), # Dhanu
+]
+
+
 def zodiac_sign(birth_date: date) -> str:
+    """Fallback sidereal Sun sign from date (approximate KP transit dates)."""
     month, day = birth_date.month, birth_date.day
-    if (month == 12 and day >= 22) or (month == 1 and day <= 19): return "Capricorn"
-    if (month == 1 and day >= 20) or (month == 2 and day <= 18): return "Aquarius"
-    if (month == 2 and day >= 19) or (month == 3 and day <= 20): return "Pisces"
-    if (month == 3 and day >= 21) or (month == 4 and day <= 19): return "Aries"
-    if (month == 4 and day >= 20) or (month == 5 and day <= 20): return "Taurus"
-    if (month == 5 and day >= 21) or (month == 6 and day <= 20): return "Gemini"
-    if (month == 6 and day >= 21) or (month == 7 and day <= 22): return "Cancer"
-    if (month == 7 and day >= 23) or (month == 8 and day <= 22): return "Leo"
-    if (month == 8 and day >= 23) or (month == 9 and day <= 22): return "Virgo"
-    if (month == 9 and day >= 23) or (month == 10 and day <= 22): return "Libra"
-    if (month == 10 and day >= 23) or (month == 11 and day <= 21): return "Scorpio"
-    return "Sagittarius"
+    # Default: last entry covers Dec 16 onward into next year's Jan 13
+    result = _SIDEREAL_SUN_TRANSITS[-1][2]  # Scorpio (Dec 16+)
+    for m, d, sign in _SIDEREAL_SUN_TRANSITS:
+        if (month, day) >= (m, d):
+            result = sign
+    return result
+
 
 def moon_sign(birth_date: date) -> str:
+    """Fallback Moon sign — rough approximation from day-of-year."""
     day_of_year = birth_date.timetuple().tm_yday
-    return ZODIAC_ORDER[(day_of_year // 30) % len(ZODIAC_ORDER)]
+    # Moon moves ~13 deg/day, completes zodiac in ~27.3 days
+    # This is a very rough fallback — real calculation is in compute_hybrid_big_three
+    return ZODIAC_ORDER[(day_of_year * 13 // 27) % 12]
+
 
 def ascendant_sign(birth_time: time, birth_place: str) -> str:
+    """Fallback ascendant — rough hash-based approximation."""
     place_score = sum(ord(ch) for ch in birth_place.lower() if ch.isalpha())
     time_bucket = birth_time.hour * 2 + (1 if birth_time.minute >= 30 else 0)
-    return ZODIAC_ORDER[(place_score + time_bucket) % len(ZODIAC_ORDER)]
+    return ZODIAC_ORDER[(place_score + time_bucket) % 12]
+
+
+# ── Sign from Longitude ─────────────────────────────────────────────
 
 def sign_from_longitude(lon_deg: float) -> str:
+    """Zodiac sign from sidereal longitude (0°Aries = 0°)."""
     idx = int(_norm360(lon_deg) // 30)
-    return ZODIAC_ORDER[idx]
+    return ZODIAC_ORDER[idx % 12]
+
+
+# ── Hybrid Big Three (Sidereal / KP) ────────────────────────────────
 
 def compute_hybrid_big_three(
-    birth_date: date, birth_time: time, birth_place: str, lat: float, lon: float, tz_name: str
+    birth_date: date, birth_time: time, birth_place: str,
+    lat: float, lon: float, tz_name: str
 ) -> Tuple[Dict[str, str], Dict[str, Any]]:
+    """
+    Compute sidereal Sun, Moon, Ascendant signs using KP Ayanamsa.
+    Returns (profile dict, details dict).
+    """
     tz = ZoneInfo(tz_name)
     dt_local = datetime(
         birth_date.year, birth_date.month, birth_date.day,
@@ -51,146 +95,215 @@ def compute_hybrid_big_three(
     )
     dt_utc = dt_local.astimezone(timezone.utc)
     jd = julian_day(dt_utc)
+
+    # These functions already return SIDEREAL longitudes (KP Ayanamsa applied)
     sun_lon = sun_ecliptic_longitude_deg(jd)
     moon_lon = moon_ecliptic_longitude_deg(jd)
     asc_lon = ascendant_longitude_deg(jd, lat, lon)
+
+    # Nakshatra from sidereal Moon
+    nak_idx = nakshatra_index(moon_lon)
+    nak_data = NAKSHATRA_DATA[nak_idx]
+    nak_pd = nakshatra_pada(moon_lon)
+
     profile = {
         "zodiac": sign_from_longitude(sun_lon),
         "moon_sign": sign_from_longitude(moon_lon),
         "ascendant": sign_from_longitude(asc_lon),
     }
     details = {
-        "method": "hybrid_approx", "place_input": birth_place,
+        "method": "kp_sidereal",
+        "place_input": birth_place,
         "lat": lat, "lon": lon, "tz": tz_name,
-        "local_datetime": dt_local.isoformat(), "utc_datetime": dt_utc.isoformat(),
-        "jd": jd, "sun_lon_deg": sun_lon, "moon_lon_deg": moon_lon, "asc_lon_deg": asc_lon,
+        "local_datetime": dt_local.isoformat(),
+        "utc_datetime": dt_utc.isoformat(),
+        "jd": jd,
+        "sun_lon_deg": sun_lon,
+        "moon_lon_deg": moon_lon,
+        "asc_lon_deg": asc_lon,
+        "nakshatra": nak_data["name"],
+        "nakshatra_lord": nak_data["lord"],
+        "nakshatra_pada": nak_pd,
+        "nakshatra_index": nak_idx,
     }
     return profile, details
+
+
+# ── Nakshatra Info Helper ────────────────────────────────────────────
+
+def get_nakshatra_info(moon_lon_sidereal: float) -> Dict[str, Any]:
+    """Get Nakshatra name, lord, pada, and meaning from sidereal Moon longitude."""
+    idx = nakshatra_index(moon_lon_sidereal)
+    pada = nakshatra_pada(moon_lon_sidereal)
+    data = NAKSHATRA_DATA[idx]
+    return {
+        "name": data["name"],
+        "lord": data["lord"],
+        "pada": pada,
+        "meaning": data["meaning"],
+        "index": idx,
+    }
+
+
+# ── Helpers ──────────────────────────────────────────────────────────
 
 def _sign_index(sign: str) -> int:
     return ZODIAC_ORDER.index(sign) if sign in ZODIAC_ORDER else 0
 
+
 def harmony_matches(zodiac: str) -> str:
     meta = ZODIAC_META.get(zodiac, ZODIAC_META["Aries"])
     element = meta["element"]
-    same_element = [s for s in ZODIAC_ORDER if ZODIAC_META[s]["element"] == element and s != zodiac]
-    complementary = {"Fire": ["Air"], "Air": ["Fire"], "Water": ["Earth"], "Earth": ["Water"]}
-    other_el = complementary.get(element, ["Air"])
-    bridge = [s for s in ZODIAC_ORDER if ZODIAC_META[s]["element"] in other_el][:4]
-    pool = list(dict.fromkeys(same_element[:2] + bridge))
+    same_el = [s for s in ZODIAC_ORDER if ZODIAC_META[s]["element"] == element and s != zodiac]
+    comp = {"Fire": ["Air"], "Air": ["Fire"], "Water": ["Earth"], "Earth": ["Water"]}
+    bridge = [s for s in ZODIAC_ORDER if ZODIAC_META[s]["element"] in comp.get(element, ["Air"])][:4]
+    pool = list(dict.fromkeys(same_el[:2] + bridge))
     return ", ".join(pool[:3])
+
 
 def growth_matches(zodiac: str) -> str:
     idx = _sign_index(zodiac)
-    square_a = ZODIAC_ORDER[(idx + 3) % 12]
-    square_b = ZODIAC_ORDER[(idx + 9) % 12]
-    return f"{square_a}, {square_b}"
+    return f"{ZODIAC_ORDER[(idx + 3) % 12]}, {ZODIAC_ORDER[(idx + 9) % 12]}"
+
 
 def seasonal_transit_note(now: datetime, sun_sign: str) -> str:
     month = now.month
     seasons = {
-        12: "Winter quiet invites planning; review what you want before the next surge.",
-        1: "A reset favors fresh systems—small rituals now compound through spring.",
-        2: "Patience deepens intuition; notice messages in dreams and synchronicities.",
-        3: "Momentum returns; say yes to learning curves you can practice in public.",
-        4: "Stability season: nurture your body, budget, and consistent allies.",
-        5: "Social sparks return—networking and storytelling open doors faster than perfection.",
-        6: "Home and heart take priority; protect your peace like infrastructure.",
-        7: "Creative risk is supported; let yourself be seen without endless rehearsal.",
-        8: "Refinement pays off—edit, simplify, polish what already works.",
-        9: "Partnerships clarify; negotiate kindly but keep your standards clean.",
-        10: "Transformation asks honesty; release control where trust works better.",
-        11: "Expansion calls—study ideas, travel plans, and mentors can reroute you.",
+        12: "Winter quiet — the best time for planning. Review what you want in the next phase.",
+        1:  "Time for a fresh start — build small daily habits, they will compound by spring.",
+        2:  "Deepen your patience — messages may come in dreams, your intuition is strong.",
+        3:  "Momentum returns — embrace learning curves and stick to practical practice.",
+        4:  "Season of stability — take care of your body, budget, and close allies.",
+        5:  "Social energy is strong — networking and storytelling will open new doors.",
+        6:  "Home and heart are priority — protect your peace and set boundaries.",
+        7:  "Creative risk is supported — show yourself without too much rehearsal.",
+        8:  "Refinement pays off — edit, simplify, and polish what is already working.",
+        9:  "Partnerships clarify — negotiate kindly but don't lower your standards.",
+        10: "Time of transformation — honestly let go of the past, trust where you lack control.",
+        11: "Expansion is calling — study, travel plans, and mentors can show new paths.",
     }
     base = seasons.get(month, seasons[6])
-    return f"As a {sun_sign}, {base} Timing improves when action matches emotional truth."
+    return f"As a {sun_sign}: {base}"
+
+
+# ── Blueprint ────────────────────────────────────────────────────────
 
 def build_blueprint(zodiac: str, moon: str, asc: str, birth_date: date) -> Dict[str, Any]:
     meta = ZODIAC_META.get(zodiac, ZODIAC_META["Aries"])
-    lucky_number = (birth_date.day * 11 + birth_date.month * 13 + birth_date.year) % 88 + 3
+    lucky_num = (birth_date.day * 11 + birth_date.month * 13 + birth_date.year) % 88 + 3
     element = meta["element"]
     return {
-        "glyph": meta["glyph"], "sun_sign": zodiac, "element": element,
-        "modality": meta["modality"], "ruling_planet": meta["ruler"],
-        "lucky_number": lucky_number, "lucky_day": LUCKY_DAYS.get(zodiac, "Thursday"),
+        "glyph": meta["glyph"],
+        "sun_sign": zodiac,
+        "element": element,
+        "modality": meta["modality"],
+        "ruling_planet": meta["ruler"],
+        "lucky_number": lucky_num,
+        "lucky_day": LUCKY_DAYS.get(zodiac, "Thursday"),
         "lucky_color": ELEMENT_COLORS.get(element, "Amethyst & silver"),
-        "moon_sign": moon, "ascendant": asc,
-        "best_matches": harmony_matches(zodiac), "growth_signs": growth_matches(zodiac),
-        "energy_focus": f"{meta['ruler']}-styled drive with {element.lower()} element steadiness",
+        "moon_sign": moon,
+        "ascendant": asc,
+        "best_matches": harmony_matches(zodiac),
+        "growth_signs": growth_matches(zodiac),
+        "energy_focus": f"{meta['ruler']}-driven energy with {element.lower()} element steadiness",
     }
+
+
+# ── Palm Analysis ────────────────────────────────────────────────────
 
 def simulate_palm_analysis(hand_choice: str) -> str:
     hand_label = "left hand" if hand_choice == "left" else "right hand"
-    line_strength = "strong and etched" if hand_choice == "right" else "soft but deep"
+    line_strength = "strong and clear" if hand_choice == "right" else "soft but deep"
     return (
-        f"Your {hand_label} shows {line_strength} life and heart lines. This pattern suggests emotional wisdom, "
-        "strong resilience after setbacks, and a tendency to trust intuition before logic. "
-        "A slight curve near the fate line indicates a meaningful career pivot that becomes your turning point."
+        f"Your {hand_label} shows {line_strength} life and heart lines. "
+        "This pattern indicates emotional wisdom, a strong recovery after setbacks, "
+        "and a tendency to trust intuition before logic. "
+        "There is a curve in your fate line — a meaningful career pivot will become a turning point."
     )
 
+
+# ── Predictions (Simple English + light Hinglish) ────────────────────
+
 def build_prediction(
-    full_name: str, birth_place: str, profile: Dict[str, str], palm_text: Optional[str],
-    birth_date: date, now: datetime, blueprint: Dict[str, Any]
+    full_name: str, birth_place: str, profile: Dict[str, str],
+    palm_text: Optional[str], birth_date: date, now: datetime,
+    blueprint: Dict[str, Any]
 ) -> Dict[str, str]:
     z = profile["zodiac"]
     m = profile["moon_sign"]
     a = profile["ascendant"]
     meta = ZODIAC_META.get(z, ZODIAC_META["Aries"])
     element = meta["element"]
+    ruler = meta["ruler"]
 
     personality = (
-        f"{full_name}, the veil lifts on a signature that is unmistakably {z} {blueprint['glyph']}: "
+        f"{full_name}, your Sun sign is {z} {blueprint['glyph']} — "
         f"{PERSONALITY_RULES.get(z, 'a rare blend of fire and wisdom')}. "
-        f"Your emotional story is painted by a {m} Moon—this is how you nurture, remember, and heal. "
-        f"Rising as {a}, you broadcast a first impression that can charm rooms, test boundaries, or quietly command respect."
+        f"Your Moon is in {m}, which means you emotionally heal and nurture with the nature of {m}. "
+        f"Your Rising sign is {a} — this is how the world sees you at first glance. "
+        f"This combination makes you unique — the energy of {ruler} is visible in every decision you make."
     )
 
     career = (
-        f"Your vocational compass tilts toward arenas tied to {CAREER_RULES.get(z, 'strategy and craft')}. "
-        f"The {element.lower()} element in your Sun wants work with tangible impact; your {m} Moon needs meaning, not only metrics. "
-        f"With {a} on the ascendant, leadership shows up through presence, pacing, and the story you tell about your mission. "
-        f"Places and networks echoing the spirit of {birth_place} can act like catalysts when you are ready to claim the next level."
+        f"In your career, your compass points towards {CAREER_RULES.get(z, 'strategy and growth')}. "
+        f"The {element} element of your Sun seeks work with a tangible impact — and your {m} Moon needs meaning, not just numbers. "
+        f"With your {a} ascendant, your leadership presence comes from pacing and the story of your mission. "
+        f"Connected networks from places like {birth_place} can act as powerful catalysts."
     )
 
     love = (
-        f"In love, your {m} Moon asks for emotional fluency: safe words, loyal gestures, and a partner who does not vanish when feelings intensify. "
-        f"Your {z} Sun brings heat, sincerity, and non-negotiable self-respect. "
-        f"{a} rising adds charisma in early attraction, but your real bond blooms when someone proves steadiness over performance. "
-        f"Harmonious archetypes to explore: {blueprint['best_matches']}. Growth-oriented tension may arrive with {blueprint['growth_signs']}."
+        f"In love, your {m} Moon demands emotional fluency — safe words, loyal gestures, "
+        f"and a partner who stays by your side even through intense feelings. "
+        f"Your {z} Sun brings sincerity and self-respect. "
+        f"Your {a} rising gives charm in initial attraction, but a real bond forms "
+        f"when someone demonstrates steadiness. Best matches: {blueprint['best_matches']}. "
+        f"Growth tension: {blueprint['growth_signs']}."
     )
 
     future = (
-        f"The path ahead favors showing up as the whole version of yourself—not only the convenient one. "
-        f"The triad of {z}, {m}, and {a} suggests a destiny that rewards courage, compassionate boundaries, and a willingness to reroute when intuition whispers 'not this.' "
-        f"Lucky threads this year: lean into {blueprint['lucky_day']} energy, {blueprint['lucky_color']} tones as mindful cues, and the number {blueprint['lucky_number']} as a playful synchronicity anchor."
+        f"The path forward is about showing your complete self — not just the convenient version. "
+        f"The triad of {z}, {m}, and {a} suggests a destiny that rewards courage, "
+        f"compassionate boundaries, and following your intuition. "
+        f"Lucky threads: the energy of {blueprint['lucky_day']}, {blueprint['lucky_color']} tones "
+        f"as mindful cues, and the number {blueprint['lucky_number']} as an anchor for synchronicity."
     )
     if palm_text:
-        future += " The palm layer adds a tactile prophecy: destiny here moves through your hands."
+        future += " Palm reading is also included — destiny literally passes through your hands."
 
     strengths = STRENGTH_BLURBS.get(z, STRENGTH_BLURBS["Aries"])
     weaknesses = WEAKNESS_BLURBS.get(z, WEAKNESS_BLURBS["Aries"])
 
     wellness = (
-        f"Wellness for {z} thrives when the {element.lower()} element is honored. "
-        "Ground glittering stress with breathwork, walking rhythm, or a creative outlet that cannot be graded. "
-        f"Your {m} Moon may store tension in the body like memory—prioritize sleep sanctuaries and emotional debriefs with people who feel safe."
+        f"For wellness, it is essential for a {z} to honor the {element.lower()} element. "
+        f"Ground your stress through breathwork, walking, or a creative outlet. "
+        f"Your {m} Moon stores tension in the body — prioritize sleep and emotional debriefing "
+        f"with people who make you feel safe."
     )
 
     compatibility = (
-        f"Compatibility snapshot: your Sun seeks playmates of the mind and heart who match your tempo. "
-        f"Easy resonance often appears with {blueprint['best_matches']}, while {blueprint['growth_signs']} may teach lessons about compromise. "
-        "Remember: astrology highlights tendencies, not verdicts—choose kindness and curiosity over fatalism."
+        f"Compatibility snapshot: Your Sun seeks playmates who can match its tempo. "
+        f"Easy resonance: {blueprint['best_matches']}, "
+        f"while {blueprint['growth_signs']} teach lessons in compromise. "
+        f"Remember — astrology shows tendencies, not verdicts. "
+        f"Choose kindness and curiosity over fatalism."
     )
 
     seasonal_energy = seasonal_transit_note(now, z)
 
     return {
-        "personality": personality, "career": career, "love": love, "future": future,
-        "strengths": strengths, "weaknesses": weaknesses, "wellness": wellness,
-        "compatibility": compatibility, "seasonal_energy": seasonal_energy,
+        "personality": personality, "career": career, "love": love,
+        "future": future, "strengths": strengths, "weaknesses": weaknesses,
+        "wellness": wellness, "compatibility": compatibility,
+        "seasonal_energy": seasonal_energy,
     }
 
-def build_report_html(name: str, profile: Dict[str, str], sections: Dict[str, str], palm_text: Optional[str]) -> str:
+
+# ── Report HTML ──────────────────────────────────────────────────────
+
+def build_report_html(
+    name: str, profile: Dict[str, str], sections: Dict[str, str],
+    palm_text: Optional[str]
+) -> str:
     palm_block = ""
     if palm_text:
         palm_block = (
@@ -210,8 +323,8 @@ def build_report_html(name: str, profile: Dict[str, str], sections: Dict[str, st
         )
 
     html_parts = [
-        f"<h2 class='report-title'>{escape(name)} — Cosmic Brief</h2>",
-        f"<p class='report-meta'>Sun {escape(profile['zodiac'])} · Moon {escape(profile['moon_sign'])} · Asc {escape(profile['ascendant'])}</p>",
+        f"<h2 class='report-title'>{escape(name)} — Vedic Cosmic Brief</h2>",
+        f"<p class='report-meta'>Sun {escape(profile['zodiac'])} · Moon {escape(profile['moon_sign'])} · Lagna {escape(profile['ascendant'])}</p>",
         block("\u2726", "Personality Analysis", "personality"),
         block("\u2726", "Career Path", "career"),
         block("\u2726", "Love & Relationships", "love"),
@@ -221,11 +334,11 @@ def build_report_html(name: str, profile: Dict[str, str], sections: Dict[str, st
         block("\u2727", "Wellness & Rhythm", "wellness"),
         block("\u2665", "Compatibility Notes", "compatibility"),
         block("\u25CE", "Seasonal Energy & Timing", "seasonal_energy"),
-        block("\u2726", "Kundli & chart layer", "kundli_layer"),
-        block("\u2726", "Houses (whole-sign demo)", "vedic_houses"),
+        block("\u2726", "Kundli & Chart Layer", "kundli_layer"),
+        block("\u2726", "Houses (Whole-Sign)", "vedic_houses"),
         block("\u2726", "Rahu & Ketu", "rahu_ketu"),
-        block("\u2726", "Dasha / dosha snapshot", "vimshottari_timing"),
-        block("\u2726", "Remedies & ethical lifestyle", "remedies_lifestyle"),
+        block("\u2726", "Dasha / Dosha Snapshot", "vimshottari_timing"),
+        block("\u2726", "Remedies & Lifestyle", "remedies_lifestyle"),
         palm_block,
     ]
     rendered = "".join(html_parts)

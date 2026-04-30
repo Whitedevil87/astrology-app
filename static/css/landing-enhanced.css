@@ -144,8 +144,8 @@ body {
 }
 
 .nebula-1 {
-    width: 900px;
-    height: 900px;
+    width: 600px;
+    height: 600px;
     top: -200px;
     right: -100px;
     background: radial-gradient(ellipse at center, rgba(0, 217, 255, 0.5), transparent);

@@ -1,10 +1,7 @@
 """
-Rule-based Vedic-style layer (whole-sign style demo) + Guru chat helpers.
-Includes Kundli chart generation using Skyfield for astronomical calculations.
-
-Important: This is NOT a replacement for professional Vedic software (sidereal ayanamsa,
-exact divisional charts, true Rahu-Ketu from ephemeris). User can paste house positions from
-their own kundli generator for tighter alignment.
+Vedic astrology engine — KP (Krishnamurti Paddhati) sidereal system.
+Whole-sign houses, true Vimshottari Dasha from Moon Nakshatra,
+sidereal planet positions via KP Ayanamsa.
 """
 
 from __future__ import annotations
@@ -12,8 +9,13 @@ from __future__ import annotations
 import re
 import math
 from typing import Any, Dict, List, Tuple, Optional
-from datetime import datetime
-import math
+from datetime import datetime, date, time as dt_time
+
+from astrology_math import kp_ayanamsa, _norm360 as _math_norm360
+from astrology_constants import (
+    NAKSHATRA_DATA, VIMSHOTTARI_ORDER, VIMSHOTTARI_PERIODS,
+    VIMSHOTTARI_TOTAL_YEARS,
+)
 
 try:
     from skyfield.api import Astrometric, load, wgs84
@@ -29,22 +31,20 @@ ZODIAC_ORDER = [
 
 HOUSE_MEANINGS = {
     1: "Self, body, temperament, life direction (Lagna)",
-    2: "Wealth, speech, family, values",
-    3: "Siblings, courage, short journeys, skills",
-    4: "Home, mother, comfort, roots",
-    5: "Children, creativity, romance, intellect",
-    6: "Health, service, debts, competition",
-    7: "Marriage, partnerships, contracts, public relations",
-    8: "Transformations, shared resources, longevity",
-    9: "Dharma, higher learning, luck, guru",
-    10: "Career, status, authority, reputation",
-    11: "Gains, friends, aspirations, income streams",
-    12: "Moksha, losses, foreign lands, sleep, liberation themes",
+    2: "Wealth, speech, family, values (Dhana)",
+    3: "Siblings, courage, short journeys, skills (Sahaj)",
+    4: "Home, mother, comfort, roots (Sukha)",
+    5: "Children, creativity, romance, intellect (Putra)",
+    6: "Health, service, debts, competition (Ari)",
+    7: "Marriage, partnerships, contracts (Yuvati)",
+    8: "Transformations, shared resources, longevity (Randhra)",
+    9: "Dharma, higher learning, luck, guru (Bhagya)",
+    10: "Career, status, authority, reputation (Karma)",
+    11: "Gains, friends, aspirations, income (Labha)",
+    12: "Moksha, losses, foreign lands, liberation (Vyaya)",
 }
 
-VIMSHOTTARI_LORDS = [
-    "Ketu", "Venus", "Sun", "Moon", "Mars", "Rahu", "Jupiter", "Saturn", "Mercury",
-]
+VIMSHOTTARI_LORDS = VIMSHOTTARI_ORDER
 
 
 def _sign_index(sign: str) -> int:
@@ -69,6 +69,13 @@ def _sign_from_longitude(lon_deg: float) -> str:
 
 
 def _get_planet_lon(jd: float, planet: str) -> float:
+    """Compute SIDEREAL longitude for a planet (KP Ayanamsa applied)."""
+    tropical = _get_planet_lon_tropical(jd, planet)
+    return _norm360(tropical - kp_ayanamsa(jd))
+
+
+def _get_planet_lon_tropical(jd: float, planet: str) -> float:
+    """Compute tropical longitude for a planet."""
     T = (jd - 2451545.0) / 36525.0
     if planet == 'Rahu':
         omega = 125.04452 - 1934.136261 * T + 0.0020708 * T * T
@@ -76,8 +83,7 @@ def _get_planet_lon(jd: float, planet: str) -> float:
     if planet == 'Ketu':
         omega = 125.04452 - 1934.136261 * T + 0.0020708 * T * T
         return _norm360(omega + 180.0)
-    
-    # L, M = Mean Longitude, Mean Anomaly
+
     if planet == 'Mercury':
         L = 252.250 + 149472.674 * T
         M = 174.795 + 149472.674 * T
@@ -107,6 +113,93 @@ def _get_planet_lon(jd: float, planet: str) -> float:
         return 0.0
 
     return _norm360(L + C)
+
+
+# ── Proper Vimshottari Dasha from Moon Nakshatra ─────────────────────
+
+def compute_vimshottari_dasha(moon_sid_lon: float, birth_date, current_date=None):
+    """
+    Compute current Mahadasha and Antardasha from Moon's sidereal longitude.
+    Returns (mahadasha_lord, antardasha_lord, years_left_in_md).
+    """
+    if current_date is None:
+        current_date = datetime.now().date() if not isinstance(datetime.now(), date) else datetime.now().date()
+
+    nak_span = 360.0 / 27.0  # 13.3333 deg
+    lon = _norm360(moon_sid_lon)
+    nak_idx = int(lon / nak_span) % 27
+    nak_data = NAKSHATRA_DATA[nak_idx]
+    nak_lord = nak_data["lord"]
+
+    # Fraction of Nakshatra already traversed at birth
+    nak_start = nak_idx * nak_span
+    frac_traversed = (lon - nak_start) / nak_span
+
+    # Remaining years of birth Nakshatra lord's dasha
+    lord_period = VIMSHOTTARI_PERIODS[nak_lord]
+    remaining_years = lord_period * (1.0 - frac_traversed)
+
+    # Find the lord's position in Vimshottari sequence
+    lord_seq_idx = VIMSHOTTARI_ORDER.index(nak_lord)
+
+    # Calculate age
+    if isinstance(birth_date, datetime):
+        bd = birth_date.date()
+    elif isinstance(birth_date, date):
+        bd = birth_date
+    else:
+        bd = date.today()
+
+    if isinstance(current_date, datetime):
+        cd = current_date.date() if hasattr(current_date, 'date') else current_date
+    else:
+        cd = current_date
+
+    age_years = (cd - bd).days / 365.25
+
+    # Walk through dasha sequence to find current Mahadasha
+    elapsed = 0.0
+    md_lord = nak_lord
+    md_start_age = 0.0
+
+    # First dasha: remaining portion
+    if age_years < remaining_years:
+        md_lord = nak_lord
+        md_start_age = 0.0
+    else:
+        elapsed = remaining_years
+        for i in range(1, 10):  # max one full 120-year cycle
+            next_lord = VIMSHOTTARI_ORDER[(lord_seq_idx + i) % 9]
+            next_period = VIMSHOTTARI_PERIODS[next_lord]
+            if elapsed + next_period > age_years:
+                md_lord = next_lord
+                md_start_age = elapsed
+                break
+            elapsed += next_period
+        else:
+            md_lord = nak_lord
+            md_start_age = 0.0
+
+    # Antardasha within Mahadasha
+    md_period = VIMSHOTTARI_PERIODS[md_lord]
+    time_in_md = age_years - md_start_age
+    md_seq_idx = VIMSHOTTARI_ORDER.index(md_lord)
+
+    ad_elapsed = 0.0
+    ad_lord = md_lord  # first antardasha is always the MD lord itself
+    for i in range(9):
+        ad_candidate = VIMSHOTTARI_ORDER[(md_seq_idx + i) % 9]
+        ad_period = md_period * VIMSHOTTARI_PERIODS[ad_candidate] / VIMSHOTTARI_TOTAL_YEARS
+        if ad_elapsed + ad_period > time_in_md:
+            ad_lord = ad_candidate
+            break
+        ad_elapsed += ad_period
+    else:
+        ad_lord = md_lord
+
+    years_left = md_period - time_in_md
+
+    return md_lord, ad_lord, max(0, years_left)
 
 
 def _ketu_from_rahu(rahu_house: int) -> int:
@@ -242,7 +335,7 @@ def build_vedic_bundle(
         ketu_sign = _sign_from_longitude(_get_planet_lon(jd, "Ketu"))
         rahu_h = overrides.get("rahu_house") or _whole_sign_house(rahu_sign, lagna_sign)
         ketu_h = overrides.get("ketu_house") or _whole_sign_house(ketu_sign, lagna_sign)
-        house_msg = "Calculated using advanced high-precision planetary ephemeris."
+        house_msg = "KP sidereal positions calculated from planetary ephemeris."
     else:
         # Fallback pseudo-seed logic
         sun_h = overrides.get("sun_house") or _whole_sign_house(sun_sign, lagna_sign)
@@ -266,12 +359,24 @@ def build_vedic_bundle(
         venus_h = overrides.get("venus_house") or _clamp_house((seed // 5 % 12) + 1)
         jupiter_h = overrides.get("jupiter_house") or _clamp_house((seed // 7 % 12) + 1)
         saturn_h = overrides.get("saturn_house") or _clamp_house((seed // 11 % 12) + 1)
-        house_msg = "Simulated positions (demo logic); for high precision, provide exact coordinates."
+        house_msg = "Approximate positions; provide exact coordinates for KP precision."
 
-    day_of_year = birth_date.timetuple().tm_yday
-    md_index = (day_of_year + birth_time.hour + (seed % 9)) % 9
-    mahadasha = VIMSHOTTARI_LORDS[md_index]
-    antar = VIMSHOTTARI_LORDS[(md_index + 3) % 9]
+    # ── Proper Vimshottari Dasha from Moon Nakshatra ──
+    moon_lon = hybrid_details.get("moon_lon_deg") if hybrid_details else None
+    nak_name = (hybrid_details or {}).get("nakshatra", "")
+    nak_lord = (hybrid_details or {}).get("nakshatra_lord", "")
+    nak_pada = (hybrid_details or {}).get("nakshatra_pada", 0)
+
+    if moon_lon is not None:
+        mahadasha, antar, _md_left = compute_vimshottari_dasha(moon_lon, birth_date)
+    else:
+        # Fallback: use approximate Nakshatra from day-of-year
+        day_of_year = birth_date.timetuple().tm_yday
+        approx_nak_idx = (day_of_year * 27 // 365) % 27
+        nak_lord_fb = NAKSHATRA_DATA[approx_nak_idx]["lord"]
+        lord_idx = VIMSHOTTARI_ORDER.index(nak_lord_fb)
+        mahadasha = nak_lord_fb
+        antar = VIMSHOTTARI_ORDER[(lord_idx + 1) % 9]
 
     flags = compute_dosha_flags(mars_h, rahu_h, ketu_h)
     remedies = build_remedy_text(flags, rahu_h, ketu_h, mahadasha)
@@ -331,6 +436,9 @@ def build_vedic_bundle(
         },
         "mahadasha": mahadasha,
         "antardasha_demo": antar,
+        "nakshatra": nak_name,
+        "nakshatra_lord": nak_lord,
+        "nakshatra_pada": nak_pada,
         "dosha_flags": flags,
         "has_kundli_image": has_kundli_image,
         "notes_used": bool(kundli_notes.strip()),
@@ -354,7 +462,7 @@ def _planets_in_house(houses: Dict[str, Any], house_num: int) -> str:
 
 
 def format_guru_context(name: str, profile: Dict[str, str], vedic: Dict[str, Any], blueprint: Dict[str, Any]) -> str:
-    """Rich astrological context for the Guru Arya AI persona."""
+    """Rich Vedic astrological context for the Guru Arya AI persona (KP system)."""
     h = vedic.get("houses") or {}
     career_hint = ""
     if blueprint:
@@ -367,44 +475,53 @@ def format_guru_context(name: str, profile: Dict[str, str], vedic: Dict[str, Any
             f"Best compatibility matches: {blueprint.get('best_matches', 'n/a')}. "
             f"Growth-tension signs: {blueprint.get('growth_signs', 'n/a')}.\n"
         )
-    
+
     dosha_info = vedic.get('dosha_flags') or ['none flagged']
     mahadasha = vedic.get('mahadasha', 'unknown')
     antardasha = vedic.get('antardasha_demo', 'unknown')
-    
+    nakshatra = vedic.get('nakshatra', 'unknown')
+    nak_lord = vedic.get('nakshatra_lord', 'unknown')
+    nak_pada = vedic.get('nakshatra_pada', 0)
+
     return (
         f"Querent: {name}.\n"
-        f"Sun Sign: {profile.get('zodiac')} (core identity, ego, life purpose).\n"
-        f"Moon Sign: {profile.get('moon_sign')} (emotional nature, subconscious patterns, how they nurture and heal).\n"
-        f"Ascendant (Lagna): {profile.get('ascendant')} (how the world sees them, first impressions, physical constitution).\n\n"
+        f"SYSTEM: KP (Krishnamurti Paddhati) Sidereal Astrology. All positions are sidereal.\n\n"
+        f"Sun Rashi: {profile.get('zodiac')} (aatma, ego, life purpose).\n"
+        f"Moon Rashi: {profile.get('moon_sign')} (mann, emotions, subconscious patterns).\n"
+        f"Lagna (Ascendant): {profile.get('ascendant')} (shareer, first impression, physical constitution).\n"
+        f"Moon Nakshatra: {nakshatra} (lord: {nak_lord}, pada: {nak_pada}).\n\n"
         f"{career_hint}"
         f"PLANETARY HOUSE PLACEMENTS (Whole-Sign, 1-12):\n"
         f"  Sun → House {h.get('sun', '?')} | Moon → House {h.get('moon', '?')} | Mars → House {h.get('mars', '?')}\n"
         f"  Mercury → House {h.get('mercury', '?')} | Venus → House {h.get('venus', '?')} | Jupiter → House {h.get('jupiter', '?')}\n"
         f"  Saturn → House {h.get('saturn', '?')} | Rahu → House {h.get('rahu', '?')} | Ketu → House {h.get('ketu', '?')}\n\n"
         f"KEY HOUSE ANALYSIS:\n"
-        f"  1st (Self/Identity): Lagna in {profile.get('ascendant')}.\n"
-        f"  4th (Home/Mother/Comfort) hosts: {_planets_in_house(h, 4)}.\n"
-        f"  5th (Romance/Creativity/Children) hosts: {_planets_in_house(h, 5)}.\n"
-        f"  6th (Daily work/Service/Health obstacles) hosts: {_planets_in_house(h, 6)}.\n"
-        f"  7th (Marriage/Partnerships/Contracts) hosts: {_planets_in_house(h, 7)}.\n"
-        f"  8th (Transformation/Shared resources/Longevity) hosts: {_planets_in_house(h, 8)}.\n"
-        f"  9th (Dharma/Higher learning/Luck/Guru) hosts: {_planets_in_house(h, 9)}.\n"
-        f"  10th (Career/Status/Authority/Reputation) hosts: {_planets_in_house(h, 10)}.\n"
-        f"  11th (Gains/Friends/Income streams) hosts: {_planets_in_house(h, 11)}.\n"
-        f"  12th (Spirituality/Foreign lands/Losses/Liberation) hosts: {_planets_in_house(h, 12)}.\n"
-        f"  2nd (Wealth/Speech/Family values) hosts: {_planets_in_house(h, 2)}.\n"
-        f"  3rd (Siblings/Courage/Communication/Skills) hosts: {_planets_in_house(h, 3)}.\n\n"
-        f"TIMING:\n"
-        f"  Mahadasha lord: {mahadasha} (major life theme period).\n"
-        f"  Antardasha flavor: {antardasha} (sub-period coloring).\n"
+        f"  1st (Lagna/Self): Lagna in {profile.get('ascendant')}.\n"
+        f"  4th (Sukha/Home/Mother) hosts: {_planets_in_house(h, 4)}.\n"
+        f"  5th (Putra/Romance/Creativity) hosts: {_planets_in_house(h, 5)}.\n"
+        f"  6th (Ari/Work/Health) hosts: {_planets_in_house(h, 6)}.\n"
+        f"  7th (Yuvati/Marriage/Partners) hosts: {_planets_in_house(h, 7)}.\n"
+        f"  8th (Randhra/Transformation/Longevity) hosts: {_planets_in_house(h, 8)}.\n"
+        f"  9th (Bhagya/Dharma/Luck/Guru) hosts: {_planets_in_house(h, 9)}.\n"
+        f"  10th (Karma/Career/Status) hosts: {_planets_in_house(h, 10)}.\n"
+        f"  11th (Labha/Gains/Income) hosts: {_planets_in_house(h, 11)}.\n"
+        f"  12th (Vyaya/Moksha/Foreign/Liberation) hosts: {_planets_in_house(h, 12)}.\n"
+        f"  2nd (Dhana/Wealth/Speech/Family) hosts: {_planets_in_house(h, 2)}.\n"
+        f"  3rd (Sahaj/Siblings/Courage/Skills) hosts: {_planets_in_house(h, 3)}.\n\n"
+        f"DASHA TIMING (Vimshottari from Moon Nakshatra):\n"
+        f"  Mahadasha lord: {mahadasha} (major life theme).\n"
+        f"  Antardasha lord: {antardasha} (sub-period).\n"
+        f"  Moon Nakshatra: {nakshatra} (lord: {nak_lord}).\n"
         f"  Dosha flags: {', '.join(dosha_info)}.\n\n"
-        "INTERPRETATION GUIDELINES:\n"
-        "When answering career/job questions, prioritize 10th house, 6th house, Saturn, Jupiter, and Mahadasha themes.\n"
-        "When answering love/marriage questions, prioritize 7th house, Venus, Moon, and 5th house themes.\n"
-        "When answering money questions, prioritize 2nd house, 11th house, and Jupiter themes.\n"
-        "When answering health questions, prioritize 6th house, 8th house, and Mars/Saturn themes.\n"
-        "When answering spiritual questions, prioritize 9th house, 12th house, Ketu, and Jupiter themes.\n"
+        "INTERPRETATION RULES (STRICT):\n"
+        "- ONLY use Vedic (Jyotish) astrology. NO Western astrology references.\n"
+        "- Use ONLY the data provided above. Do NOT guess or hallucinate.\n"
+        "- Always mention specific planet + house + dasha when giving reasons.\n"
+        "- Career questions → 10th house, 6th house, Saturn, Jupiter, Mahadasha.\n"
+        "- Love/marriage → 7th house, Venus, Moon, 5th house.\n"
+        "- Money/wealth → 2nd house, 11th house, Jupiter.\n"
+        "- Health → 6th house, 8th house, Mars/Saturn.\n"
+        "- Spiritual → 9th house, 12th house, Ketu, Jupiter.\n"
     )
 
 
