@@ -42,21 +42,23 @@ def julian_day(dt_utc: datetime) -> float:
     jd = int(365.25 * (y + 4716)) + int(30.6001 * (m + 1)) + d + b - 1524.5
     return float(jd)
 
-# ── KP Ayanamsa ──────────────────────────────────────────────────────
+# ── Lahiri Ayanamsa ────────────────────────────────────────────────────
 
-def kp_ayanamsa(jd: float) -> float:
+def lahiri_ayanamsa(jd: float) -> float:
     """
-    KP (Krishnamurti Paddhati) Ayanamsa in degrees.
-    Reference epoch: Jan 1, 1900 0h UT (JD 2415020.0) = 22°21'47".
-    Annual precession: 50.2388475 arcseconds/year (Newcomb).
+    Lahiri (Chitra Paksha) Ayanamsa in degrees.
+    Approximate calculation based on J2000 epoch.
+    At J2000.0 (JD 2451545.0), Lahiri Ayanamsa is approximately 23° 51' 11" (23.85305°).
+    Annual precession is ~50.27 arcseconds.
     """
-    years_from_1900 = (jd - 2415020.0) / 365.25
-    ayanamsa = 22.36306 + (50.2388475 / 3600.0) * years_from_1900
+    years_from_2000 = (jd - 2451545.0) / 365.25
+    ayanamsa = 23.85305 + (50.27 / 3600.0) * years_from_2000
     return ayanamsa
 
 def tropical_to_sidereal(lon_tropical: float, jd: float) -> float:
-    """Convert tropical ecliptic longitude to sidereal using KP Ayanamsa."""
-    return _norm360(lon_tropical - kp_ayanamsa(jd))
+    """Convert tropical ecliptic longitude to sidereal using Lahiri Ayanamsa."""
+    return _norm360(lon_tropical - lahiri_ayanamsa(jd))
+
 
 # ── Sun Position ─────────────────────────────────────────────────────
 
