@@ -2,7 +2,7 @@
 import datetime as dt
 from astrology_math import (
     julian_day, sun_sidereal_longitude_deg, moon_sidereal_longitude_deg,
-    kp_ayanamsa, nakshatra_index, nakshatra_pada, ascendant_sidereal_longitude_deg,
+    lahiri_ayanamsa, nakshatra_index, nakshatra_pada, ascendant_sidereal_longitude_deg,
 )
 from astrology_constants import ZODIAC_ORDER, NAKSHATRA_DATA
 
@@ -30,7 +30,7 @@ for y, m, d, label in tests:
     nak_idx = nakshatra_index(moon_lon)
     nak = NAKSHATRA_DATA[nak_idx]
     print(f"\n{label}:")
-    print(f"  Ayanamsa: {kp_ayanamsa(jd):.3f} deg")
+    print(f"  Ayanamsa: {lahiri_ayanamsa(jd):.3f} deg")
     print(f"  Sun:  {sun_lon:.2f} deg -> {sign(sun_lon)}")
     print(f"  Moon: {moon_lon:.2f} deg -> {sign(moon_lon)}")
     print(f"  Nakshatra: {nak['name']} (lord: {nak['lord']}, pada: {nakshatra_pada(moon_lon)})")

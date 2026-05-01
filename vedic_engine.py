@@ -69,9 +69,9 @@ def _sign_from_longitude(lon_deg: float) -> str:
 
 
 def _get_planet_lon(jd: float, planet: str) -> float:
-    """Compute SIDEREAL longitude for a planet (KP Ayanamsa applied)."""
+    """Compute SIDEREAL longitude for a planet (Lahiri Ayanamsa applied)."""
     tropical = _get_planet_lon_tropical(jd, planet)
-    return _norm360(tropical - kp_ayanamsa(jd))
+    return _norm360(tropical - lahiri_ayanamsa(jd))
 
 
 def _get_planet_lon_tropical(jd: float, planet: str) -> float:
