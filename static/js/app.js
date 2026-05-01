@@ -87,7 +87,7 @@ document.addEventListener("DOMContentLoaded", function () {
                         "AI-enhanced Guru is on. Answers blend your saved chart context with your question.";
                 } else {
                     chatHint.textContent =
-                        "Offline Guru: rule-based guidance from your saved reading. Add GROQ_API_KEY or OPENAI_API_KEY on the server for deeper AI replies.";
+                        "Offline Guru: rule-based guidance from your saved reading.";
                 }
             })
             .catch(function () {
@@ -396,7 +396,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
     function sectionCard(title, body, icon) {
         var intensity = 50 + ((title.length * 7 + (body || "").length) % 42);
-        
+
         var cleanBody = (body || "").replace(/\n/g, ' ').replace(/\*/g, '');
         var sentences = cleanBody.match(/[^.!?]+[.!?]+/g) || [cleanBody];
         var bulletsHtml = '<ul class="mt-4 space-y-2 text-sm text-purple-200/80 leading-relaxed list-disc pl-5" style="list-style-position:outside">';
@@ -966,25 +966,34 @@ document.addEventListener("DOMContentLoaded", function () {
         chatLog.scrollTop = chatLog.scrollHeight;
     }
 
-    function appendChatLoader() {
+    function appendChatLoader(isSimple) {
         if (!chatLog) return null;
         const wrap = document.createElement("div");
         wrap.className = "chat-bubble chat-bubble-guru chat-loader-active";
         wrap.id = "activeChatLoader";
-        
+
         const m = document.createElement("div");
         m.className = "chat-meta";
         m.textContent = "Guru \u00b7 thinking";
         wrap.appendChild(m);
-        
+
         const body = document.createElement("div");
         body.className = "loader-text";
+        
+        if (isSimple) {
+            body.innerHTML = "<span class='spinner'>\u2727</span> <span id='loaderMsg'>Guru is typing...</span>";
+            wrap.appendChild(body);
+            chatLog.appendChild(wrap);
+            chatLog.scrollTop = chatLog.scrollHeight;
+            return { wrap: wrap, interval: null };
+        }
+        
         body.innerHTML = "<span class='spinner'>\u2727</span> <span id='loaderMsg'>Guru is reading your kundli...</span>";
         wrap.appendChild(body);
-        
+
         chatLog.appendChild(wrap);
         chatLog.scrollTop = chatLog.scrollHeight;
-        
+
         const msgs = [
             "Guru is reading your kundli...",
             "Analyzing planetary dashas...",
@@ -997,7 +1006,7 @@ document.addEventListener("DOMContentLoaded", function () {
             "Almost done..."
         ];
         let i = 0;
-        const interval = setInterval(function() {
+        const interval = setInterval(function () {
             const msgEl = document.getElementById("loaderMsg");
             if (msgEl) {
                 if (i < msgs.length - 1) {
@@ -1008,7 +1017,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 clearInterval(interval);
             }
         }, 1800);
-        
+
         return { wrap: wrap, interval: interval };
     }
 
@@ -1019,9 +1028,11 @@ document.addEventListener("DOMContentLoaded", function () {
         appendChatBubble("user", text, "You");
         chatInput.value = "";
         if (chatSend) chatSend.disabled = true;
-        
-        const loader = appendChatLoader();
-        
+
+        const lowerText = text.toLowerCase();
+        const isSimple = /^(hi|hello|hey|namaste|kaise ho|hii+|helo|hola|sup|good morning|good evening|good afternoon)\b/.test(lowerText) && text.length < 25;
+        const loader = appendChatLoader(isSimple);
+
         fetch("/api/chat", {
             method: "POST",
             headers: Object.assign(
