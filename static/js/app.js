@@ -966,6 +966,46 @@ document.addEventListener("DOMContentLoaded", function () {
         chatLog.scrollTop = chatLog.scrollHeight;
     }
 
+    function appendChatLoader() {
+        if (!chatLog) return null;
+        const wrap = document.createElement("div");
+        wrap.className = "chat-bubble chat-bubble-guru chat-loader-active";
+        wrap.id = "activeChatLoader";
+        
+        const m = document.createElement("div");
+        m.className = "chat-meta";
+        m.textContent = "Guru \u00b7 thinking";
+        wrap.appendChild(m);
+        
+        const body = document.createElement("div");
+        body.className = "loader-text";
+        body.innerHTML = "<span class='spinner'>\u2727</span> <span id='loaderMsg'>Guru is reading your kundli...</span>";
+        wrap.appendChild(body);
+        
+        chatLog.appendChild(wrap);
+        chatLog.scrollTop = chatLog.scrollHeight;
+        
+        const msgs = [
+            "Guru is reading your kundli...",
+            "Analyzing planetary dashas...",
+            "Checking house lords...",
+            "Aligning sidereal positions...",
+            "Finding karmic patterns..."
+        ];
+        let i = 0;
+        const interval = setInterval(function() {
+            const msgEl = document.getElementById("loaderMsg");
+            if (msgEl) {
+                i = (i + 1) % msgs.length;
+                msgEl.textContent = msgs[i];
+            } else {
+                clearInterval(interval);
+            }
+        }, 2000);
+        
+        return { wrap: wrap, interval: interval };
+    }
+
     function sendChat() {
         if (!chatInput || !lastReportId) return;
         const text = String(chatInput.value || "").trim();
@@ -973,6 +1013,9 @@ document.addEventListener("DOMContentLoaded", function () {
         appendChatBubble("user", text, "You");
         chatInput.value = "";
         if (chatSend) chatSend.disabled = true;
+        
+        const loader = appendChatLoader();
+        
         fetch("/api/chat", {
             method: "POST",
             headers: Object.assign(
@@ -988,10 +1031,18 @@ document.addEventListener("DOMContentLoaded", function () {
                 });
             })
             .then(function (json) {
-                const meta = json.source === "ai" ? "Guru · AI" : "Guru · rules";
+                if (loader) {
+                    clearInterval(loader.interval);
+                    if (loader.wrap.parentNode) loader.wrap.parentNode.removeChild(loader.wrap);
+                }
+                const meta = json.source === "ai" ? "Guru \u00b7 AI" : "Guru \u00b7 rules";
                 appendChatBubble("guru", json.reply || "", meta);
             })
             .catch(function (err) {
+                if (loader) {
+                    clearInterval(loader.interval);
+                    if (loader.wrap.parentNode) loader.wrap.parentNode.removeChild(loader.wrap);
+                }
                 appendChatBubble("guru", err.message || "Unable to reach Guru.", "Guru");
             })
             .finally(function () {
