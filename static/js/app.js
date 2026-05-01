@@ -990,18 +990,24 @@ document.addEventListener("DOMContentLoaded", function () {
             "Analyzing planetary dashas...",
             "Checking house lords...",
             "Aligning sidereal positions...",
-            "Finding karmic patterns..."
+            "Finding karmic patterns...",
+            "Interpreting nakshatras...",
+            "Consulting the stars...",
+            "Formulating deep insights...",
+            "Almost done..."
         ];
         let i = 0;
         const interval = setInterval(function() {
             const msgEl = document.getElementById("loaderMsg");
             if (msgEl) {
-                i = (i + 1) % msgs.length;
+                if (i < msgs.length - 1) {
+                    i++;
+                }
                 msgEl.textContent = msgs[i];
             } else {
                 clearInterval(interval);
             }
-        }, 2000);
+        }, 1800);
         
         return { wrap: wrap, interval: interval };
     }
