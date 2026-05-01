@@ -577,6 +577,68 @@ def api_places():
     return jsonify({"success": True, "places": places})
 
 
+def generate_dynamic_report_cards(full_name: str, profile: Dict[str, str], vedic_structured: Dict[str, Any], vedic_sections: Dict[str, str]) -> Optional[Dict[str, str]]:
+    """Generates highly personalized Vedic reading cards using the full chart data via LLM."""
+    system_prompt = (
+        "You are an expert Vedic astrologer generating a highly personalized astrology report. "
+        "You MUST return the output as a valid, raw JSON object exactly matching the keys provided. "
+        "Do NOT wrap the JSON in markdown code blocks (like ```json ... ```). Just return the raw JSON object.\n\n"
+        "REQUIRED KEYS:\n"
+        "- \"personality\": 2-3 sentences about their deep nature based on Sun, Moon, Lagna, and Nakshatra.\n"
+        "- \"career\": 2-3 sentences analyzing the 10th house, Saturn, and Mercury.\n"
+        "- \"love\": 2-3 sentences on relationships based on the 7th house, Venus, and Moon.\n"
+        "- \"future\": 2-3 sentences predicting the overarching life trajectory and karmic goals.\n"
+        "- \"strengths\": 1-2 sentences on their strongest astrological assets.\n"
+        "- \"weaknesses\": 1-2 sentences on challenges and how to overcome them.\n"
+        "- \"wellness\": 1-2 sentences on health based on the 6th/8th house and Moon.\n"
+        "- \"compatibility\": 1-2 sentences on what energy matches them best.\n"
+        "- \"seasonal_energy\": 1-2 sentences on their current Dasha/Antardasha timing.\n\n"
+        "RULES:\n"
+        "- Write in beautiful, simple, plain English (NO Hinglish).\n"
+        "- Be deeply personalized. Explicitly mention their specific planets and houses (e.g. 'With your Saturn in the 4th house...').\n"
+        "- Be empowering but honest.\n"
+        "- Address them directly by name if appropriate.\n"
+        "- The JSON must be valid and parseable by Python's json.loads(). Escape quotes properly."
+    )
+    
+    chart_data = (
+        f"USER: {full_name}\n"
+        f"BIG THREE: Sun in {profile.get('zodiac')}, Moon in {profile.get('moon_sign')}, Ascendant in {profile.get('ascendant')}\n"
+        f"DASHAS: {vedic_structured.get('mahadasha')} Mahadasha, {vedic_structured.get('antardasha_demo')} Antardasha\n"
+        f"NAKSHATRA: {vedic_structured.get('nakshatra')} (Lord: {vedic_structured.get('nakshatra_lord')})\n"
+        f"DOSHAS: {', '.join(vedic_structured.get('dosha_flags', []))}\n"
+        f"HOUSES:\n{vedic_sections.get('vedic_houses')}\n\n"
+        "Generate the JSON report for this person."
+    )
+    
+    try:
+        reply = openai_guru_reply(system_prompt, chart_data)
+        if not reply:
+            return None
+            
+        # Clean up any potential markdown wrapper
+        reply = reply.strip()
+        if reply.startswith("```json"):
+            reply = reply[7:]
+        if reply.startswith("```"):
+            reply = reply[3:]
+        if reply.endswith("```"):
+            reply = reply[:-3]
+            
+        cards = json.loads(reply.strip())
+        
+        # Verify required keys exist
+        required_keys = ["personality", "career", "love", "future", "strengths", "weaknesses", "wellness", "compatibility", "seasonal_energy"]
+        for key in required_keys:
+            if key not in cards:
+                return None
+                
+        return cards
+    except Exception as e:
+        logger.error(f"❌ Failed to generate dynamic cards: {e}")
+        return None
+
+
 @app.route("/api/analyze", methods=["POST"])
 def analyze():
     """Validate strict flow inputs and generate report."""
@@ -692,15 +754,8 @@ def analyze():
 
     now = datetime.now(timezone.utc).replace(tzinfo=None)  # Python 3.12+ compatible
     blueprint = build_blueprint(profile["zodiac"], profile["moon_sign"], profile["ascendant"], parsed_date)
-    sections = build_prediction(
-        full_name,
-        birth_place,
-        profile,
-        palm_text,
-        parsed_date,
-        now,
-        blueprint,
-    )
+    
+    # 1. First, build the highly accurate Vedic Bundle
     vedic_sections, vedic_structured = build_vedic_bundle(
         profile["ascendant"],
         profile["zodiac"],
@@ -712,6 +767,27 @@ def analyze():
         bool(kundli_image_path),
         hybrid_details,
     )
+    
+    # 2. Try to generate dynamic, personalized LLM report cards
+    dynamic_cards = generate_dynamic_report_cards(full_name, profile, vedic_structured, vedic_sections)
+    
+    # 3. If dynamic fails, fallback to static template generation
+    if dynamic_cards:
+        sections = dynamic_cards
+        logger.info("✅ Successfully generated dynamic AI report cards")
+    else:
+        sections = build_prediction(
+            full_name,
+            birth_place,
+            profile,
+            palm_text,
+            parsed_date,
+            now,
+            blueprint,
+        )
+        logger.warning("⚠️ Dynamic cards failed, falling back to static predictions")
+        
+    # Append the vedic sections to the final output
     sections.update(vedic_sections)
 
     report_html = build_report_html(full_name, profile, sections, palm_text)
