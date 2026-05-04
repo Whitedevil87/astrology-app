@@ -14,7 +14,7 @@ tzdata==2024.2
 
 # ── Database (PostgreSQL via Supabase) ────────────────
 supabase==2.11.0
-psycopg2-binary==2.9.9
+pg8000==1.31.2
 SQLAlchemy==2.0.36
 
 # ── Rate Limiting (Upstash Redis) ─────────────────────

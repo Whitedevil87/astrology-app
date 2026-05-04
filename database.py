@@ -34,10 +34,12 @@ def _get_engine():
             from sqlalchemy import create_engine
             from sqlalchemy.pool import NullPool
 
-            # Fix for Render: replace postgres:// with postgresql://
+            # Fix for Render: use pg8000 instead of psycopg2 to avoid Python 3.14 C-extension errors
             db_url = DATABASE_URL
             if db_url.startswith("postgres://"):
-                db_url = db_url.replace("postgres://", "postgresql://", 1)
+                db_url = db_url.replace("postgres://", "postgresql+pg8000://", 1)
+            elif db_url.startswith("postgresql://"):
+                db_url = db_url.replace("postgresql://", "postgresql+pg8000://", 1)
 
             _engine = create_engine(db_url, poolclass=NullPool)
             _use_postgres = True
