@@ -8,28 +8,52 @@ from functools import wraps
 from flask import request, jsonify
 
 logger = logging.getLogger(__name__)
-_supabase_client = None
-_supabase_init_attempted = False
+_supabase_auth_client = None
+_supabase_admin_client = None
+_init_attempted = False
 
 
-def _get_supabase():
-    global _supabase_client, _supabase_init_attempted
-    if _supabase_init_attempted:
-        return _supabase_client
-    _supabase_init_attempted = True
+def _init_clients():
+    global _supabase_auth_client, _supabase_admin_client, _init_attempted
+    if _init_attempted:
+        return
+    _init_attempted = True
     try:
-        from config import SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY
-        if SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY:
-            from supabase import create_client
-            _supabase_client = create_client(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
-            logger.info("Supabase Auth connected")
+        from config import SUPABASE_URL, SUPABASE_ANON_KEY, SUPABASE_SERVICE_ROLE_KEY
+        if not SUPABASE_URL:
+            logger.warning("SUPABASE_URL not set — Auth disabled")
+            return
+        from supabase import create_client
+        # Anon client for user-facing auth (signup, login, OAuth)
+        if SUPABASE_ANON_KEY:
+            _supabase_auth_client = create_client(SUPABASE_URL, SUPABASE_ANON_KEY)
+            logger.info("✅ Supabase Auth client connected (anon key)")
+        else:
+            logger.warning("SUPABASE_ANON_KEY not set — user auth disabled")
+        # Service role client for admin operations (verify JWT, admin sign out)
+        if SUPABASE_SERVICE_ROLE_KEY:
+            _supabase_admin_client = create_client(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
+            logger.info("✅ Supabase Admin client connected (service role)")
+        else:
+            logger.warning("SUPABASE_SERVICE_ROLE_KEY not set — admin auth disabled")
     except Exception as e:
-        logger.warning(f"Supabase Auth unavailable: {e}")
-    return _supabase_client
+        logger.error(f"❌ Supabase Auth init failed: {e}")
+
+
+def _get_auth():
+    """Get client for user-facing auth (signup/login/OAuth)."""
+    _init_clients()
+    return _supabase_auth_client
+
+
+def _get_admin():
+    """Get client for admin operations (JWT verify, admin sign out)."""
+    _init_clients()
+    return _supabase_admin_client
 
 
 def signup_email(email: str, password: str) -> Dict[str, Any]:
-    sb = _get_supabase()
+    sb = _get_auth()
     if sb is None:
         return {"error": "Auth service unavailable"}
     try:
@@ -40,7 +64,7 @@ def signup_email(email: str, password: str) -> Dict[str, Any]:
 
 
 def login_email(email: str, password: str) -> Dict[str, Any]:
-    sb = _get_supabase()
+    sb = _get_auth()
     if sb is None:
         return {"error": "Auth service unavailable"}
     try:
@@ -51,7 +75,7 @@ def login_email(email: str, password: str) -> Dict[str, Any]:
 
 
 def google_oauth_url(redirect_to: str = "") -> Optional[str]:
-    sb = _get_supabase()
+    sb = _get_auth()
     if sb is None:
         return None
     try:
@@ -63,7 +87,7 @@ def google_oauth_url(redirect_to: str = "") -> Optional[str]:
 
 
 def send_otp(phone: str) -> Dict[str, Any]:
-    sb = _get_supabase()
+    sb = _get_auth()
     if sb is None:
         return {"error": "Auth service unavailable"}
     try:
@@ -74,7 +98,7 @@ def send_otp(phone: str) -> Dict[str, Any]:
 
 
 def verify_otp(phone: str, token: str) -> Dict[str, Any]:
-    sb = _get_supabase()
+    sb = _get_auth()
     if sb is None:
         return {"error": "Auth service unavailable"}
     try:
@@ -85,7 +109,7 @@ def verify_otp(phone: str, token: str) -> Dict[str, Any]:
 
 
 def get_current_user(access_token: str) -> Optional[Dict[str, Any]]:
-    sb = _get_supabase()
+    sb = _get_auth()
     if sb is None:
         return None
     try:
@@ -98,7 +122,7 @@ def get_current_user(access_token: str) -> Optional[Dict[str, Any]]:
 
 
 def logout(access_token: str) -> bool:
-    sb = _get_supabase()
+    sb = _get_admin()
     if sb is None:
         return False
     try:
