@@ -36,9 +36,20 @@
                 <a href="#how" class="nav-link">How It Works</a>
                 <a href="#faq" class="nav-link">FAQ</a>
             </div>
-            <button class="cta-nav-btn" onclick="scrollToApp()">Open Reading</button>
+            <div style="display:flex;gap:10px;align-items:center">
+                <button class="cta-nav-btn" onclick="scrollToApp()">Open Reading</button>
+                <a id="authNavLink" href="/login" class="nav-link" style="padding:8px 16px;border:1px solid rgba(139,92,246,0.3);border-radius:10px;font-size:0.85rem">Login</a>
+            </div>
         </div>
     </nav>
+    <script>
+        // Show dashboard link if logged in
+        (function(){
+            const t = localStorage.getItem('celestial_token');
+            const link = document.getElementById('authNavLink');
+            if (t && link) { link.href = '/dashboard'; link.textContent = 'Dashboard'; }
+        })();
+    </script>
 
     <section class="hero">
         <div class="hero-content">

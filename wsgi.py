@@ -1,6 +1,2 @@
-"""
-WSGI entrypoint for production servers (Railway/Heroku-like).
-"""
-
+"""WSGI entrypoint for production servers (Render/Gunicorn)."""
 from app import app  # noqa: F401
-

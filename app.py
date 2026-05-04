@@ -1,571 +1,103 @@
+"""Celestial Arc — Main Flask Application (refactored)."""
 import json
 import logging
 import os
-import sqlite3
-import math
 import secrets
-import time as time_mod
-import urllib.error
-import urllib.parse
-import urllib.request
 import uuid
 from datetime import date, datetime, time, timezone
-from html import escape
 from typing import Any, Dict, Optional, Tuple
 
 from flask import Flask, jsonify, render_template, request, session
-
-from database import init_db, migrate_db, get_connection, save_report, fetch_report_row
-from geo import photon_search, timeapi_timezone_name
-from services.analysis_service import (
-    compute_hybrid_big_three, build_blueprint, build_prediction, 
-    simulate_palm_analysis, zodiac_sign, moon_sign, ascendant_sign,
-    build_report_html
-)
 from dotenv import load_dotenv
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
-# Try importing Groq client (recommended way)
-try:
-    from groq import Groq
-    import httpx
-    GROQ_SDK_AVAILABLE = True
-    HTTPX_AVAILABLE = True
-except ImportError:
-    GROQ_SDK_AVAILABLE = False
-    HTTPX_AVAILABLE = False
-    Groq = None  # type: ignore
-    httpx = None  # type: ignore
-
-OPENAI_AVAILABLE = True
-
+from ai_client import openai_guru_reply
+from database import init_db, migrate_db, save_report, fetch_report_by_public_id, fetch_report_row, save_chat_message, get_chat_history
+from geo import photon_search, timeapi_timezone_name
+from security import register_security, ensure_csrf, client_ip
+from services.analysis_service import (
+    compute_hybrid_big_three, build_blueprint, build_prediction,
+    simulate_palm_analysis, zodiac_sign, moon_sign, ascendant_sign,
+    build_report_html
+)
+from services.storage_service import upload_palm_image, delete_file
+from services.auth_service import optional_auth, require_auth
 from vedic_engine import build_vedic_bundle, format_guru_context, get_horoscope_for_sign, generate_kundli_chart_from_birth
 
-# Load environment variables from .env file
 load_dotenv()
 
-# Configure logging
-logging.basicConfig(level=logging.INFO)
+# ── Structured logging + Sentry ──────────────────────────────────────
+from logging_config import setup_logging, setup_sentry
+setup_logging()
+setup_sentry()
 logger = logging.getLogger(__name__)
 
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
 INSTANCE_DIR = os.path.join(BASE_DIR, "instance")
-UPLOAD_DIR = os.path.join(BASE_DIR, "uploads")
-DATABASE_PATH = os.path.join(INSTANCE_DIR, "astrology.db")
 ALLOWED_EXTENSIONS = {"png", "jpg", "jpeg", "webp"}
 
 app = Flask(__name__, instance_path=INSTANCE_DIR, instance_relative_config=False)
-app.config["UPLOAD_FOLDER"] = UPLOAD_DIR
 app.config["MAX_CONTENT_LENGTH"] = 10 * 1024 * 1024
 
-# Production security configurations
-# Secure SECRET_KEY configuration
-_SECRET_KEY = os.environ.get("SECRET_KEY", "").strip()
-if not _SECRET_KEY:
-    if os.environ.get("FLASK_ENV") == "production":
-        logger.critical("❌ CRITICAL: SECRET_KEY environment variable is not set in production!")
-        logger.critical("   This is a security vulnerability. Set SECRET_KEY env var before deploying.")
-    else:
-        logger.warning("⚠️ Using development SECRET_KEY fallback")
-        _SECRET_KEY = "dev-key-change-in-production-UNSAFE"
-app.config["SECRET_KEY"] = _SECRET_KEY
+# ── Configuration ────────────────────────────────────────────────────
+from config import configure_app, validate_startup_config
+configure_app(app)
 
-app.config["DEBUG"] = os.environ.get("FLASK_DEBUG", "false").lower() in ("1", "true", "yes")
-app.config["SEND_FILE_MAX_AGE_DEFAULT"] = 0
+# ── Security (headers, rate limiting, CSRF) ──────────────────────────
+register_security(app)
 
-# Disable secure cookies if running locally without HTTPS to allow CSRF sessions to persist
-app.config["SESSION_COOKIE_SECURE"] = os.environ.get("REQUIRE_HTTPS", "false").lower() in ("1", "true", "yes")
-app.config["SESSION_COOKIE_HTTPONLY"] = True
-app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
-app.config["PREFERRED_URL_SCHEME"] = "https" if app.config["SESSION_COOKIE_SECURE"] else "http"
-
-# Production hardening (safe defaults)
-app.config["SESSION_COOKIE_NAME"] = os.environ.get("SESSION_COOKIE_NAME", "celestial_arc")
-app.config["TEMPLATES_AUTO_RELOAD"] = app.config["DEBUG"]
+# ── Register blueprints ──────────────────────────────────────────────
+from blueprints.auth import auth_bp
+from blueprints.compatibility import compat_bp
+app.register_blueprint(auth_bp)
+app.register_blueprint(compat_bp)
 
 
-@app.after_request
-def add_security_headers(resp):
-    """
-    Add baseline security headers.
-    Kept lightweight to avoid breaking the current inline/Tailwind CDN usage.
-    """
-    resp.headers.setdefault("X-Content-Type-Options", "nosniff")
-    resp.headers.setdefault("Referrer-Policy", "strict-origin-when-cross-origin")
-    resp.headers.setdefault("X-Frame-Options", "DENY")
-    # HSTS only when behind HTTPS (Render uses HTTPS). Safe if app is served over HTTPS.
-    if not app.config["DEBUG"]:
-        resp.headers.setdefault("Strict-Transport-Security", "max-age=31536000; includeSubDomains")
-    # Minimal CSP to avoid breaking Tailwind CDN and inline scripts in templates.
-    resp.headers.setdefault(
-        "Content-Security-Policy",
-        "default-src 'self'; "
-        "img-src 'self' data: blob:; "
-        "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.tailwindcss.com; "
-        "font-src 'self' https://fonts.gstatic.com data:; "
-        "script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com; "
-        "connect-src 'self' https://photon.komoot.io https://timeapi.io https://api.groq.com https://api.openai.com; "
-        "base-uri 'self'; form-action 'self'"
-    )
-    if app.config["DEBUG"]:
-        resp.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
-        resp.headers["Pragma"] = "no-cache"
-        resp.headers["Expires"] = "0"
-    return resp
+# ── Helper functions ─────────────────────────────────────────────────
+
+def parse_date(date_str: str) -> date:
+    return datetime.strptime(date_str, "%Y-%m-%d").date()
+
+def parse_time(time_str: str) -> time:
+    return datetime.strptime(time_str, "%H:%M").time()
+
+def allowed_file(filename: str) -> bool:
+    return "." in filename and filename.rsplit(".", 1)[1].lower() in ALLOWED_EXTENSIONS
 
 
-# --- Production-grade rate limiting + CSRF ---
-_RATE_BUCKETS: Dict[str, list[float]] = {}
-_LAST_CLEANUP: float = time_mod.time()
-_CLEANUP_INTERVAL_S: int = 300  # Purge stale keys every 5 minutes
-
-# ── Rate Limit Configuration ──────────────────────────────────────────
-# Format: (per-minute limit, per-day limit)
-_LIMITS = {
-    "analyze":   (5,  15),   # Chart generation (heavy AI call)
-    "chat":      (10, 50),   # Guru Arya chat messages
-    "places":    (30, 500),  # Geocoding autocomplete
-    "horoscope": (10, 100),  # Daily horoscope lookups
-    "kundli":    (5,  20),   # Kundli chart generation
-}
-
-# Themed error messages so rate-limit responses feel on-brand
-_RATE_MESSAGES = {
-    "analyze":   "🪐 The celestial energies need a moment to realign. You've generated too many charts — please wait before trying again.",
-    "chat":      "🔮 Guru Arya is meditating to channel deeper wisdom. Please wait a moment before sending another message.",
-    "places":    None,  # Silent fail for autocomplete (returns empty list)
-    "horoscope": "⭐ The stars are aligning your horoscope. Please try again in a moment.",
-    "kundli":    "🕉️ Your Kundli chart requires cosmic precision. Please wait before generating another.",
-}
-
-
-def _client_ip() -> str:
-    """Extract the real client IP behind Render's proxy."""
-    fwd = (request.headers.get("X-Forwarded-For") or "").split(",")[0].strip()
-    return fwd or (request.remote_addr or "unknown")
-
-
-def _rate_limit(key: str, limit: int, window_s: int) -> bool:
-    """Return True if allowed, False if rate-limited."""
-    now = time_mod.time()
-    bucket = _RATE_BUCKETS.get(key, [])
-    cutoff = now - window_s
-    bucket = [t for t in bucket if t >= cutoff]
-    if len(bucket) >= limit:
-        _RATE_BUCKETS[key] = bucket
-        return False
-    bucket.append(now)
-    _RATE_BUCKETS[key] = bucket
-    return True
-
-
-def _check_rate_limits(ip: str, action: str) -> Optional[Tuple]:
-    """
-    Check both per-minute AND per-day rate limits for a given action.
-    Returns a (response, status_code) tuple if blocked, or None if allowed.
-    """
-    per_min, per_day = _LIMITS.get(action, (30, 200))
-    msg = _RATE_MESSAGES.get(action)
-
-    # Per-minute check
-    if not _rate_limit(f"{ip}:{action}:min", per_min, 60):
-        if action == "places":
-            return jsonify({"success": False, "places": []}), 429
-        return jsonify({"success": False, "error": msg or "Too many requests. Please wait a minute."}), 429
-
-    # Per-day check (86400 seconds = 24 hours)
-    if not _rate_limit(f"{ip}:{action}:day", per_day, 86400):
-        daily_msg = f"{msg or 'Daily limit reached.'} You've reached your daily limit — come back tomorrow for more cosmic insights! 🌙"
-        if action == "places":
-            return jsonify({"success": False, "places": []}), 429
-        return jsonify({"success": False, "error": daily_msg}), 429
-
-    return None
-
-
-def _cleanup_stale_buckets() -> None:
-    """Periodically remove expired keys from _RATE_BUCKETS to prevent memory leaks."""
-    global _LAST_CLEANUP
-    now = time_mod.time()
-    if now - _LAST_CLEANUP < _CLEANUP_INTERVAL_S:
-        return
-    _LAST_CLEANUP = now
-    stale_keys = []
-    for key, timestamps in _RATE_BUCKETS.items():
-        # Keys with ":day" have a 24-hour window; all others are 60 seconds
-        window = 86400 if ":day" in key else 60
-        cutoff = now - window
-        live = [t for t in timestamps if t >= cutoff]
-        if not live:
-            stale_keys.append(key)
-        else:
-            _RATE_BUCKETS[key] = live
-    for k in stale_keys:
-        del _RATE_BUCKETS[k]
-    if stale_keys:
-        logger.debug(f"🧹 Rate-limiter cleanup: removed {len(stale_keys)} stale keys")
-
-
-def _ensure_csrf() -> str:
-    token = session.get("csrf_token")
-    if not token:
-        token = secrets.token_urlsafe(32)
-        session["csrf_token"] = token
-    return str(token)
-
+# ── Routes ───────────────────────────────────────────────────────────
 
 @app.route("/healthz", methods=["GET"])
 def healthz():
     return jsonify({"ok": True})
 
-
 @app.route("/api/csrf", methods=["GET"])
 def api_csrf():
-    return jsonify({"success": True, "csrf_token": _ensure_csrf()})
-
-
-@app.before_request
-def protect_requests():
-    # Periodic memory cleanup
-    _cleanup_stale_buckets()
-
-    # Skip rate limiting for static files and non-API routes
-    if not request.path.startswith("/api/"):
-        return
-
-    ip = _client_ip()
-
-    # ── Rate limiting per endpoint ──────────────────────────────────
-    rate_map = {
-        ("/api/analyze", "POST"):    "analyze",
-        ("/api/chat",    "POST"):    "chat",
-        ("/api/places",  "GET"):     "places",
-        ("/api/horoscope", "GET"):   "horoscope",
-        ("/api/kundli-chart", "POST"): "kundli",
-    }
-
-    action = rate_map.get((request.path, request.method))
-    if action:
-        blocked = _check_rate_limits(ip, action)
-        if blocked:
-            logger.warning(f"⛔ Rate limited: {ip} on {action}")
-            return blocked
-
-    # CSRF protection for browser-origin POSTs
-    if request.method == "POST" and request.path in {"/api/analyze", "/api/chat"}:
-        expected = session.get("csrf_token")
-        provided = (request.headers.get("X-CSRF-Token") or "").strip()
-        if not expected:
-            _ensure_csrf()
-            expected = session.get("csrf_token")
-        if not provided or provided != expected:
-            return jsonify({"success": False, "error": "CSRF token missing/invalid. Refresh the page and try again."}), 403
-
-
-
-
-def ensure_directories() -> None:
-    """Create required folders if missing."""
-    try:
-        os.makedirs(INSTANCE_DIR, exist_ok=True)
-        os.makedirs(UPLOAD_DIR, exist_ok=True)
-        logger.info("Directories ensured: %s, %s", INSTANCE_DIR, UPLOAD_DIR)
-    except OSError as e:
-        logger.error("Failed to create directories: %s", e)
-        raise
-
-
-def parse_date(date_str: str) -> date:
-    """Parse date from YYYY-MM-DD string."""
-    return datetime.strptime(date_str, "%Y-%m-%d").date()
-
-
-def parse_time(time_str: str) -> time:
-    """Parse time from HH:MM string."""
-    return datetime.strptime(time_str, "%H:%M").time()
-
-
-def allowed_file(filename: str) -> bool:
-    """Check if the file extension is allowed."""
-    return "." in filename and filename.rsplit(".", 1)[1].lower() in ALLOWED_EXTENSIONS
-
-
-def make_upload_filename(filename: str) -> str:
-    """Generate a secure, random filename while preserving the extension."""
-    ext = filename.rsplit(".", 1)[1].lower() if "." in filename else "bin"
-    return f"{uuid.uuid4().hex}.{ext}"
-
-
-def openai_guru_reply(system: str, user: str) -> Optional[str]:
-    """
-    Optional cloud AI — uses Groq (recommended) or OpenAI for chat completions.
-    
-    Groq is preferred (free tier, fast): set GROQ_API_KEY and GROQ_MODEL.
-    Falls back to OpenAI if Groq not available: set OPENAI_API_KEY.
-    """
-    groq_key = os.environ.get("GROQ_API_KEY", "").strip()
-    openai_key = os.environ.get("OPENAI_API_KEY", "").strip()
-    
-    logger.info(f"Chat attempt: groq_key_set={bool(groq_key)}, openai_key_set={bool(openai_key)}")
-    
-    # Try Groq first (recommended)
-    if groq_key and GROQ_SDK_AVAILABLE:
-        return _groq_chat(system, user, groq_key)
-    elif groq_key and not GROQ_SDK_AVAILABLE:
-        logger.warning("⚠️  Groq key set but groq SDK not available. Install: pip install groq")
-        return _groq_http_fallback(system, user, groq_key)
-    
-    # Fall back to OpenAI
-    if openai_key:
-        return _openai_chat(system, user, openai_key)
-    
-    # No API available
-    logger.error("❌ No API key available (GROQ_API_KEY or OPENAI_API_KEY not set)")
-    return None
-
-
-def _groq_chat(system: str, user: str, api_key: str) -> Optional[str]:
-    """Use official Groq Python SDK (recommended way)."""
-    if not GROQ_SDK_AVAILABLE or Groq is None:
-        logger.warning("⚠️ Groq SDK not available, falling back to HTTP")
-        return _groq_http_fallback(system, user, api_key)
-    
-    try:
-        model = os.environ.get("GROQ_MODEL", "").strip() or "llama-3.3-70b-versatile"
-        logger.info(f"🔄 Using Groq SDK with model '{model}'")
-        
-        # Create explicit httpx client without proxy to avoid environment variable conflicts
-        # This prevents "TypeError: Client.__init__() got an unexpected keyword argument 'proxies'"
-        if HTTPX_AVAILABLE:
-            try:
-                # Create httpx client without allowing environment proxies
-                http_client = httpx.Client(trust_env=False)
-                client = Groq(api_key=api_key, http_client=http_client)
-            except Exception as httpx_err:
-                # Fallback if explicit http_client fails
-                logger.warning(f"⚠️ Could not create explicit httpx client: {httpx_err}. Retrying without it.")
-                client = Groq(api_key=api_key)
-        else:
-            client = Groq(api_key=api_key)
-        
-        chat_completion = client.chat.completions.create(
-            messages=[
-                {"role": "system", "content": system},
-                {"role": "user", "content": user},
-            ],
-            model=model,
-            temperature=0.78,
-            max_tokens=1800,
-        )
-        
-        result = chat_completion.choices[0].message.content.strip()
-        logger.info(f"✅ Groq chat success ({len(result)} chars)")
-        return result
-        
-    except Exception as e:
-        error_type = type(e).__name__
-        error_msg = str(e)
-        
-        # Parse error details
-        if "model_decommissioned" in error_msg:
-            logger.error(f"❌ Model Decommissioned from Groq - Update GROQ_MODEL env var")
-            logger.error(f"   Current model may be deprecated. Visit: https://console.groq.com/docs/deprecations")
-            logger.error(f"   Try: GROQ_MODEL=llama-3.1-8b-instant or llama-3.3-70b-versatile")
-        elif "401" in error_msg or "Unauthorized" in error_msg:
-            logger.error(f"❌ 401 Unauthorized from Groq - Invalid API key")
-        elif "403" in error_msg or "Forbidden" in error_msg or "1010" in error_msg:
-            logger.error(f"❌ 403 Forbidden/1010 from Groq - Check API key permissions or try new key")
-        elif "429" in error_msg or "Rate limit" in error_msg:
-            logger.error(f"❌ 429 Rate Limited from Groq - Wait before retrying")
-        elif "ConnectTimeout" in error_type or "ReadTimeout" in error_type:
-            logger.error(f"❌ Timeout from Groq (60s) - Network issue or service slow")
-        else:
-            logger.error(f"❌ Groq error: {error_type}: {error_msg[:300]}")
-        
-        return None
-
-
-def _groq_http_fallback(system: str, user: str, api_key: str) -> Optional[str]:
-    """Fallback to raw HTTP if groq SDK not installed."""
-    try:
-        model = os.environ.get("GROQ_MODEL", "").strip() or "llama-3.3-70b-versatile"
-        logger.info(f"🔄 Using Groq HTTP fallback with model '{model}'")
-        
-        payload = {
-            "model": model,
-            "messages": [
-                {"role": "system", "content": system},
-                {"role": "user", "content": user},
-            ],
-            "temperature": 0.78,
-            "max_tokens": 1800,
-        }
-        
-        req = urllib.request.Request(
-            "https://api.groq.com/openai/v1/chat/completions",
-            data=json.dumps(payload).encode("utf-8"),
-            headers={
-                "Content-Type": "application/json",
-                "Authorization": f"Bearer {api_key}",
-            },
-            method="POST",
-        )
-        
-        with urllib.request.urlopen(req, timeout=60) as resp:
-            response_text = resp.read().decode("utf-8", errors="replace")
-            data = json.loads(response_text)
-        
-        if "choices" not in data or not data["choices"]:
-            logger.error(f"❌ Invalid Groq response structure: {response_text[:300]}")
-            return None
-        
-        result = str(data["choices"][0]["message"]["content"]).strip()
-        logger.info(f"✅ Groq HTTP fallback success ({len(result)} chars)")
-        return result
-        
-    except urllib.error.HTTPError as e:
-        status_code = e.code
-        error_body = ""
-        try:
-            error_body = e.read().decode("utf-8", errors="replace")
-        except:
-            pass
-        
-        if status_code == 401:
-            logger.error(f"❌ 401 Unauthorized from Groq - Invalid API key")
-        elif status_code == 403:
-            logger.error(f"❌ 403 Forbidden from Groq - Check API key permissions")
-            if error_body:
-                logger.error(f"   Response: {error_body[:200]}")
-        elif status_code == 429:
-            logger.error(f"❌ 429 Rate Limited from Groq")
-        else:
-            logger.error(f"❌ HTTP {status_code} from Groq")
-        
-        return None
-        
-    except (urllib.error.URLError, TimeoutError) as e:
-        logger.error(f"❌ Groq connection error: {e}")
-        return None
-    except (KeyError, json.JSONDecodeError) as e:
-        logger.error(f"❌ Groq response parsing error: {e}")
-        return None
-    except Exception as e:
-        logger.error(f"❌ Unexpected Groq error: {type(e).__name__}: {e}")
-        return None
-
-
-def _openai_chat(system: str, user: str, api_key: str) -> Optional[str]:
-    """Use OpenAI API as fallback."""
-    try:
-        model = os.environ.get("OPENAI_MODEL", "").strip() or "gpt-4o-mini"
-        logger.info(f"🔄 Using OpenAI with model '{model}'")
-        
-        payload = {
-            "model": model,
-            "messages": [
-                {"role": "system", "content": system},
-                {"role": "user", "content": user},
-            ],
-            "temperature": 0.78,
-            "max_tokens": 1800,
-        }
-        
-        req = urllib.request.Request(
-            "https://api.openai.com/v1/chat/completions",
-            data=json.dumps(payload).encode("utf-8"),
-            headers={
-                "Content-Type": "application/json",
-                "Authorization": f"Bearer {api_key}",
-            },
-            method="POST",
-        )
-        
-        with urllib.request.urlopen(req, timeout=60) as resp:
-            data = json.loads(resp.read().decode("utf-8", errors="replace"))
-        
-        result = str(data["choices"][0]["message"]["content"]).strip()
-        logger.info(f"✅ OpenAI chat success ({len(result)} chars)")
-        return result
-        
-    except urllib.error.HTTPError as e:
-        if e.code == 401:
-            logger.error(f"❌ 401 Unauthorized from OpenAI - Invalid API key")
-        elif e.code == 429:
-            logger.error(f"❌ 429 Rate Limited from OpenAI")
-        else:
-            logger.error(f"❌ HTTP {e.code} from OpenAI")
-        return None
-        
-    except (urllib.error.URLError, TimeoutError) as e:
-        logger.error(f"❌ OpenAI connection error: {e}")
-        return None
-    except (KeyError, json.JSONDecodeError) as e:
-        logger.error(f"❌ OpenAI response parsing error: {e}")
-        return None
-    except Exception as e:
-        logger.error(f"❌ Unexpected OpenAI error: {type(e).__name__}: {e}")
-        return None
-
-
-@app.route("/api/ai/status", methods=["GET"])
-def api_ai_status():
-    """
-    Lightweight health check for AI provider connectivity.
-    Does NOT return any secrets.
-    """
-    groq_key = os.environ.get("GROQ_API_KEY", "").strip()
-    openai_key = os.environ.get("OPENAI_API_KEY", "").strip()
-    provider = "groq" if groq_key else ("openai" if openai_key else "none")
-    model = (
-        os.environ.get("GROQ_MODEL", "").strip()
-        if provider == "groq"
-        else os.environ.get("OPENAI_MODEL", "").strip()
-    )
-    enabled = bool(groq_key or openai_key)
-    if not enabled:
-        return jsonify({"success": True, "enabled": False, "provider": "none"})
-
-    # Make a tiny request through the same code path used by /api/chat.
-    probe = openai_guru_reply(
-        system="You are a diagnostics endpoint. Reply with exactly: OK",
-        user="OK",
-    )
-    return jsonify(
-        {
-            "success": True,
-            "enabled": True,
-            "provider": provider,
-            "model": model or None,
-            "ok": bool(probe),
-        }
-    )
-
-
-
+    return jsonify({"success": True, "csrf_token": ensure_csrf()})
 
 @app.route("/landing")
 def landing():
-    """Serve the landing page."""
     return render_template("landing.html")
-
 
 @app.route("/")
 def index():
-    """Serve the landing page as home."""
     return render_template("landing.html")
-
 
 @app.route("/app")
 def app_view():
-    """Serve the main astrology app."""
     return render_template("index.html")
-
 
 @app.route("/horoscope")
 def horoscope_view():
-    """Serve the daily horoscope page."""
     return render_template("horoscope.html")
+
+@app.route("/dashboard")
+def dashboard_view():
+    return render_template("dashboard.html")
+
+@app.route("/login")
+def login_view():
+    return render_template("login.html")
 
 
 @app.route("/api/places", methods=["GET"])
@@ -577,8 +109,8 @@ def api_places():
     return jsonify({"success": True, "places": places})
 
 
-def generate_dynamic_report_cards(full_name: str, profile: Dict[str, str], vedic_structured: Dict[str, Any], vedic_sections: Dict[str, str]) -> Optional[Dict[str, str]]:
-    """Generates highly personalized Vedic reading cards using the full chart data via LLM."""
+def generate_dynamic_report_cards(full_name, profile, vedic_structured, vedic_sections):
+    """Generate personalized Vedic reading cards via LLM."""
     system_prompt = (
         "You are an expert Vedic astrologer generating a highly personalized astrology report. "
         "You MUST return the output as a valid, raw JSON object exactly matching the keys provided. "
@@ -595,28 +127,23 @@ def generate_dynamic_report_cards(full_name: str, profile: Dict[str, str], vedic
         "- \"seasonal_energy\": 1-2 sentences on their current Dasha/Antardasha timing.\n\n"
         "RULES:\n"
         "- Write in beautiful, simple, plain English (NO Hinglish).\n"
-        "- Be deeply personalized. Explicitly mention their specific planets and houses (e.g. 'With your Saturn in the 4th house...').\n"
+        "- Be deeply personalized. Explicitly mention their specific planets and houses.\n"
         "- Be empowering but honest.\n"
         "- Address them directly by name if appropriate.\n"
-        "- The JSON must be valid and parseable by Python's json.loads(). Escape quotes properly."
+        "- The JSON must be valid and parseable by Python's json.loads()."
     )
-    
     chart_data = (
         f"USER: {full_name}\n"
         f"BIG THREE: Sun in {profile.get('zodiac')}, Moon in {profile.get('moon_sign')}, Ascendant in {profile.get('ascendant')}\n"
         f"DASHAS: {vedic_structured.get('mahadasha')} Mahadasha, {vedic_structured.get('antardasha_demo')} Antardasha\n"
         f"NAKSHATRA: {vedic_structured.get('nakshatra')} (Lord: {vedic_structured.get('nakshatra_lord')})\n"
         f"DOSHAS: {', '.join(vedic_structured.get('dosha_flags', []))}\n"
-        f"HOUSES:\n{vedic_sections.get('vedic_houses')}\n\n"
-        "Generate the JSON report for this person."
+        f"HOUSES:\n{vedic_sections.get('vedic_houses')}\n\nGenerate the JSON report for this person."
     )
-    
     try:
         reply = openai_guru_reply(system_prompt, chart_data)
         if not reply:
             return None
-            
-        # Clean up any potential markdown wrapper
         reply = reply.strip()
         if reply.startswith("```json"):
             reply = reply[7:]
@@ -624,24 +151,21 @@ def generate_dynamic_report_cards(full_name: str, profile: Dict[str, str], vedic
             reply = reply[3:]
         if reply.endswith("```"):
             reply = reply[:-3]
-            
         cards = json.loads(reply.strip())
-        
-        # Verify required keys exist
         required_keys = ["personality", "career", "love", "future", "strengths", "weaknesses", "wellness", "compatibility", "seasonal_energy"]
         for key in required_keys:
             if key not in cards:
                 return None
-                
         return cards
     except Exception as e:
-        logger.error(f"❌ Failed to generate dynamic cards: {e}")
+        logger.error(f"Failed to generate dynamic cards: {e}")
         return None
 
 
 @app.route("/api/analyze", methods=["POST"])
+@optional_auth
 def analyze():
-    """Validate strict flow inputs and generate report."""
+    """Validate inputs and generate astrology report."""
     try:
         full_name = request.form.get("full_name", "").strip()
         birth_date_raw = request.form.get("birth_date", "").strip()
@@ -651,22 +175,17 @@ def analyze():
         place_lon_raw = (request.form.get("place_lon") or "").strip()
         place_label = (request.form.get("place_label") or "").strip()
         place_tz = (request.form.get("place_tz") or "").strip()
-        palm_enabled_raw = request.form.get("palm_enabled", "no").strip().lower()
-        palm_enabled = palm_enabled_raw == "yes"
+        palm_enabled = request.form.get("palm_enabled", "no").strip().lower() == "yes"
         hand_choice = request.form.get("hand_choice", "").strip().lower()
         palm_image = request.files.get("palm_image")
         kundli_notes = request.form.get("kundli_notes", "").strip()
         kundli_file = request.files.get("kundli_chart")
 
         missing = []
-        if not full_name:
-            missing.append("full_name")
-        if not birth_date_raw:
-            missing.append("birth_date")
-        if not birth_time_raw:
-            missing.append("birth_time")
-        if not birth_place:
-            missing.append("birth_place")
+        if not full_name: missing.append("full_name")
+        if not birth_date_raw: missing.append("birth_date")
+        if not birth_time_raw: missing.append("birth_time")
+        if not birth_place: missing.append("birth_place")
         if missing:
             return jsonify({"success": False, "error": "Please fill all required fields.", "missing_fields": missing}), 400
 
@@ -679,6 +198,7 @@ def analyze():
     except ValueError:
         return jsonify({"success": False, "error": "Date or time format is invalid."}), 400
 
+    # ── Palm image handling (via Supabase Storage) ───────────────
     palm_image_path = None
     palm_text = None
     if palm_enabled:
@@ -687,38 +207,31 @@ def analyze():
         if palm_image and palm_image.filename:
             if not allowed_file(palm_image.filename):
                 return jsonify({"success": False, "error": "Palm image must be png, jpg, jpeg, or webp."}), 400
-            filename = make_upload_filename(palm_image.filename)
-            saved_path = os.path.join(app.config["UPLOAD_FOLDER"], filename)
-            palm_image.save(saved_path)
-            palm_image_path = os.path.join("uploads", filename).replace("\\", "/")
+            file_bytes = palm_image.read()
+            palm_image_path = upload_palm_image(file_bytes, palm_image.filename)
             palm_text = simulate_palm_analysis(hand_choice)
 
+    # ── Kundli image ─────────────────────────────────────────────
     kundli_image_path = None
     if kundli_file and kundli_file.filename:
         if not allowed_file(kundli_file.filename):
             return jsonify({"success": False, "error": "Kundli image must be png, jpg, jpeg, or webp."}), 400
-        filename = make_upload_filename(kundli_file.filename)
-        save_path = os.path.join(app.config["UPLOAD_FOLDER"], filename)
-        kundli_file.save(save_path)
-        kundli_image_path = os.path.join("uploads", filename).replace("\\", "/")
+        file_bytes = kundli_file.read()
+        kundli_image_path = upload_palm_image(file_bytes, kundli_file.filename)
 
-    # Hybrid chart: resolve place -> lat/lon + timezone name, then compute Big Three.
+    # ── Geocoding + timezone ─────────────────────────────────────
     chart_debug: Dict[str, Any] = {"place_autocomplete_used": bool(place_lat_raw and place_lon_raw)}
-    lat = None
-    lon = None
+    lat, lon = None, None
     if place_lat_raw and place_lon_raw:
         try:
-            lat = float(place_lat_raw)
-            lon = float(place_lon_raw)
+            lat, lon = float(place_lat_raw), float(place_lon_raw)
         except ValueError:
-            lat = None
-            lon = None
+            lat, lon = None, None
 
     if lat is None or lon is None:
         places = photon_search(place_label or birth_place, limit=1)
         if places:
-            lat = float(places[0]["lat"])
-            lon = float(places[0]["lon"])
+            lat, lon = float(places[0]["lat"]), float(places[0]["lon"])
             chart_debug["geocoded_label"] = places[0].get("label")
         else:
             chart_debug["geocode_failed"] = True
@@ -729,22 +242,18 @@ def analyze():
         if tz_name:
             chart_debug["tz_resolved_by"] = "timeapi"
 
+    # ── Compute chart ────────────────────────────────────────────
     profile = None
     hybrid_details: Dict[str, Any] = {}
     if lat is not None and lon is not None and tz_name:
         try:
-            profile, hybrid_details = compute_hybrid_big_three(
-                parsed_date, parsed_time, birth_place, lat, lon, tz_name
-            )
+            profile, hybrid_details = compute_hybrid_big_three(parsed_date, parsed_time, birth_place, lat, lon, tz_name)
         except ZoneInfoNotFoundError:
             chart_debug["tz_invalid"] = tz_name
-            profile = None
         except Exception as e:
             chart_debug["hybrid_error"] = str(e)
-            profile = None
 
     if profile is None:
-        # Fallback to previous approximation if hybrid computation unavailable.
         profile = {
             "zodiac": zodiac_sign(parsed_date),
             "moon_sign": moon_sign(parsed_date),
@@ -752,126 +261,83 @@ def analyze():
         }
         chart_debug["fallback"] = "legacy_approx"
 
-    now = datetime.now(timezone.utc).replace(tzinfo=None)  # Python 3.12+ compatible
+    now = datetime.now(timezone.utc)
     blueprint = build_blueprint(profile["zodiac"], profile["moon_sign"], profile["ascendant"], parsed_date)
-    
-    # 1. First, build the highly accurate Vedic Bundle
+
     vedic_sections, vedic_structured = build_vedic_bundle(
-        profile["ascendant"],
-        profile["zodiac"],
-        profile["moon_sign"],
-        parsed_date,
-        parsed_time,
-        birth_place,
-        kundli_notes,
-        bool(kundli_image_path),
-        hybrid_details,
+        profile["ascendant"], profile["zodiac"], profile["moon_sign"],
+        parsed_date, parsed_time, birth_place, kundli_notes,
+        bool(kundli_image_path), hybrid_details,
     )
-    
-    # 2. Try to generate dynamic, personalized LLM report cards
+
     dynamic_cards = generate_dynamic_report_cards(full_name, profile, vedic_structured, vedic_sections)
-    
-    # 3. If dynamic fails, fallback to static template generation
     if dynamic_cards:
         sections = dynamic_cards
-        logger.info("✅ Successfully generated dynamic AI report cards")
+        logger.info("Successfully generated dynamic AI report cards")
     else:
-        sections = build_prediction(
-            full_name,
-            birth_place,
-            profile,
-            palm_text,
-            parsed_date,
-            now,
-            blueprint,
-        )
-        logger.warning("⚠️ Dynamic cards failed, falling back to static predictions")
-        
-    # Append the vedic sections to the final output
+        sections = build_prediction(full_name, birth_place, profile, palm_text, parsed_date, now, blueprint)
+        logger.warning("Dynamic cards failed, falling back to static predictions")
     sections.update(vedic_sections)
 
     report_html = build_report_html(full_name, profile, sections, palm_text)
     created_at = now.strftime("%Y-%m-%d %H:%M:%S UTC")
-    report_extras = json.dumps(
-        {
-            "blueprint": blueprint,
-            "vedic": vedic_structured,
-            "vedic_sections": vedic_sections,
-            "kundli_image_path": kundli_image_path,
-            "kundli_notes": kundli_notes,
-            "hybrid_chart": hybrid_details,
-            "chart_debug": chart_debug,
-        },
-        ensure_ascii=True,
-    )
+    report_extras = json.dumps({
+        "blueprint": blueprint, "vedic": vedic_structured, "vedic_sections": vedic_sections,
+        "kundli_image_path": kundli_image_path, "kundli_notes": kundli_notes,
+        "hybrid_chart": hybrid_details, "chart_debug": chart_debug,
+    }, ensure_ascii=True)
 
-    report_id = save_report(
-        {
-            "full_name": full_name,
-            "birth_date": birth_date_raw,
-            "birth_time": birth_time_raw,
-            "birth_place": birth_place,
-            "palm_enabled": 1 if palm_enabled else 0,
-            "hand_choice": hand_choice if palm_enabled else None,
-            "palm_image_path": palm_image_path,
-            "profile": profile,
-            "sections": sections,
-            "palm_analysis": palm_text,
-            "report_html": report_html,
-            "report_extras": report_extras,
-            "created_at": created_at,
-        }
-    )
+    user_id = getattr(request, "current_user", {}).get("id") if hasattr(request, "current_user") and request.current_user else None
 
-    return jsonify(
-        {
-            "success": True,
-            "report_id": report_id,
-            "profile": profile,
-            "blueprint": blueprint,
-            "vedic": vedic_structured,
-            "sections": sections,
-            "palm_analysis": palm_text,
-            "report_html": report_html,
-            "created_at": created_at,
-            "ai_chat_available": bool(
-                os.environ.get("GROQ_API_KEY", "").strip()
-                or os.environ.get("OPENAI_API_KEY", "").strip()
-            ),
-        }
-    )
+    public_id = save_report({
+        "full_name": full_name, "birth_date": birth_date_raw, "birth_time": birth_time_raw,
+        "birth_place": birth_place, "palm_enabled": 1 if palm_enabled else 0,
+        "hand_choice": hand_choice if palm_enabled else None,
+        "palm_image_path": palm_image_path, "profile": profile, "sections": sections,
+        "palm_analysis": palm_text, "report_html": report_html,
+        "report_extras": report_extras, "created_at": created_at,
+    }, user_id=user_id)
+
+    return jsonify({
+        "success": True, "report_id": public_id, "profile": profile,
+        "blueprint": blueprint, "vedic": vedic_structured, "sections": sections,
+        "palm_analysis": palm_text, "report_html": report_html, "created_at": created_at,
+        "palm_disclaimer": "AI-simulated palm reading — for entertainment purposes only" if palm_text else None,
+        "ai_chat_available": bool(os.environ.get("GROQ_API_KEY", "").strip() or os.environ.get("OPENAI_API_KEY", "").strip()),
+    })
 
 
 @app.route("/api/config", methods=["GET"])
 def api_config():
     groq_key = os.environ.get("GROQ_API_KEY", "").strip()
     openai_key = os.environ.get("OPENAI_API_KEY", "").strip()
-    key = groq_key or openai_key
-    return jsonify(
-        {
-            "ai_chat": bool(key),
-            "provider": "groq" if groq_key else ("openai" if openai_key else "none"),
-            "hint": "Chat requires GROQ_API_KEY (recommended) or OPENAI_API_KEY to be set.",
-        }
-    )
+    return jsonify({
+        "ai_chat": bool(groq_key or openai_key),
+        "provider": "groq" if groq_key else ("openai" if openai_key else "none"),
+    })
 
 
-# SECURITY: Debug endpoint removed to prevent information disclosure
-# This endpoint was leaking API key patterns (first 10 + last 5 characters)
-# If you need configuration debugging, access Render dashboard directly
+@app.route("/api/ai/status", methods=["GET"])
+def api_ai_status():
+    groq_key = os.environ.get("GROQ_API_KEY", "").strip()
+    openai_key = os.environ.get("OPENAI_API_KEY", "").strip()
+    provider = "groq" if groq_key else ("openai" if openai_key else "none")
+    enabled = bool(groq_key or openai_key)
+    if not enabled:
+        return jsonify({"success": True, "enabled": False, "provider": "none"})
+    probe = openai_guru_reply("You are a diagnostics endpoint. Reply with exactly: OK", "OK")
+    return jsonify({"success": True, "enabled": True, "provider": provider, "ok": bool(probe)})
 
 
 def _chat_text_clip(text: Optional[str], max_len: int = 900) -> str:
-    """Single-line excerpt for LLM context (keeps prompts bounded)."""
     if not text:
         return ""
     t = " ".join(str(text).split())
-    if len(t) <= max_len:
-        return t
-    return t[: max_len - 1] + "…"
+    return t if len(t) <= max_len else t[:max_len - 1] + "…"
 
 
 @app.route("/api/chat", methods=["POST"])
+@optional_auth
 def api_chat():
     payload = request.get_json(force=True, silent=True) or {}
     report_id = payload.get("report_id")
@@ -879,17 +345,19 @@ def api_chat():
     if not report_id or not message:
         return jsonify({"success": False, "error": "report_id and message are required."}), 400
 
+    # Support both public_id (UUID) and legacy integer id
+    row = None
     try:
         rid = int(report_id)
+        row = fetch_report_row(rid)
     except (TypeError, ValueError):
-        return jsonify({"success": False, "error": "Invalid report_id."}), 400
+        row = fetch_report_by_public_id(str(report_id))
 
-    row = fetch_report_row(rid)
     if row is None:
         return jsonify({"success": False, "error": "Report not found."}), 404
 
     extras: Dict[str, Any] = {}
-    if row["report_extras"]:
+    if row.get("report_extras"):
         try:
             extras = json.loads(row["report_extras"])
         except json.JSONDecodeError:
@@ -899,223 +367,157 @@ def api_chat():
     vedic = extras.get("vedic") or {}
     vedic_sections = extras.get("vedic_sections") or {}
 
-    profile = {
-        "zodiac": row["zodiac"],
-        "moon_sign": row["moon_sign"],
-        "ascendant": row["ascendant"],
-    }
-    merged_sections: Dict[str, str] = {
-        "personality": row["personality"],
-        "career": row["career"],
-        "love": row["love_life"],
-        "future": row["future_outlook"],
-        "strengths": row["strengths"] or "",
-        "weaknesses": row["weaknesses"] or "",
-        "wellness": row["wellness"] or "",
-        "compatibility": row["compatibility"] or "",
-        "seasonal_energy": row["seasonal_energy"] or "",
+    profile = {"zodiac": row["zodiac"], "moon_sign": row["moon_sign"], "ascendant": row["ascendant"]}
+    merged_sections = {
+        "personality": row["personality"], "career": row["career"],
+        "love": row["love_life"], "future": row["future_outlook"],
+        "strengths": row.get("strengths") or "", "weaknesses": row.get("weaknesses") or "",
+        "wellness": row.get("wellness") or "", "compatibility": row.get("compatibility") or "",
+        "seasonal_energy": row.get("seasonal_energy") or "",
     }
     merged_sections.update({k: str(v) for k, v in vedic_sections.items()})
 
-    # Check if API is available (Groq or OpenAI)
     groq_key = os.environ.get("GROQ_API_KEY", "").strip()
     openai_key = os.environ.get("OPENAI_API_KEY", "").strip()
-    
     if not (groq_key or openai_key):
-        logger.error("❌ Chat API called but NO API keys configured")
-        logger.error("   Missing: GROQ_API_KEY and OPENAI_API_KEY")
-        return jsonify({
-            "success": False,
-            "error": "Chat service is offline. Configure GROQ_API_KEY or OPENAI_API_KEY to enable chat."
-        }), 503
-    
-    logger.info(f"📨 Chat message received for report {rid} - Provider: {'Groq' if groq_key else 'OpenAI'}")
-    
+        return jsonify({"success": False, "error": "Chat service is offline."}), 503
+
     try:
         ctx = format_guru_context(row["full_name"], profile, vedic, blueprint)
-        report_excerpts = "\n".join(
-            [
-                f"Personality (deep reading): {_chat_text_clip(merged_sections.get('personality'), 900)}",
-                f"Career Path (full reading): {_chat_text_clip(merged_sections.get('career'), 900)}",
-                f"Future Outlook (full reading): {_chat_text_clip(merged_sections.get('future'), 900)}",
-                f"Love & Relationships (full reading): {_chat_text_clip(merged_sections.get('love'), 900)}",
-                f"Core Strengths: {_chat_text_clip(merged_sections.get('strengths'), 600)}",
-                f"Growth Edges: {_chat_text_clip(merged_sections.get('weaknesses'), 600)}",
-                f"Wellness & Rhythm: {_chat_text_clip(merged_sections.get('wellness'), 600)}",
-                f"Compatibility Notes: {_chat_text_clip(merged_sections.get('compatibility'), 600)}",
-                f"Seasonal / Transit Energy: {_chat_text_clip(merged_sections.get('seasonal_energy'), 600)}",
-                f"Dasha / Dosha Timing: {_chat_text_clip(merged_sections.get('vimshottari_timing'), 600)}",
-                f"Rahu-Ketu Axis: {_chat_text_clip(merged_sections.get('rahu_ketu'), 600)}",
-                f"Remedies & Lifestyle: {_chat_text_clip(merged_sections.get('remedies_lifestyle'), 600)}",
-            ]
-        )
+        report_excerpts = "\n".join([
+            f"Personality: {_chat_text_clip(merged_sections.get('personality'))}",
+            f"Career: {_chat_text_clip(merged_sections.get('career'))}",
+            f"Future: {_chat_text_clip(merged_sections.get('future'))}",
+            f"Love: {_chat_text_clip(merged_sections.get('love'))}",
+            f"Strengths: {_chat_text_clip(merged_sections.get('strengths'), 600)}",
+            f"Weaknesses: {_chat_text_clip(merged_sections.get('weaknesses'), 600)}",
+            f"Wellness: {_chat_text_clip(merged_sections.get('wellness'), 600)}",
+            f"Compatibility: {_chat_text_clip(merged_sections.get('compatibility'), 600)}",
+            f"Seasonal Energy: {_chat_text_clip(merged_sections.get('seasonal_energy'), 600)}",
+            f"Dasha Timing: {_chat_text_clip(merged_sections.get('vimshottari_timing'), 600)}",
+            f"Rahu-Ketu: {_chat_text_clip(merged_sections.get('rahu_ketu'), 600)}",
+            f"Remedies: {_chat_text_clip(merged_sections.get('remedies_lifestyle'), 600)}",
+        ])
         system = (
             "You are Guru Arya — a 30-year experienced Vedic astrologer. "
             "Your job is to provide accurate, personal, and clear Vedic readings. "
             "You strictly follow the Vedic Lahiri Ayanamsa sidereal system.\n\n"
-            "LANGUAGE RULES:\n"
-            "- ALWAYS speak in simple, plain English. No Hindi or Hinglish.\n"
-            "- Speak clearly and simply — no fancy poetry, just direct answers.\n"
+            "LANGUAGE RULES:\n- ALWAYS speak in simple, plain English. No Hindi or Hinglish.\n"
             "- Address the user by name when natural.\n\n"
-            "STRICT RULES:\n"
-            "- ONLY use Vedic (Jyotish) astrology. NO Western astrology whatsoever.\n"
-            "- ONLY use the provided chart data — do not guess or invent anything.\n"
+            "STRICT RULES:\n- ONLY use Vedic (Jyotish) astrology. NO Western astrology.\n"
+            "- ONLY use provided chart data — do not guess or invent.\n"
             "- NO generic horoscope lines — every answer MUST be specific to this person's chart.\n"
-            "- If data is missing, simply say 'It is difficult to give an accurate answer without this data.'\n"
-            "- Do not repeat points.\n"
             "- NEVER break character or say 'As an AI'. You ARE Guru Arya.\n\n"
             "RESPONSE FORMAT:\n"
-            "1. If the user just sends a greeting (like 'hi', 'hello', 'good morning'):\n"
-            "   - Reply naturally as a polite AI assistant (e.g. 'Hello! I am Guru Arya. How can I help you with your astrology chart today?').\n"
-            "   - DO NOT provide any astrology reading, prediction, or structured format in this case. Wait for their question.\n\n"
-            "2. If the user asks an actual astrology question (like career, marriage, health, dosha):\n"
-            "   You MUST use this exact 4-part format for your reading:\n"
-            "   **[Direct Answer]** — clear yes/no/likely/unlikely to their question.\n"
-            "   **[The 'Why']** — Explain WHY you are making this prediction. Mention the specific planet, house, and dasha causing it.\n"
-            "   **[Timing]** — Provide a timeframe if possible based on Mahadasha/Antardasha periods.\n"
-            "   **[Advice]** — 1-2 practical lines of advice based on the reading.\n\n"
-            "EXPERTISE:\n"
-            "- Full chart read: Sun sign (identity), Moon sign (emotions), Lagna (physical/impression), Nakshatra.\n"
-            "- CAREER: 10th house (Karma), 6th house (daily work), Saturn (hard work/delays), Jupiter (growth/luck), Mahadasha lord.\n"
-            "- LOVE/MARRIAGE: 7th house (Partnership), Venus (romance), Moon (emotional needs), 5th house (romance/creativity).\n"
-            "- TIMING: Mahadasha/Antardasha periods, Nakshatra lord influence. Do not guarantee exact dates — give windows.\n"
-            "- MONEY: 2nd house (Wealth), 11th house (Gains), Jupiter.\n"
-            "- HEALTH: 6th house (Disease), 8th house (Transformation), Mars/Saturn.\n\n"
-            "STYLE:\n"
-            "- When answering an astrology question, reference their specific chart first to show you are analyzing their unique data.\n"
-            "- Provide 2-3 layers: surface answer, deeper pattern, soul-level lesson.\n"
-            "- End with a PRACTICAL action step they can use TODAY.\n"
-            "- Use **bold** for key insights.\n"
-            "- Keep answers between 150-350 words — substantial but concise.\n"
+            "1. For greetings: reply naturally and wait for their question.\n"
+            "2. For astrology questions use 4 parts:\n"
+            "   **[Direct Answer]** — clear answer to their question.\n"
+            "   **[The 'Why']** — specific planets, houses, dasha causing it.\n"
+            "   **[Timing]** — timeframe based on Mahadasha/Antardasha.\n"
+            "   **[Advice]** — 1-2 practical lines.\n\n"
+            "Keep answers between 150-350 words."
         )
-        user_blob = (
-            f"CHART CONTEXT:\n{ctx}\n\nFULL REPORT EXCERPTS (this person's complete reading):\n{report_excerpts}\n\n"
-            f"{row['full_name']}'s QUESTION:\n{message}"
-        )
-        logger.info(f"   Calling AI endpoint...")
+        user_blob = f"CHART CONTEXT:\n{ctx}\n\nREPORT EXCERPTS:\n{report_excerpts}\n\n{row['full_name']}'s QUESTION:\n{message}"
+
         ai_reply = openai_guru_reply(system, user_blob)
-        
         if ai_reply is None:
-            logger.error(f"❌ AI chat returned None for report {rid}")
-            return jsonify({
-                "success": False,
-                "error": "Chat service failed to generate response. Check Render logs for details."
-            }), 503
+            return jsonify({"success": False, "error": "Chat service failed to generate response."}), 503
 
-        logger.info(f"✅ Chat response generated ({len(ai_reply)} chars)")
-        return jsonify(
-            {
-                "success": True,
-                "reply": ai_reply,
-                "source": "ai",
-            }
-        )
+        # Save chat messages
+        report_public_id = row.get("public_id", str(report_id))
+        user_id = getattr(request, "current_user", {}).get("id") if hasattr(request, "current_user") and request.current_user else None
+        try:
+            save_chat_message(user_id, report_public_id, "user", message)
+            save_chat_message(user_id, report_public_id, "assistant", ai_reply)
+        except Exception as e:
+            logger.warning(f"Could not save chat message: {e}")
+
+        return jsonify({"success": True, "reply": ai_reply, "source": "ai"})
     except Exception as e:
-        logger.error(f"❌ Chat endpoint error: {type(e).__name__}: {e}")
-        return jsonify({
-            "success": False,
-            "error": "An error occurred while processing your message."
-        }), 500
+        logger.error(f"Chat endpoint error: {type(e).__name__}: {e}")
+        return jsonify({"success": False, "error": "An error occurred while processing your message."}), 500
 
 
-@app.route("/api/locations", methods=["GET"])
-def api_locations():
-    """Legacy location autocomplete (disabled by default)."""
-    # This endpoint is not used by the current UI (we use /api/places).
-    # Keep it disabled unless explicitly configured.
-    geonames_user = os.environ.get("GEONAMES_USERNAME", "").strip()
-    if not geonames_user:
-        return jsonify({"success": False, "error": "Disabled"}), 404
-
-    query = request.args.get("query", "").strip()
-    if len(query) < 2:
-        return jsonify({"success": False, "locations": []}), 400
-    
-    try:
-        # Using geonames API (free tier)
-        params = {
-            "name_startsWith": query,
-            "featureClass": "P",  # Only cities/places
-            "maxRows": 10,
-            "username": geonames_user,
-        }
-        url = "http://api.geonames.org/searchJSON"
-        
-        # Create a request with timeout
-        req = urllib.request.Request(f"{url}?{'&'.join([f'{k}={urllib.parse.quote(str(v))}' for k, v in params.items()])}", method="GET")
-        with urllib.request.urlopen(req, timeout=5) as resp:
-            data = json.loads(resp.read().decode("utf-8"))
-        
-        locations = []
-        if "geonames" in data:
-            for place in data["geonames"][:10]:
-                locations.append({
-                    "name": f"{place.get('name', '')}, {place.get('adminName1', '')}, {place.get('countryName', '')}",
-                    "lat": place.get("lat"),
-                    "lng": place.get("lng"),
-                })
-        
-        return jsonify({"success": True, "locations": locations})
-    except Exception as e:
-        logger.warning(f"Location search failed: {e}")
-        return jsonify({"success": False, "locations": []})
+@app.route("/api/chat/history/<report_id>", methods=["GET"])
+@optional_auth
+def api_chat_history(report_id):
+    messages = get_chat_history(report_id, limit=50)
+    return jsonify({"success": True, "messages": messages})
 
 
 @app.route("/api/horoscope", methods=["GET"])
 def api_horoscope():
-    """Get horoscope for a zodiac sign."""
     sign = request.args.get("sign", "").strip().capitalize()
-    valid_signs = [
-        "Aries", "Taurus", "Gemini", "Cancer", "Leo", "Virgo",
-        "Libra", "Scorpio", "Sagittarius", "Capricorn", "Aquarius", "Pisces"
-    ]
-    
+    valid_signs = ["Aries","Taurus","Gemini","Cancer","Leo","Virgo","Libra","Scorpio","Sagittarius","Capricorn","Aquarius","Pisces"]
     if sign not in valid_signs:
         return jsonify({"success": False, "error": "Invalid zodiac sign"}), 400
-    
-    # This would fetch from vedic engine or saved horoscopes
     horoscope = get_horoscope_for_sign(sign)
-    
-    return jsonify({
-        "success": True,
-        "sign": sign,
-        "horoscope": horoscope
-    })
+    return jsonify({"success": True, "sign": sign, "horoscope": horoscope})
 
 
 @app.route("/api/kundli-chart", methods=["POST"])
 def api_kundli_chart():
-    """Generate Kundli chart from birth data."""
     payload = request.get_json(force=True, silent=True) or {}
     birth_date = payload.get("birth_date", "").strip()
     birth_time = payload.get("birth_time", "").strip()
-    birth_place = payload.get("birth_place", "").strip()
-    
     if not birth_date or not birth_time:
         return jsonify({"success": False, "error": "birth_date and birth_time required"}), 400
-    
     try:
-        # Try to get coordinates for birthplace (simplified - just use None for now)
-        # In production, you'd use a geolocation API
         result = generate_kundli_chart_from_birth(birth_date, birth_time)
-        
-        if result.get("success"):
-            return jsonify(result)
-        else:
-            return jsonify(result), 400
+        return jsonify(result) if result.get("success") else (jsonify(result), 400)
     except Exception as e:
         logger.error(f"Kundli chart generation error: {e}")
         return jsonify({"success": False, "error": str(e)}), 500
 
 
-ensure_directories()
+@app.route("/api/reports", methods=["GET"])
+@require_auth
+def api_list_reports():
+    from database import list_user_reports
+    page = request.args.get("page", 1, type=int)
+    limit = min(request.args.get("limit", 20, type=int), 100)
+    reports = list_user_reports(request.current_user["id"], page=page, limit=limit)
+    return jsonify({"success": True, "reports": reports, "page": page, "limit": limit})
+
+
+@app.route("/api/reports/<public_id>", methods=["GET"])
+@optional_auth
+def api_get_report(public_id):
+    user_id = request.current_user["id"] if hasattr(request, "current_user") and request.current_user else None
+    row = fetch_report_by_public_id(public_id, user_id=user_id)
+    if row is None:
+        return jsonify({"success": False, "error": "Report not found"}), 404
+    return jsonify({"success": True, "report": row})
+
+
+@app.route("/api/reports/<public_id>", methods=["DELETE"])
+@require_auth
+def api_delete_report(public_id):
+    from database import delete_report
+    row = fetch_report_by_public_id(public_id, user_id=request.current_user["id"])
+    if row is None:
+        return jsonify({"success": False, "error": "Report not found"}), 404
+    if row.get("palm_image_path"):
+        delete_file(row["palm_image_path"])
+    delete_report(public_id, user_id=request.current_user["id"])
+    return jsonify({"success": True})
+
+
+# ── Startup ──────────────────────────────────────────────────────────
+os.makedirs(INSTANCE_DIR, exist_ok=True)
+validate_startup_config()
 init_db()
 migrate_db()
+
+# ── Daily horoscope email scheduler ──────────────────────────────────
+import atexit
+from services.scheduler_service import init_scheduler, shutdown_scheduler
+init_scheduler(app)
+atexit.register(shutdown_scheduler)
 
 
 @app.before_request
 def log_request():
-    """Log incoming requests (production debugging)."""
     if app.config.get("DEBUG"):
         logger.debug("Request: %s %s", request.method, request.path)
 
@@ -1124,11 +526,9 @@ def log_request():
 def bad_request(e):
     return jsonify({"success": False, "error": "Bad request"}), 400
 
-
 @app.errorhandler(404)
 def not_found(e):
     return jsonify({"success": False, "error": "Not found"}), 404
-
 
 @app.errorhandler(500)
 def server_error(e):
@@ -1137,15 +537,8 @@ def server_error(e):
 
 
 if __name__ == "__main__":
-    # Development server configuration
-    # For production, use: gunicorn -w 4 -b 0.0.0.0:5000 app:app
-    
     _host = os.environ.get("FLASK_HOST", "0.0.0.0")
     _port = int(os.environ.get("FLASK_PORT", "5000"))
     _debug = app.config["DEBUG"]
-    
-    logger.info("Starting Flask application...")
-    logger.info("Debug mode: %s", _debug)
-    logger.info("Listening on %s:%d", _host, _port)
-    
+    logger.info("Starting on %s:%d (debug=%s)", _host, _port, _debug)
     app.run(host=_host, port=_port, debug=_debug, threaded=True)

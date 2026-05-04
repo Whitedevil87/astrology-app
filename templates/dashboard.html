@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Celestial Arc | Dashboard</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600;700&family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/landing.css') }}?v=5.0">
+    <style>
+        .dash-wrap{max-width:1100px;margin:100px auto 60px;padding:0 24px}
+        .dash-grid{display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-top:28px}
+        @media(max-width:768px){.dash-grid{grid-template-columns:1fr}}
+        .dash-card{background:rgba(10,6,30,0.8);border:1px solid rgba(139,92,246,0.2);border-radius:18px;padding:28px;backdrop-filter:blur(16px)}
+        .dash-card h3{font-family:'Cinzel',serif;font-size:1.15rem;color:#c4b5fd;margin-bottom:14px;display:flex;align-items:center;gap:8px}
+        .dash-header{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:16px}
+        .dash-title{font-family:'Cinzel',serif;font-size:2rem;background:linear-gradient(135deg,#c4b5fd,#818cf8);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+        .dash-subtitle{color:rgba(196,181,253,0.6);font-size:0.9rem;margin-top:4px}
+        .dash-logout{padding:10px 20px;background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.25);border-radius:10px;color:#fca5a5;font-family:'Poppins',sans-serif;font-size:0.85rem;cursor:pointer;transition:all 0.3s}
+        .dash-logout:hover{background:rgba(239,68,68,0.2)}
+        .report-item{display:flex;justify-content:space-between;align-items:center;padding:14px 0;border-bottom:1px solid rgba(139,92,246,0.1)}
+        .report-item:last-child{border-bottom:none}
+        .report-info{display:flex;flex-direction:column;gap:3px}
+        .report-name{color:#e2e0ff;font-weight:500;font-size:0.95rem}
+        .report-meta{color:rgba(196,181,253,0.5);font-size:0.8rem}
+        .report-sign{display:inline-block;padding:4px 10px;background:rgba(139,92,246,0.12);border:1px solid rgba(139,92,246,0.2);border-radius:8px;color:#a78bfa;font-size:0.78rem;font-weight:500}
+        .view-btn{padding:8px 16px;background:rgba(139,92,246,0.12);border:1px solid rgba(139,92,246,0.25);border-radius:8px;color:#c4b5fd;font-size:0.85rem;cursor:pointer;font-family:'Poppins',sans-serif;transition:all 0.3s;text-decoration:none}
+        .view-btn:hover{background:rgba(139,92,246,0.25)}
+        .empty-state{text-align:center;padding:40px 20px;color:rgba(196,181,253,0.4);font-size:0.9rem}
+        .empty-state a{color:#a78bfa;text-decoration:none}
+        .profile-field{display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid rgba(139,92,246,0.08);font-size:0.9rem}
+        .profile-label{color:rgba(196,181,253,0.5)}
+        .profile-value{color:#e2e0ff;font-weight:500}
+        .horoscope-text{color:rgba(226,224,255,0.85);font-size:0.9rem;line-height:1.7}
+        .chat-preview{padding:10px 14px;border-radius:10px;margin-bottom:8px;font-size:0.85rem;line-height:1.5}
+        .chat-preview.user{background:rgba(99,102,241,0.12);color:#c4b5fd;text-align:right}
+        .chat-preview.assistant{background:rgba(139,92,246,0.08);color:rgba(226,224,255,0.8)}
+        .dash-card.full{grid-column:1/-1}
+        .new-reading-btn{display:inline-flex;align-items:center;gap:8px;padding:12px 24px;background:linear-gradient(135deg,#7c3aed,#6366f1);color:white;border:none;border-radius:12px;font-size:0.95rem;font-weight:600;font-family:'Poppins',sans-serif;cursor:pointer;transition:all 0.3s;text-decoration:none}
+        .new-reading-btn:hover{transform:translateY(-1px);box-shadow:0 8px 30px rgba(99,102,241,0.3)}
+        .loading-spinner{display:inline-block;width:20px;height:20px;border:2px solid rgba(196,181,253,0.2);border-top-color:#a78bfa;border-radius:50%;animation:spin 0.8s linear infinite}
+        @keyframes spin{to{transform:rotate(360deg)}}
+    </style>
+</head>
+<body class="slide-scroll-container">
+    <div class="cosmic-bg" aria-hidden="true">
+        <div class="nebula nebula-1"></div>
+        <div class="nebula nebula-2"></div>
+    </div>
+
+    <nav class="navbar">
+        <div class="nav-container">
+            <a href="/" class="logo">
+                <div class="logo-orb"></div>
+                <span class="logo-text">CELESTIAL ARC</span>
+            </a>
+            <div class="nav-links">
+                <a href="/" class="nav-link">Home</a>
+                <a href="/app" class="nav-link">New Reading</a>
+                <a href="/horoscope" class="nav-link">Horoscope</a>
+            </div>
+            <button class="dash-logout" onclick="handleLogout()">Sign Out</button>
+        </div>
+    </nav>
+
+    <div class="dash-wrap">
+        <div class="dash-header">
+            <div>
+                <h1 class="dash-title" id="dashGreeting">Your Cosmic Dashboard</h1>
+                <p class="dash-subtitle" id="dashEmail"></p>
+            </div>
+            <a href="/app" class="new-reading-btn">✦ New Reading</a>
+        </div>
+
+        <div class="dash-grid">
+            <!-- Birth Profile -->
+            <div class="dash-card" id="profileCard">
+                <h3>🌟 Birth Profile</h3>
+                <div id="profileContent">
+                    <div class="empty-state"><span class="loading-spinner"></span> Loading...</div>
+                </div>
+            </div>
+
+            <!-- Today's Horoscope -->
+            <div class="dash-card" id="horoscopeCard">
+                <h3>⭐ Today's Horoscope</h3>
+                <div id="horoscopeContent">
+                    <div class="empty-state">Generate a reading to see your daily horoscope</div>
+                </div>
+            </div>
+
+            <!-- Past Reports -->
+            <div class="dash-card full" id="reportsCard">
+                <h3>📜 Past Reports</h3>
+                <div id="reportsContent">
+                    <div class="empty-state"><span class="loading-spinner"></span> Loading...</div>
+                </div>
+            </div>
+
+            <!-- Recent Chat -->
+            <div class="dash-card full" id="chatCard">
+                <h3>💬 Recent Guru Arya Messages</h3>
+                <div id="chatContent">
+                    <div class="empty-state">Your conversations with Guru Arya will appear here</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const token = localStorage.getItem('celestial_token');
+        const user = JSON.parse(localStorage.getItem('celestial_user') || '{}');
+
+        if (!token) window.location.href = '/login';
+
+        // Set greeting
+        document.getElementById('dashEmail').textContent = user.email || '';
+
+        const authHeaders = {'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json'};
+
+        async function loadReports() {
+            try {
+                const res = await fetch('/api/reports?page=1&limit=20', {headers: authHeaders});
+                const data = await res.json();
+                if (res.status === 401) { handleLogout(); return; }
+                const el = document.getElementById('reportsContent');
+                if (!data.success || !data.reports || data.reports.length === 0) {
+                    el.innerHTML = '<div class="empty-state">No reports yet. <a href="/app">Get your first reading →</a></div>';
+                    return;
+                }
+                el.innerHTML = data.reports.map(r => `
+                    <div class="report-item">
+                        <div class="report-info">
+                            <span class="report-name">${escapeHtml(r.full_name || 'Report')}</span>
+                            <span class="report-meta">${r.birth_date || ''} · ${r.created_at ? r.created_at.split('T')[0] : ''}</span>
+                        </div>
+                        <div style="display:flex;align-items:center;gap:10px">
+                            <span class="report-sign">${escapeHtml(r.zodiac || '')}</span>
+                            <a href="/app?report=${r.public_id}" class="view-btn">View</a>
+                        </div>
+                    </div>
+                `).join('');
+
+                // Load horoscope for first report's sign
+                if (data.reports[0] && data.reports[0].zodiac) {
+                    loadHoroscope(data.reports[0].zodiac);
+                }
+            } catch (e) {
+                document.getElementById('reportsContent').innerHTML = '<div class="empty-state">Could not load reports</div>';
+            }
+        }
+
+        async function loadProfile() {
+            try {
+                const res = await fetch('/api/auth/me', {headers: authHeaders});
+                if (res.status === 401) { handleLogout(); return; }
+                const data = await res.json();
+                const el = document.getElementById('profileContent');
+                if (data.success && data.user) {
+                    const u = data.user;
+                    el.innerHTML = `
+                        <div class="profile-field"><span class="profile-label">Email</span><span class="profile-value">${escapeHtml(u.email || '—')}</span></div>
+                        <div class="profile-field"><span class="profile-label">Member since</span><span class="profile-value">${u.created_at ? u.created_at.split('T')[0] : '—'}</span></div>
+                        <div class="profile-field"><span class="profile-label">Email verified</span><span class="profile-value">${u.email_confirmed_at ? '✅ Yes' : '⏳ Pending'}</span></div>
+                    `;
+                } else {
+                    el.innerHTML = '<div class="empty-state">Could not load profile</div>';
+                }
+            } catch (e) {
+                document.getElementById('profileContent').innerHTML = '<div class="empty-state">Could not load profile</div>';
+            }
+        }
+
+        async function loadHoroscope(sign) {
+            try {
+                const res = await fetch(`/api/horoscope?sign=${encodeURIComponent(sign)}`);
+                const data = await res.json();
+                const el = document.getElementById('horoscopeContent');
+                if (data.success && data.horoscope) {
+                    const h = data.horoscope;
+                    el.innerHTML = `
+                        <p style="color:#a78bfa;font-weight:600;margin-bottom:8px">${escapeHtml(sign)} ♈</p>
+                        <p class="horoscope-text">${escapeHtml(typeof h === 'string' ? h : h.daily || h.general || JSON.stringify(h))}</p>
+                    `;
+                }
+            } catch (e) { /* silently fail */ }
+        }
+
+        function handleLogout() {
+            fetch('/api/auth/logout', {method: 'POST', headers: authHeaders}).catch(() => {});
+            localStorage.removeItem('celestial_token');
+            localStorage.removeItem('celestial_user');
+            window.location.href = '/login';
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text || '';
+            return div.innerHTML;
+        }
+
+        // Load everything
+        loadProfile();
+        loadReports();
+    </script>
+</body>
+</html>
