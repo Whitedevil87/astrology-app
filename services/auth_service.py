@@ -158,29 +158,41 @@ def _serialize_session(session) -> Optional[Dict[str, Any]]:
 # ── Flask middleware ─────────────────────────────────────────────────
 
 def require_auth(f):
-    """Decorator: require a valid Supabase JWT Bearer token."""
+    """Decorator: require a valid Supabase JWT Bearer token or session token."""
     @wraps(f)
     def decorated(*args, **kwargs):
+        token = None
         auth_header = request.headers.get("Authorization", "")
-        if not auth_header.startswith("Bearer "):
+        if auth_header.startswith("Bearer "):
+            token = auth_header[7:]
+        elif "access_token" in session:
+            token = session.get("access_token")
+            
+        if not token:
             return jsonify({"success": False, "error": "Authentication required"}), 401
-        token = auth_header[7:]
+            
         user = get_current_user(token)
         if user is None:
             return jsonify({"success": False, "error": "Invalid or expired token"}), 401
+            
         request.current_user = user
         return f(*args, **kwargs)
     return decorated
 
 
 def optional_auth(f):
-    """Decorator: attach user if token present, but don't require it."""
+    """Decorator: attach user if token present (header or session), but don't require it."""
     @wraps(f)
     def decorated(*args, **kwargs):
         request.current_user = None
+        token = None
         auth_header = request.headers.get("Authorization", "")
         if auth_header.startswith("Bearer "):
             token = auth_header[7:]
+        elif "access_token" in session:
+            token = session.get("access_token")
+            
+        if token:
             request.current_user = get_current_user(token)
         return f(*args, **kwargs)
     return decorated
