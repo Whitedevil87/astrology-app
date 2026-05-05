@@ -1033,12 +1033,18 @@ document.addEventListener("DOMContentLoaded", function () {
         const isSimple = /^(hi|hello|hey|namaste|kaise ho|hii+|helo|hola|sup|good morning|good evening|good afternoon)\b/.test(lowerText) && text.length < 25;
         const loader = appendChatLoader(isSimple);
 
+        const token = localStorage.getItem('celestial_token');
+        const headers = Object.assign(
+            { "Content-Type": "application/json" },
+            csrfToken ? { "X-CSRF-Token": csrfToken } : {}
+        );
+        if (token) {
+            headers["Authorization"] = "Bearer " + token;
+        }
+
         fetch("/api/chat", {
             method: "POST",
-            headers: Object.assign(
-                { "Content-Type": "application/json" },
-                csrfToken ? { "X-CSRF-Token": csrfToken } : {}
-            ),
+            headers: headers,
             body: JSON.stringify({ report_id: lastReportId, message: text })
         })
             .then(function (res) {
@@ -1089,9 +1095,15 @@ document.addEventListener("DOMContentLoaded", function () {
         onlyStep(processing, 4);
         startProgress();
 
+        const token = localStorage.getItem('celestial_token');
+        const headers = csrfToken ? { "X-CSRF-Token": csrfToken } : {};
+        if (token) {
+            headers["Authorization"] = "Bearer " + token;
+        }
+
         fetch("/api/analyze", {
             method: "POST",
-            headers: csrfToken ? { "X-CSRF-Token": csrfToken } : {},
+            headers: headers,
             body: new FormData(form)
         })
             .then(function (res) {
