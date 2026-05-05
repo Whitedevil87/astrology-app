@@ -26,35 +26,31 @@ def photon_search(q: str, limit: int = 7) -> list[Dict[str, Any]]:
     query = (q or "").strip()
     if not query:
         return []
-    url = f"{PHOTON_BASE_URL}?q={urllib.parse.quote(query)}&limit={int(limit)}&lang=en"
+    # Switching to Open-Meteo Geocoding API for much faster response times
+    url = f"https://geocoding-api.open-meteo.com/v1/search?name={urllib.parse.quote(query)}&count={int(limit)}&language=en&format=json"
     try:
-        data = http_get_json(url, timeout=10)
+        data = http_get_json(url, timeout=5)
     except (urllib.error.URLError, TimeoutError, json.JSONDecodeError, ValueError):
         return []
-    features = data.get("features") or []
+    
+    results = data.get("results") or []
     out: list[Dict[str, Any]] = []
-    for feat in features[:limit]:
+    for res in results[:limit]:
         try:
-            props = feat.get("properties") or {}
-            geom = feat.get("geometry") or {}
-            coords = (geom.get("coordinates") or [None, None])
-            if not coords or len(coords) < 2:
+            lat = res.get("latitude")
+            lon = res.get("longitude")
+            if lat is None or lon is None:
                 continue
-            coord_lon = coords[0]
-            coord_lat = coords[1]
-            if coord_lon is None or coord_lat is None:
-                continue
-            lon = float(coord_lon)
-            lat = float(coord_lat)
-            name = props.get("name") or ""
-            city = props.get("city") or ""
-            state = props.get("state") or props.get("region") or ""
-            country = props.get("country") or ""
-            parts = [p for p in (name, city, state, country) if isinstance(p, str) and p.strip()]
+            
+            name = res.get("name") or ""
+            state = res.get("admin1") or ""
+            country = res.get("country") or ""
+            
+            parts = [p for p in (name, state, country) if isinstance(p, str) and p.strip()]
             label = ", ".join(dict.fromkeys(parts))[:140]
             if not label:
                 continue
-            out.append({"label": label, "lat": lat, "lon": lon})
+            out.append({"label": label, "lat": float(lat), "lon": float(lon)})
         except (TypeError, ValueError):
             continue
     return out
