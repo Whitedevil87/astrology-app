@@ -1339,5 +1339,58 @@ document.addEventListener("DOMContentLoaded", function () {
     fetchChatHint();
     fetchCsrfToken();
     initDobSelectors();
-    onlyStep(step1, 1);
+    
+    // Check if loading a specific report from URL
+    const urlParams = new URLSearchParams(window.location.search);
+    const reportParam = urlParams.get('report');
+    if (reportParam) {
+        busy = true;
+        onlyStep(processing, 4);
+        const token = localStorage.getItem('celestial_token');
+        const headers = {};
+        if (token) headers["Authorization"] = "Bearer " + token;
+        
+        fetch(`/api/reports/${reportParam}`, { headers: headers })
+            .then(res => res.json())
+            .then(json => {
+                if (json.success && json.report) {
+                    const r = json.report;
+                    let extras = {};
+                    try { extras = JSON.parse(r.report_extras || "{}"); } catch(e){}
+                    
+                    lastReportId = r.public_id || r.id || reportParam;
+                    renderResults({
+                        success: true,
+                        report_id: lastReportId,
+                        profile: {
+                            zodiac: r.zodiac,
+                            moon_sign: r.moon_sign,
+                            ascendant: r.ascendant
+                        },
+                        blueprint: extras.blueprint || {},
+                        vedic: extras.vedic || {},
+                        sections: {
+                            personality: r.personality,
+                            career: r.career,
+                            love: r.love_life, // DB col is love_life
+                            future: r.future_outlook // DB col is future_outlook
+                        },
+                        palm_analysis: r.palm_analysis,
+                        report_html: r.report_html,
+                        created_at: r.created_at
+                    });
+                } else {
+                    showError(json.error || "Report not found.");
+                    onlyStep(step1, 1);
+                }
+            })
+            .catch(err => {
+                console.error(err);
+                showError("Failed to load report.");
+                onlyStep(step1, 1);
+            })
+            .finally(() => { busy = false; });
+    } else {
+        onlyStep(step1, 1);
+    }
 });

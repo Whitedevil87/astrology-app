@@ -485,6 +485,15 @@ def api_list_reports():
     return jsonify({"success": True, "reports": reports, "page": page, "limit": limit})
 
 
+@app.route("/api/chats", methods=["GET"])
+@require_auth
+def api_list_chats():
+    from database import list_user_chats
+    limit = min(request.args.get("limit", 10, type=int), 50)
+    chats = list_user_chats(request.current_user["id"], limit=limit)
+    return jsonify({"success": True, "chats": chats})
+
+
 @app.route("/api/reports/<public_id>", methods=["GET"])
 @optional_auth
 def api_get_report(public_id):

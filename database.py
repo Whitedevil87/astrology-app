@@ -537,3 +537,31 @@ def get_chat_history(report_public_id: str, limit: int = 50) -> List[Dict[str, A
         ).fetchall()
         conn.close()
         return [dict(row) for row in rows]
+
+def list_user_chats(user_id: str, limit: int = 10) -> List[Dict[str, Any]]:
+    """Get recent chat history for a user across all their reports."""
+    if not user_id:
+        return []
+    engine = _get_engine()
+    if _use_postgres and engine is not None:
+        from sqlalchemy import text
+        with engine.connect() as conn:
+            result = conn.execute(
+                text("""
+                    SELECT role, content, created_at, report_public_id
+                    FROM chat_messages
+                    WHERE user_id = :uid
+                    ORDER BY created_at DESC
+                    LIMIT :lim
+                """),
+                {"uid": user_id, "lim": limit}
+            )
+            return [dict(row._mapping) for row in result.fetchall()]
+    else:
+        conn = _sqlite_connection()
+        rows = conn.execute(
+            "SELECT role, content, created_at, report_public_id FROM chat_messages WHERE user_id = ? ORDER BY created_at DESC LIMIT ?",
+            (user_id, limit)
+        ).fetchall()
+        conn.close()
+        return [dict(row) for row in rows]

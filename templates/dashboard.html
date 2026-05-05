@@ -19,14 +19,17 @@
         .dash-subtitle{color:rgba(196,181,253,0.6);font-size:0.9rem;margin-top:4px}
         .dash-logout{padding:10px 20px;background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.25);border-radius:10px;color:#fca5a5;font-family:'Poppins',sans-serif;font-size:0.85rem;cursor:pointer;transition:all 0.3s}
         .dash-logout:hover{background:rgba(239,68,68,0.2)}
-        .report-item{display:flex;justify-content:space-between;align-items:center;padding:14px 0;border-bottom:1px solid rgba(139,92,246,0.1)}
-        .report-item:last-child{border-bottom:none}
-        .report-info{display:flex;flex-direction:column;gap:3px}
-        .report-name{color:#e2e0ff;font-weight:500;font-size:0.95rem}
-        .report-meta{color:rgba(196,181,253,0.5);font-size:0.8rem}
-        .report-sign{display:inline-block;padding:4px 10px;background:rgba(139,92,246,0.12);border:1px solid rgba(139,92,246,0.2);border-radius:8px;color:#a78bfa;font-size:0.78rem;font-weight:500}
-        .view-btn{padding:8px 16px;background:rgba(139,92,246,0.12);border:1px solid rgba(139,92,246,0.25);border-radius:8px;color:#c4b5fd;font-size:0.85rem;cursor:pointer;font-family:'Poppins',sans-serif;transition:all 0.3s;text-decoration:none}
-        .view-btn:hover{background:rgba(139,92,246,0.25)}
+        .reports-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; margin-top: 10px; }
+        .report-card { background: rgba(139,92,246,0.05); border: 1px solid rgba(139,92,246,0.15); border-radius: 14px; padding: 18px; transition: all 0.3s ease; position: relative; overflow: hidden; display: flex; flex-direction: column; justify-content: space-between; gap: 14px;}
+        .report-card:hover { transform: translateY(-3px); background: rgba(139,92,246,0.08); border-color: rgba(139,92,246,0.3); box-shadow: 0 8px 24px rgba(10,6,30,0.5); }
+        .report-card::before { content:''; position:absolute; top:0; left:0; right:0; height:3px; background: linear-gradient(90deg, #7c3aed, #c084fc); opacity: 0.5; }
+        .report-info{display:flex;flex-direction:column;gap:5px}
+        .report-name{color:#e2e0ff;font-weight:600;font-size:1.1rem; font-family:'Cinzel', serif;}
+        .report-meta{color:rgba(196,181,253,0.6);font-size:0.85rem; font-family:'Poppins', sans-serif;}
+        .report-footer { display: flex; justify-content: space-between; align-items: center; border-top: 1px solid rgba(139,92,246,0.1); padding-top: 12px; }
+        .report-sign{display:inline-flex; align-items: center; gap: 6px; padding:4px 10px; background:rgba(139,92,246,0.15); border:1px solid rgba(139,92,246,0.3); border-radius:8px; color:#c4b5fd; font-size:0.75rem; font-weight:500; text-transform: uppercase; letter-spacing: 0.5px;}
+        .view-btn{padding:6px 18px;background:linear-gradient(135deg, rgba(124,58,237,0.8), rgba(99,102,241,0.8));border:none;border-radius:8px;color:#fff;font-size:0.85rem;font-weight:500;cursor:pointer;font-family:'Poppins',sans-serif;transition:all 0.3s;text-decoration:none}
+        .view-btn:hover{background:linear-gradient(135deg, #7c3aed, #6366f1); box-shadow: 0 4px 12px rgba(124,58,237,0.3); transform: scale(1.02);}
         .empty-state{text-align:center;padding:40px 20px;color:rgba(196,181,253,0.4);font-size:0.9rem}
         .empty-state a{color:#a78bfa;text-decoration:none}
         .profile-field{display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid rgba(139,92,246,0.08);font-size:0.9rem}
@@ -129,18 +132,18 @@
                     el.innerHTML = '<div class="empty-state">No reports yet. <a href="/app">Get your first reading →</a></div>';
                     return;
                 }
-                el.innerHTML = data.reports.map(r => `
-                    <div class="report-item">
+                el.innerHTML = '<div class="reports-grid">' + data.reports.map(r => `
+                    <div class="report-card">
                         <div class="report-info">
                             <span class="report-name">${escapeHtml(r.full_name || 'Report')}</span>
                             <span class="report-meta">${r.birth_date || ''} · ${r.created_at ? r.created_at.split('T')[0] : ''}</span>
                         </div>
-                        <div style="display:flex;align-items:center;gap:10px">
-                            <span class="report-sign">${escapeHtml(r.zodiac || '')}</span>
-                            <a href="/app?report=${r.public_id}" class="view-btn">View</a>
+                        <div class="report-footer">
+                            <span class="report-sign">${escapeHtml(r.zodiac || '')} ♈</span>
+                            <a href="/app?report=${r.public_id}" class="view-btn">View Chart</a>
                         </div>
                     </div>
-                `).join('');
+                `).join('') + '</div>';
 
                 // Load horoscope for first report's sign
                 if (data.reports[0] && data.reports[0].zodiac) {
@@ -187,6 +190,27 @@
             } catch (e) { /* silently fail */ }
         }
 
+        async function loadChats() {
+            try {
+                const res = await fetch('/api/chats?limit=5', {headers: authHeaders});
+                const data = await res.json();
+                const el = document.getElementById('chatContent');
+                if (data.success && data.chats && data.chats.length > 0) {
+                    el.innerHTML = data.chats.map(c => `
+                        <div class="chat-preview ${c.role}">
+                            <strong>${c.role === 'user' ? 'You' : 'Guru Arya'}:</strong> 
+                            ${escapeHtml(c.content)}
+                            <br><small style="opacity:0.5;font-size:0.7rem">${c.created_at ? c.created_at.split('.')[0].replace('T', ' ') : ''}</small>
+                        </div>
+                    `).join('');
+                } else {
+                    el.innerHTML = '<div class="empty-state">No recent messages. Start a chat from your report!</div>';
+                }
+            } catch (e) {
+                document.getElementById('chatContent').innerHTML = '<div class="empty-state">Could not load chats</div>';
+            }
+        }
+
         function handleLogout() {
             fetch('/api/auth/logout', {method: 'POST', headers: authHeaders}).catch(() => {});
             localStorage.removeItem('celestial_token');
@@ -203,6 +227,7 @@
         // Load everything
         loadProfile();
         loadReports();
+        loadChats();
     </script>
 </body>
 </html>
