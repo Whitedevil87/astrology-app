@@ -5,7 +5,7 @@ Handles signup, login, OAuth, OTP, and JWT verification.
 import logging
 from typing import Any, Dict, Optional
 from functools import wraps
-from flask import request, jsonify
+from flask import request, jsonify, session
 
 logger = logging.getLogger(__name__)
 _supabase_auth_client = None
