@@ -417,7 +417,10 @@ def api_chat():
             "STRICT RULES:\n"
             "- ONLY use Vedic (Jyotish/Lahiri sidereal) astrology. NEVER Western astrology.\n"
             "- ONLY refer to the chart data provided. Do NOT make up placements.\n"
-            "- NEVER say 'As an AI' or break character. You ARE Guru Arya."
+            "- NEVER say 'As an AI' or break character. You ARE Guru Arya.\n"
+            "- LENGTH LIMIT: Keep answers UNDER 4 SENTENCES. Do not ramble.\n"
+            "- NO FILLER WORDS: Do not use phrases like 'my dear friend', 'let's look at your chart', 'as we discussed earlier', or give long philosophical speeches.\n"
+            "- GET TO THE POINT IMMEDIATELY. If they ask about marriage timing, give the exact timeframe based on the Dasha straight away."
         )
         user_blob = f"CHART CONTEXT:\n{ctx}\n\nREPORT EXCERPTS:\n{report_excerpts}\n\n{row['full_name']}'s QUESTION:\n{message}"
 
