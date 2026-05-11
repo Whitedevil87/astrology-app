@@ -55,6 +55,35 @@ def zodiac_sign(birth_date: date) -> str:
     return result
 
 
+# ── Western / Tropical Zodiac Sign ──────────────────────────────────
+
+_TROPICAL_SUN_TRANSITS = [
+    # Standard Western tropical zodiac date boundaries
+    (1, 20, "Aquarius"),
+    (2, 19, "Pisces"),
+    (3, 21, "Aries"),
+    (4, 20, "Taurus"),
+    (5, 21, "Gemini"),
+    (6, 21, "Cancer"),
+    (7, 23, "Leo"),
+    (8, 23, "Virgo"),
+    (9, 23, "Libra"),
+    (10, 23, "Scorpio"),
+    (11, 22, "Sagittarius"),
+    (12, 22, "Capricorn"),
+]
+
+
+def western_zodiac_sign(birth_date: date) -> str:
+    """Western/tropical Sun sign from date (standard boundaries)."""
+    month, day = birth_date.month, birth_date.day
+    result = "Capricorn"  # Default: Dec 22 – Jan 19
+    for m, d, sign in _TROPICAL_SUN_TRANSITS:
+        if (month, day) >= (m, d):
+            result = sign
+    return result
+
+
 def moon_sign(birth_date: date) -> str:
     """Fallback Moon sign — rough approximation from day-of-year."""
     day_of_year = birth_date.timetuple().tm_yday

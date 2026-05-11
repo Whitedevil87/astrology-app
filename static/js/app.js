@@ -492,53 +492,84 @@ document.addEventListener("DOMContentLoaded", function () {
     function renderResults(data) {
         const profile = data.profile || {};
         const bp = data.blueprint || {};
+        var westernSign = profile.western_zodiac || "";
 
         if (resultTitle) resultTitle.textContent = (profile.zodiac || "") + " · Your Cosmic Brief";
         if (resultMeta) {
-            resultMeta.textContent =
-                "Sun " + (profile.zodiac || "—") +
+            var metaText = "Vedic Sun " + (profile.zodiac || "—") +
                 " · Moon " + (profile.moon_sign || "—") +
                 " · Asc " + (profile.ascendant || "—");
+            if (westernSign && westernSign !== profile.zodiac) {
+                metaText += "  ·  Western Sun " + westernSign;
+            }
+            resultMeta.textContent = metaText;
+        }
+
+        // Vedic system info banner — injected after resultMeta
+        var existingBanner = document.getElementById("vedicInfoBanner");
+        if (existingBanner) existingBanner.remove();
+        if (resultMeta && resultMeta.parentNode) {
+            var banner = document.createElement("div");
+            banner.id = "vedicInfoBanner";
+            banner.className = "mt-4 rounded-xl border border-purple-500/25 bg-purple-950/30 px-4 py-3 flex items-start gap-3";
+            var bannerNote = westernSign && westernSign !== profile.zodiac
+                ? " Your Western sign is <strong>" + escapeHtml(westernSign) + "</strong> (Tropical)."
+                : "";
+            banner.innerHTML =
+                '<span class="text-lg mt-0.5">🔮</span>' +
+                '<p class="text-xs text-purple-200/80 leading-relaxed">' +
+                '<strong class="text-purple-100">KP Sidereal (Vedic) Reading</strong> — ' +
+                'Your Vedic Sun sign is <strong>' + escapeHtml(profile.zodiac || "—") + '</strong> (Lahiri Ayanamsa). ' +
+                bannerNote +
+                ' Both systems are valid — Vedic astrology aligns with the fixed star positions.' +
+                '</p>';
+            resultMeta.parentNode.insertBefore(banner, resultMeta.nextSibling);
         }
 
         if (profileCards) {
+            // Build zodiac card with both systems
+            var zodiacValue = (profile.zodiac || "—") + " (Vedic)";
+            var zodiacExtra = "";
+            if (westernSign) {
+                zodiacExtra = '<p class="text-xs text-purple-300/70 mt-1">' +
+                    'Western: ' + escapeHtml(westernSign) + ' (Tropical)</p>';
+            }
+
+            function profileCardHtml(label, value, extra) {
+                return (
+                    '<div class="profile-card">' +
+                    '<p class="profile-label">' + escapeHtml(label) + '</p>' +
+                    '<p class="profile-value">' + escapeHtml(value) + '</p>' +
+                    (extra || "") +
+                    "</div>"
+                );
+            }
+
             if (bp && bp.element) {
                 profileCards.innerHTML = [
-                    ["Zodiac sign", profile.zodiac || "—"],
-                    ["Moon sign", profile.moon_sign || "—"],
-                    ["Ascendant", profile.ascendant || "—"],
-                    ["Element · modality", (bp.element || "—") + " · " + (bp.modality || "—")],
-                    ["Ruling planet", bp.ruling_planet || "—"],
-                    ["Energy focus", bp.energy_focus || "—"]
-                ]
-                    .map(function (row) {
-                        return (
-                            '<div class="profile-card">' +
-                            '<p class="profile-label">' +
-                            escapeHtml(row[0]) +
-                            '</p><p class="profile-value">' +
-                            escapeHtml(row[1]) +
-                            "</p></div>"
-                        );
-                    })
-                    .join("");
+                    { l: "Sun Sign", v: zodiacValue, x: zodiacExtra },
+                    { l: "Moon Sign", v: profile.moon_sign || "—", x: "" },
+                    { l: "Ascendant (Lagna)", v: profile.ascendant || "—", x: "" },
+                    { l: "Element · Modality", v: (bp.element || "—") + " · " + (bp.modality || "—"), x: "" },
+                    { l: "Ruling Planet", v: bp.ruling_planet || "—", x: "" },
+                    { l: "Energy Focus", v: bp.energy_focus || "—", x: "" }
+                ].map(function(c) {
+                    return '<div class="profile-card">' +
+                        '<p class="profile-label">' + escapeHtml(c.l) + '</p>' +
+                        '<p class="profile-value">' + escapeHtml(c.v) + '</p>' +
+                        c.x + '</div>';
+                }).join("");
             } else {
                 profileCards.innerHTML = [
-                    ["Zodiac sign", profile.zodiac || "Unknown"],
-                    ["Moon sign", profile.moon_sign || "Unknown"],
-                    ["Ascendant", profile.ascendant || "Unknown"]
-                ]
-                    .map(function (item) {
-                        return (
-                            '<div class="profile-card">' +
-                            '<p class="profile-label">' +
-                            escapeHtml(item[0]) +
-                            '</p><p class="profile-value">' +
-                            escapeHtml(item[1]) +
-                            "</p></div>"
-                        );
-                    })
-                    .join("");
+                    { l: "Sun Sign", v: zodiacValue, x: zodiacExtra },
+                    { l: "Moon Sign", v: profile.moon_sign || "Unknown", x: "" },
+                    { l: "Ascendant", v: profile.ascendant || "Unknown", x: "" }
+                ].map(function(c) {
+                    return '<div class="profile-card">' +
+                        '<p class="profile-label">' + escapeHtml(c.l) + '</p>' +
+                        '<p class="profile-value">' + escapeHtml(c.v) + '</p>' +
+                        c.x + '</div>';
+                }).join("");
             }
         }
 

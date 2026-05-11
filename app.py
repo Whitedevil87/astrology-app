@@ -18,6 +18,7 @@ from security import register_security, ensure_csrf, client_ip
 from services.analysis_service import (
     compute_hybrid_big_three, build_blueprint, build_prediction,
     simulate_palm_analysis, zodiac_sign, moon_sign, ascendant_sign,
+    western_zodiac_sign,
     build_report_html
 )
 from services.storage_service import upload_palm_image, delete_file
@@ -260,6 +261,9 @@ def analyze():
             "ascendant": ascendant_sign(parsed_time, birth_place),
         }
         chart_debug["fallback"] = "legacy_approx"
+
+    # Always add the Western/tropical sign for comparison
+    profile["western_zodiac"] = western_zodiac_sign(parsed_date)
 
     now = datetime.now(timezone.utc)
     blueprint = build_blueprint(profile["zodiac"], profile["moon_sign"], profile["ascendant"], parsed_date)
