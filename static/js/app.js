@@ -166,8 +166,32 @@ document.addEventListener("DOMContentLoaded", function () {
         hidePlaceDropdown();
     }
 
+    function _parseOpenMeteoResults(data) {
+        var results = (data && data.results) || [];
+        var places = [];
+        for (var i = 0; i < results.length && i < 7; i++) {
+            var res = results[i];
+            var lat = res.latitude, lon = res.longitude;
+            if (lat == null || lon == null) continue;
+            var parts = [res.name || "", res.admin1 || "", res.country || ""].filter(function(p) { return p && p.trim(); });
+            var seen = {};
+            var unique = parts.filter(function(p) { if (seen[p]) return false; seen[p] = true; return true; });
+            var label = unique.join(", ").substring(0, 140);
+            if (!label) continue;
+            places.push({ label: label, lat: parseFloat(lat), lon: parseFloat(lon), tz: res.timezone || "" });
+        }
+        return places;
+    }
+
+    function _cachePlaces(q, places) {
+        if (placeCache.size >= 32) {
+            placeCache.delete(placeCache.keys().next().value);
+        }
+        placeCache.set(q, places);
+    }
+
     function fetchPlaceSuggestions(query) {
-        const q = String(query || "").trim();
+        var q = String(query || "").trim();
         if (!q || q.length < 2) {
             hidePlaceDropdown();
             return;
@@ -185,39 +209,38 @@ document.addEventListener("DOMContentLoaded", function () {
             // Abort any in-flight request
             if (placeAbortCtrl) placeAbortCtrl.abort();
             placeAbortCtrl = new AbortController();
+            var sig = placeAbortCtrl.signal;
 
-            // Call Open-Meteo geocoding API directly (CORS-enabled, no backend needed)
-            var url = "https://geocoding-api.open-meteo.com/v1/search?name="
+            // Try direct Open-Meteo API first (fastest, CORS-enabled)
+            var directUrl = "https://geocoding-api.open-meteo.com/v1/search?name="
                 + encodeURIComponent(q) + "&count=7&language=en&format=json";
 
-            fetch(url, { signal: placeAbortCtrl.signal })
-                .then(function (r) { return r.json(); })
+            fetch(directUrl, { signal: sig })
+                .then(function (r) {
+                    if (!r.ok) throw new Error("HTTP " + r.status);
+                    return r.json();
+                })
                 .then(function (data) {
                     if (lastPlaceQuery !== q) return;
-                    var results = (data && data.results) || [];
-                    var places = [];
-                    for (var i = 0; i < results.length && i < 7; i++) {
-                        var res = results[i];
-                        var lat = res.latitude, lon = res.longitude;
-                        if (lat == null || lon == null) continue;
-                        var parts = [res.name || "", res.admin1 || "", res.country || ""].filter(function(p) { return p && p.trim(); });
-                        // deduplicate parts
-                        var seen = {};
-                        var unique = parts.filter(function(p) { if (seen[p]) return false; seen[p] = true; return true; });
-                        var label = unique.join(", ").substring(0, 140);
-                        if (!label) continue;
-                        places.push({ label: label, lat: parseFloat(lat), lon: parseFloat(lon) });
-                    }
-                    // Cache the result (LRU eviction at 32 entries)
-                    if (placeCache.size >= 32) {
-                        placeCache.delete(placeCache.keys().next().value);
-                    }
-                    placeCache.set(q, places);
+                    var places = _parseOpenMeteoResults(data);
+                    _cachePlaces(q, places);
                     showPlaceDropdown(places);
                 })
                 .catch(function (err) {
-                    if (err && err.name === "AbortError") return; // cancelled, ignore
-                    hidePlaceDropdown();
+                    if (err && err.name === "AbortError") return;
+                    // Fallback: use the backend /api/places route
+                    fetch("/api/places?q=" + encodeURIComponent(q), { signal: sig })
+                        .then(function (r) { return r.json(); })
+                        .then(function (data) {
+                            if (lastPlaceQuery !== q) return;
+                            var places = (data && data.places) || [];
+                            _cachePlaces(q, places);
+                            showPlaceDropdown(places);
+                        })
+                        .catch(function (err2) {
+                            if (err2 && err2.name === "AbortError") return;
+                            hidePlaceDropdown();
+                        });
                 });
         }, 150);
     }
