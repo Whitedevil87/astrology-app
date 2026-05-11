@@ -59,6 +59,8 @@ document.addEventListener("DOMContentLoaded", function () {
     let lastPlaceQuery = "";
     let activePlaceIndex = -1;
     let csrfToken = "";
+    let placeAbortCtrl = null;
+    const placeCache = new Map();   // query → results (LRU, max 32)
 
     // ============================================
     // CSRF + CHAT HINT
@@ -172,18 +174,52 @@ document.addEventListener("DOMContentLoaded", function () {
         }
         lastPlaceQuery = q;
 
+        // Instant hit from cache
+        if (placeCache.has(q)) {
+            showPlaceDropdown(placeCache.get(q));
+            return;
+        }
+
         clearTimeout(placeTimeout);
         placeTimeout = setTimeout(function () {
-            fetch("/api/places?q=" + encodeURIComponent(q))
+            // Abort any in-flight request
+            if (placeAbortCtrl) placeAbortCtrl.abort();
+            placeAbortCtrl = new AbortController();
+
+            // Call Open-Meteo geocoding API directly (CORS-enabled, no backend needed)
+            var url = "https://geocoding-api.open-meteo.com/v1/search?name="
+                + encodeURIComponent(q) + "&count=7&language=en&format=json";
+
+            fetch(url, { signal: placeAbortCtrl.signal })
                 .then(function (r) { return r.json(); })
                 .then(function (data) {
                     if (lastPlaceQuery !== q) return;
-                    showPlaceDropdown((data && data.places) || []);
+                    var results = (data && data.results) || [];
+                    var places = [];
+                    for (var i = 0; i < results.length && i < 7; i++) {
+                        var res = results[i];
+                        var lat = res.latitude, lon = res.longitude;
+                        if (lat == null || lon == null) continue;
+                        var parts = [res.name || "", res.admin1 || "", res.country || ""].filter(function(p) { return p && p.trim(); });
+                        // deduplicate parts
+                        var seen = {};
+                        var unique = parts.filter(function(p) { if (seen[p]) return false; seen[p] = true; return true; });
+                        var label = unique.join(", ").substring(0, 140);
+                        if (!label) continue;
+                        places.push({ label: label, lat: parseFloat(lat), lon: parseFloat(lon) });
+                    }
+                    // Cache the result (LRU eviction at 32 entries)
+                    if (placeCache.size >= 32) {
+                        placeCache.delete(placeCache.keys().next().value);
+                    }
+                    placeCache.set(q, places);
+                    showPlaceDropdown(places);
                 })
-                .catch(function () {
+                .catch(function (err) {
+                    if (err && err.name === "AbortError") return; // cancelled, ignore
                     hidePlaceDropdown();
                 });
-        }, 280);
+        }, 150);
     }
 
     if (birthPlace) {
