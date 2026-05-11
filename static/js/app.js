@@ -373,6 +373,12 @@ document.addEventListener("DOMContentLoaded", function () {
             showError("Please enter your place of birth.");
             return false;
         }
+        // User MUST pick a suggestion from the dropdown (sets lat/lon)
+        if (!placeLat || !placeLat.value || !placeLon || !placeLon.value) {
+            showError("Please pick a place from the suggestions dropdown for accurate results.");
+            if (birthPlace) birthPlace.focus();
+            return false;
+        }
         return true;
     }
 
