@@ -1,7 +1,11 @@
 """
 Supabase Storage service for Celestial Arc.
-Handles palm image uploads/deletions via Supabase Storage.
+Handles palm image and kundli chart uploads/deletions via Supabase Storage.
 Falls back to local filesystem if Supabase is not configured.
+
+Buckets used:
+  palm-images   — scanned palm photos
+  kundli-images — user-uploaded Kundli chart images (private)
 """
 import logging
 import os
@@ -11,7 +15,8 @@ from typing import Optional
 logger = logging.getLogger(__name__)
 _supabase_client = None
 _supabase_init_attempted = False
-_BUCKET_NAME = "palm-images"
+_PALM_BUCKET = "palm-images"
+_KUNDLI_BUCKET = "kundli-images"
 
 
 def _get_supabase():
@@ -24,37 +29,51 @@ def _get_supabase():
         if SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY:
             from supabase import create_client
             _supabase_client = create_client(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
-            try:
-                _supabase_client.storage.get_bucket(_BUCKET_NAME)
-            except Exception:
+            for _bucket in (_PALM_BUCKET, _KUNDLI_BUCKET):
                 try:
-                    _supabase_client.storage.create_bucket(_BUCKET_NAME, options={"public": False})
-                except Exception as e:
-                    logger.warning(f"Could not create bucket: {e}")
-            logger.info("Supabase Storage connected")
+                    _supabase_client.storage.get_bucket(_bucket)
+                except Exception:
+                    try:
+                        _supabase_client.storage.create_bucket(_bucket, options={"public": False})
+                        logger.info("Created Supabase bucket: %s", _bucket)
+                    except Exception as e:
+                        logger.warning("Could not create bucket %s: %s", _bucket, e)
+            logger.info("Supabase Storage connected (buckets: %s, %s)", _PALM_BUCKET, _KUNDLI_BUCKET)
     except Exception as e:
         logger.warning(f"Supabase Storage unavailable: {e}")
     return _supabase_client
 
 
-def upload_palm_image(file_bytes: bytes, original_filename: str) -> Optional[str]:
+def _upload_to_bucket(bucket: str, subfolder: str, file_bytes: bytes, original_filename: str) -> Optional[str]:
+    """Shared upload helper — uploads to the given Supabase bucket or local fallback."""
     ext = original_filename.rsplit(".", 1)[-1].lower() if "." in original_filename else "jpg"
     filename = f"{uuid.uuid4().hex}.{ext}"
     supabase = _get_supabase()
     if supabase is not None:
         try:
-            path = f"palm-images/{filename}"
-            supabase.storage.from_(_BUCKET_NAME).upload(path, file_bytes, file_options={"content-type": f"image/{ext}"})
-            return f"supabase://{_BUCKET_NAME}/{path}"
+            path = f"{subfolder}/{filename}"
+            supabase.storage.from_(bucket).upload(path, file_bytes, file_options={"content-type": f"image/{ext}"})
+            return f"supabase://{bucket}/{path}"
         except Exception as e:
-            logger.error(f"Supabase upload failed: {e}")
+            logger.error("Supabase upload to bucket '%s' failed: %s", bucket, e)
+    # Local filesystem fallback (dev / Supabase unavailable)
     from config import BASE_DIR
-    upload_dir = os.path.join(BASE_DIR, "uploads")
+    upload_dir = os.path.join(BASE_DIR, "uploads", subfolder)
     os.makedirs(upload_dir, exist_ok=True)
     local_path = os.path.join(upload_dir, filename)
     with open(local_path, "wb") as f:
         f.write(file_bytes)
-    return f"uploads/{filename}"
+    return f"uploads/{subfolder}/{filename}"
+
+
+def upload_palm_image(file_bytes: bytes, original_filename: str) -> Optional[str]:
+    """Upload a palm scan image to the palm-images bucket."""
+    return _upload_to_bucket(_PALM_BUCKET, "palm-images", file_bytes, original_filename)
+
+
+def upload_kundli_image(file_bytes: bytes, original_filename: str) -> Optional[str]:
+    """Upload a kundli chart image to the dedicated kundli-images bucket (private)."""
+    return _upload_to_bucket(_KUNDLI_BUCKET, "kundli-images", file_bytes, original_filename)
 
 
 def get_signed_url(storage_path: str, expires_in: int = 3600) -> Optional[str]:

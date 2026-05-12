@@ -1,4 +1,5 @@
 """Celestial Arc — Main Flask Application (refactored)."""
+import concurrent.futures
 import json
 import logging
 import os
@@ -12,7 +13,7 @@ from dotenv import load_dotenv
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from ai_client import openai_guru_reply
-from database import init_db, migrate_db, save_report, fetch_report_by_public_id, fetch_report_row, save_chat_message, get_chat_history
+from database import init_db, migrate_db, save_report, fetch_report_by_public_id, save_chat_message, get_chat_history
 from geo import photon_search, timeapi_timezone_name
 from security import register_security, ensure_csrf, client_ip
 from services.analysis_service import (
@@ -21,7 +22,7 @@ from services.analysis_service import (
     western_zodiac_sign,
     build_report_html
 )
-from services.storage_service import upload_palm_image, delete_file
+from services.storage_service import upload_palm_image, upload_kundli_image, delete_file
 from services.auth_service import optional_auth, require_auth
 from vedic_engine import build_vedic_bundle, format_guru_context, get_horoscope_for_sign, generate_kundli_chart_from_birth
 
@@ -141,8 +142,13 @@ def generate_dynamic_report_cards(full_name, profile, vedic_structured, vedic_se
         f"DOSHAS: {', '.join(vedic_structured.get('dosha_flags', []))}\n"
         f"HOUSES:\n{vedic_sections.get('vedic_houses')}\n\nGenerate the JSON report for this person."
     )
+    def _call():
+        return openai_guru_reply(system_prompt, chart_data)
+
     try:
-        reply = openai_guru_reply(system_prompt, chart_data)
+        with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
+            future = executor.submit(_call)
+            reply = future.result(timeout=15)  # 15-second hard timeout
         if not reply:
             return None
         reply = reply.strip()
@@ -158,6 +164,9 @@ def generate_dynamic_report_cards(full_name, profile, vedic_structured, vedic_se
             if key not in cards:
                 return None
         return cards
+    except concurrent.futures.TimeoutError:
+        logger.warning("Dynamic report card generation timed out after 15s — using static fallback")
+        return None
     except Exception as e:
         logger.error(f"Failed to generate dynamic cards: {e}")
         return None
@@ -218,7 +227,8 @@ def analyze():
         if not allowed_file(kundli_file.filename):
             return jsonify({"success": False, "error": "Kundli image must be png, jpg, jpeg, or webp."}), 400
         file_bytes = kundli_file.read()
-        kundli_image_path = upload_palm_image(file_bytes, kundli_file.filename)
+        # MAJOR-03: Use dedicated kundli-images bucket, not palm-images
+        kundli_image_path = upload_kundli_image(file_bytes, kundli_file.filename)
 
     # ── Geocoding + timezone ─────────────────────────────────────
     chart_debug: Dict[str, Any] = {"place_autocomplete_used": bool(place_lat_raw and place_lon_raw)}
@@ -285,10 +295,14 @@ def analyze():
 
     report_html = build_report_html(full_name, profile, sections, palm_text)
     created_at = now.strftime("%Y-%m-%d %H:%M:%S UTC")
+    logger.debug("Chart debug info: %s", chart_debug)  # Internal only — never sent to client
     report_extras = json.dumps({
-        "blueprint": blueprint, "vedic": vedic_structured, "vedic_sections": vedic_sections,
-        "kundli_image_path": kundli_image_path, "kundli_notes": kundli_notes,
-        "hybrid_chart": hybrid_details, "chart_debug": chart_debug,
+        "blueprint": blueprint,
+        "vedic": vedic_structured,
+        "vedic_sections": vedic_sections,
+        "kundli_image_path": kundli_image_path,
+        "hybrid_chart": hybrid_details,
+        # chart_debug and kundli_notes intentionally excluded from stored/returned blob
     }, ensure_ascii=True)
 
     user_id = getattr(request, "current_user", {}).get("id") if hasattr(request, "current_user") and request.current_user else None
@@ -313,24 +327,16 @@ def analyze():
 
 @app.route("/api/config", methods=["GET"])
 def api_config():
+    # CRITICAL-04: Only expose whether AI is available — never reveal provider name
     groq_key = os.environ.get("GROQ_API_KEY", "").strip()
     openai_key = os.environ.get("OPENAI_API_KEY", "").strip()
     return jsonify({
         "ai_chat": bool(groq_key or openai_key),
-        "provider": "groq" if groq_key else ("openai" if openai_key else "none"),
+        # provider intentionally omitted to prevent targeted attacks
     })
 
 
-@app.route("/api/ai/status", methods=["GET"])
-def api_ai_status():
-    groq_key = os.environ.get("GROQ_API_KEY", "").strip()
-    openai_key = os.environ.get("OPENAI_API_KEY", "").strip()
-    provider = "groq" if groq_key else ("openai" if openai_key else "none")
-    enabled = bool(groq_key or openai_key)
-    if not enabled:
-        return jsonify({"success": True, "enabled": False, "provider": "none"})
-    probe = openai_guru_reply("You are a diagnostics endpoint. Reply with exactly: OK", "OK")
-    return jsonify({"success": True, "enabled": True, "provider": provider, "ok": bool(probe)})
+# /api/ai/status removed — CRITICAL-04: made live AI probe calls with no auth/rate-limiting
 
 
 def _chat_text_clip(text: Optional[str], max_len: int = 900) -> str:
@@ -349,15 +355,14 @@ def api_chat():
     if not report_id or not message:
         return jsonify({"success": False, "error": "report_id and message are required."}), 400
 
-    # Support both public_id (UUID) and legacy integer id
-    row = None
-    try:
-        rid = int(report_id)
-        row = fetch_report_row(rid)
-    except (TypeError, ValueError):
-        row = fetch_report_by_public_id(str(report_id))
-
+    # CRITICAL-01: Only look up by public UUID — integer ID enumeration removed
+    row = fetch_report_by_public_id(str(report_id))
     if row is None:
+        return jsonify({"success": False, "error": "Report not found."}), 404
+
+    # CRITICAL-02: Ownership check — block if logged-in user doesn't own this report
+    user_id = getattr(request, "current_user", {}).get("id") if hasattr(request, "current_user") and request.current_user else None
+    if user_id and row.get("user_id") and row["user_id"] != user_id:
         return jsonify({"success": False, "error": "Report not found."}), 404
 
     extras: Dict[str, Any] = {}
@@ -528,10 +533,15 @@ init_db()
 migrate_db()
 
 # ── Daily horoscope email scheduler ──────────────────────────────────
+# MAJOR-04: Only start scheduler in one process — prevents 4x emails on Gunicorn multi-worker
+# Set SCHEDULER_ENABLED=true in Render env vars on exactly one service instance.
 import atexit
 from services.scheduler_service import init_scheduler, shutdown_scheduler
-init_scheduler(app)
-atexit.register(shutdown_scheduler)
+if os.environ.get("SCHEDULER_ENABLED", "false").lower() == "true":
+    init_scheduler(app)
+    atexit.register(shutdown_scheduler)
+else:
+    logger.info("Scheduler disabled — set SCHEDULER_ENABLED=true on one worker to enable")
 
 
 @app.before_request

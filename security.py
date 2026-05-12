@@ -224,7 +224,8 @@ def register_security(app: Flask) -> Flask:
                 return blocked
 
         # ── CSRF protection for browser-origin POSTs ────────────
-        csrf_protected = {"/api/analyze", "/api/chat"}
+        # MAJOR-02: Expanded to cover all mutating browser-origin POST endpoints
+        csrf_protected = {"/api/analyze", "/api/chat", "/api/compatibility"}
         if request.method == "POST" and request.path in csrf_protected:
             expected = session.get("csrf_token")
             provided = (request.headers.get("X-CSRF-Token") or "").strip()
