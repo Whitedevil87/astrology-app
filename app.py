@@ -397,45 +397,40 @@ def api_chat():
 
     try:
         ctx = format_guru_context(row["full_name"], profile, vedic, blueprint)
-        report_excerpts = "\n".join([
-            f"Personality: {_chat_text_clip(merged_sections.get('personality'))}",
-            f"Career: {_chat_text_clip(merged_sections.get('career'))}",
-            f"Future: {_chat_text_clip(merged_sections.get('future'))}",
-            f"Love: {_chat_text_clip(merged_sections.get('love'))}",
-            f"Strengths: {_chat_text_clip(merged_sections.get('strengths'), 600)}",
-            f"Weaknesses: {_chat_text_clip(merged_sections.get('weaknesses'), 600)}",
-            f"Wellness: {_chat_text_clip(merged_sections.get('wellness'), 600)}",
-            f"Compatibility: {_chat_text_clip(merged_sections.get('compatibility'), 600)}",
-            f"Seasonal Energy: {_chat_text_clip(merged_sections.get('seasonal_energy'), 600)}",
-            f"Dasha Timing: {_chat_text_clip(merged_sections.get('vimshottari_timing'), 600)}",
-            f"Rahu-Ketu: {_chat_text_clip(merged_sections.get('rahu_ketu'), 600)}",
-            f"Remedies: {_chat_text_clip(merged_sections.get('remedies_lifestyle'), 600)}",
-        ])
+        
+        # Dynamic context filtering based on question to reduce token bloat and latency
+        ml = message.lower()
+        excerpts_to_include = [f"Personality: {_chat_text_clip(merged_sections.get('personality'))}"]
+        
+        if any(w in ml for w in ['career', 'job', 'work', 'business', 'money', 'wealth']):
+            excerpts_to_include.append(f"Career/Wealth: {_chat_text_clip(merged_sections.get('career'))}")
+        if any(w in ml for w in ['love', 'marriage', 'partner', 'relationship', 'spouse']):
+            excerpts_to_include.append(f"Love: {_chat_text_clip(merged_sections.get('love'))}")
+            excerpts_to_include.append(f"Compatibility: {_chat_text_clip(merged_sections.get('compatibility'), 400)}")
+        if any(w in ml for w in ['future', 'when', 'time', 'dasha', 'transit']):
+            excerpts_to_include.append(f"Future: {_chat_text_clip(merged_sections.get('future'))}")
+            excerpts_to_include.append(f"Dasha Timing: {_chat_text_clip(merged_sections.get('vimshottari_timing'), 400)}")
+        if any(w in ml for w in ['health', 'wellness', 'sick', 'disease']):
+            excerpts_to_include.append(f"Wellness: {_chat_text_clip(merged_sections.get('wellness'), 400)}")
+        
+        if len(excerpts_to_include) == 1: # Default if no keywords match
+            excerpts_to_include.append(f"Future: {_chat_text_clip(merged_sections.get('future'))}")
+            excerpts_to_include.append(f"Strengths: {_chat_text_clip(merged_sections.get('strengths'), 400)}")
+            
+        report_excerpts = "\n".join(excerpts_to_include)
+
         system = (
-            "You are Guru Arya — a wise, warm, and deeply experienced Vedic astrologer with 30+ years of practice. "
-            "You speak like a trusted elder who genuinely cares — not like a robot reading a manual.\n\n"
-
-            "LANGUAGE & TONE RULES:\n"
-            "- MATCH THE USER'S LANGUAGE: If the user speaks in English, reply in pure English. If they speak in Hindi, reply in Hindi. If they speak in Hinglish, reply in Hinglish.\n"
-            "- Address the user by their first name often.\n"
-            "- Sound like a natural, flowing conversation, not a generated report.\n\n"
-
-            "BEHAVIOR RULES:\n"
-            "- IF THE USER JUST SAYS 'Hi', 'Hello', 'Namaste' or similar greetings: DO NOT give an astrological reading! Just reply warmly with a short greeting and ask what they want to know about their chart today.\n"
-            "- ONLY give an astrological reading if they ask a specific question about their life, career, future, love, etc.\n"
-            "- Give DIRECT answers — if someone asks 'will I get a job', say YES or NO first, then explain.\n"
-            "- Be specific — mention actual planets, houses, dashas from the chart when answering astrological questions.\n"
-            "- NO bullet points, NO markdown headers, NO robotic formats.\n\n"
-
-            "STRICT RULES:\n"
-            "- ONLY use Vedic (Jyotish/Lahiri sidereal) astrology. NEVER Western astrology.\n"
-            "- ONLY refer to the chart data provided. Do NOT make up placements.\n"
-            "- NEVER say 'As an AI' or break character. You ARE Guru Arya.\n"
-            "- LENGTH LIMIT: Keep answers UNDER 4 SENTENCES. Do not ramble.\n"
-            "- NO FILLER WORDS: Do not use phrases like 'my dear friend', 'let's look at your chart', 'as we discussed earlier', or give long philosophical speeches.\n"
-            "- GET TO THE POINT IMMEDIATELY. If they ask about marriage timing, give the exact timeframe based on the Dasha straight away."
+            "You are Guru Arya — a wise, warm Vedic astrologer. "
+            "Speak like a trusted elder. Match the user's language (English/Hindi/Hinglish).\n\n"
+            "RULES:\n"
+            "- Greetings ('Hi'): Just say hello warmly, NO reading.\n"
+            "- DIRECT answers first (Yes/No), then explain.\n"
+            "- Mention specific planets, houses, dashas.\n"
+            "- NO markdown headers or bullet points.\n"
+            "- ONLY Vedic (Jyotish) astrology. Do NOT make up placements.\n"
+            "- MAX 4 SENTENCES. Do not ramble. GET TO THE POINT."
         )
-        user_blob = f"CHART CONTEXT:\n{ctx}\n\nREPORT EXCERPTS:\n{report_excerpts}\n\n{row['full_name']}'s QUESTION:\n{message}"
+        user_blob = f"CHART:\n{ctx}\n\nEXCERPTS:\n{report_excerpts}\n\nQUESTION:\n{message}"
 
         ai_reply = openai_guru_reply(system, user_blob)
         if ai_reply is None:

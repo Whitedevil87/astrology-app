@@ -60,8 +60,8 @@ def _groq_chat(system: str, user: str, api_key: str) -> Optional[str]:
                 {"role": "user", "content": user},
             ],
             model=model,
-            temperature=0.65,
-            max_tokens=900,
+            temperature=0.55,
+            max_tokens=350,
         )
 
         result = chat_completion.choices[0].message.content.strip()
@@ -98,8 +98,8 @@ def _groq_http_fallback(system: str, user: str, api_key: str) -> Optional[str]:
                 {"role": "system", "content": system},
                 {"role": "user", "content": user},
             ],
-            "temperature": 0.65,
-            "max_tokens": 900,
+            "temperature": 0.55,
+            "max_tokens": 350,
         }
 
         req = urllib.request.Request(
@@ -163,8 +163,8 @@ def _openai_chat(system: str, user: str, api_key: str) -> Optional[str]:
                 {"role": "system", "content": system},
                 {"role": "user", "content": user},
             ],
-            "temperature": 0.65,
-            "max_tokens": 900,
+            "temperature": 0.55,
+            "max_tokens": 350,
         }
         req = urllib.request.Request(
             "https://api.openai.com/v1/chat/completions",
