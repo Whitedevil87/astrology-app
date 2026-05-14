@@ -2,10 +2,17 @@
 Vedic astrology engine — KP (Krishnamurti Paddhati) sidereal system.
 Whole-sign houses, true Vimshottari Dasha from Moon Nakshatra,
 sidereal planet positions via KP Ayanamsa.
+
+Integrates:
+    - vedic.vargas     (Layer 3 — Divisional charts)
+    - vedic.strength   (Layer 5 — Shadbala + Ashtakavarga)
+    - vedic.yogas      (Layer 6 — Classical yoga detection)
+    - vedic.transits   (Layer 7 — Gochara & Sade Sati)
 """
 
 from __future__ import annotations
 
+import logging
 import re
 import math
 from typing import Any, Dict, List, Tuple, Optional
@@ -16,6 +23,8 @@ from astrology_constants import (
     NAKSHATRA_DATA, VIMSHOTTARI_ORDER, VIMSHOTTARI_PERIODS,
     VIMSHOTTARI_TOTAL_YEARS,
 )
+
+logger = logging.getLogger(__name__)
 
 try:
     from skyfield.api import Astrometric, load, wgs84
@@ -119,11 +128,13 @@ def _get_planet_lon_tropical(jd: float, planet: str) -> float:
 
 def compute_vimshottari_dasha(moon_sid_lon: float, birth_date, current_date=None):
     """
-    Compute current Mahadasha and Antardasha from Moon's sidereal longitude.
-    Returns (mahadasha_lord, antardasha_lord, years_left_in_md).
+    Compute current Mahadasha, Antardasha, and Pratyantardasha from Moon's
+    sidereal longitude.
+
+    Returns (mahadasha_lord, antardasha_lord, pratyantardasha_lord, years_left_in_md).
     """
     if current_date is None:
-        current_date = datetime.now().date() if not isinstance(datetime.now(), date) else datetime.now().date()
+        current_date = datetime.now().date()
 
     nak_span = 360.0 / 27.0  # 13.3333 deg
     lon = _norm360(moon_sid_lon)
@@ -162,13 +173,12 @@ def compute_vimshottari_dasha(moon_sid_lon: float, birth_date, current_date=None
     md_lord = nak_lord
     md_start_age = 0.0
 
-    # First dasha: remaining portion
     if age_years < remaining_years:
         md_lord = nak_lord
         md_start_age = 0.0
     else:
         elapsed = remaining_years
-        for i in range(1, 10):  # max one full 120-year cycle
+        for i in range(1, 10):
             next_lord = VIMSHOTTARI_ORDER[(lord_seq_idx + i) % 9]
             next_period = VIMSHOTTARI_PERIODS[next_lord]
             if elapsed + next_period > age_years:
@@ -180,26 +190,45 @@ def compute_vimshottari_dasha(moon_sid_lon: float, birth_date, current_date=None
             md_lord = nak_lord
             md_start_age = 0.0
 
-    # Antardasha within Mahadasha
+    # ── Antardasha within Mahadasha ──
     md_period = VIMSHOTTARI_PERIODS[md_lord]
     time_in_md = age_years - md_start_age
     md_seq_idx = VIMSHOTTARI_ORDER.index(md_lord)
 
     ad_elapsed = 0.0
-    ad_lord = md_lord  # first antardasha is always the MD lord itself
+    ad_lord = md_lord
+    ad_start_in_md = 0.0
+    ad_period_actual = 0.0
     for i in range(9):
         ad_candidate = VIMSHOTTARI_ORDER[(md_seq_idx + i) % 9]
         ad_period = md_period * VIMSHOTTARI_PERIODS[ad_candidate] / VIMSHOTTARI_TOTAL_YEARS
         if ad_elapsed + ad_period > time_in_md:
             ad_lord = ad_candidate
+            ad_start_in_md = ad_elapsed
+            ad_period_actual = ad_period
             break
         ad_elapsed += ad_period
     else:
         ad_lord = md_lord
+        ad_period_actual = md_period * VIMSHOTTARI_PERIODS[md_lord] / VIMSHOTTARI_TOTAL_YEARS
+
+    # ── Pratyantardasha within Antardasha ──
+    time_in_ad = time_in_md - ad_start_in_md
+    ad_seq_idx = VIMSHOTTARI_ORDER.index(ad_lord)
+
+    pd_lord = ad_lord
+    pd_elapsed = 0.0
+    for j in range(9):
+        pd_candidate = VIMSHOTTARI_ORDER[(ad_seq_idx + j) % 9]
+        pd_period = ad_period_actual * VIMSHOTTARI_PERIODS[pd_candidate] / VIMSHOTTARI_TOTAL_YEARS
+        if pd_elapsed + pd_period > time_in_ad:
+            pd_lord = pd_candidate
+            break
+        pd_elapsed += pd_period
 
     years_left = md_period - time_in_md
 
-    return md_lord, ad_lord, max(0, years_left)
+    return md_lord, ad_lord, pd_lord, max(0, years_left)
 
 
 def _ketu_from_rahu(rahu_house: int) -> int:
@@ -367,19 +396,93 @@ def build_vedic_bundle(
     nak_lord = (hybrid_details or {}).get("nakshatra_lord", "")
     nak_pada = (hybrid_details or {}).get("nakshatra_pada", 0)
 
+    pratyantardasha = ""
     if moon_lon is not None:
-        mahadasha, antar, _md_left = compute_vimshottari_dasha(moon_lon, birth_date)
+        mahadasha, antar, pratyantardasha, _md_left = compute_vimshottari_dasha(moon_lon, birth_date)
     else:
-        # Fallback: use approximate Nakshatra from day-of-year
         day_of_year = birth_date.timetuple().tm_yday
         approx_nak_idx = (day_of_year * 27 // 365) % 27
         nak_lord_fb = NAKSHATRA_DATA[approx_nak_idx]["lord"]
         lord_idx = VIMSHOTTARI_ORDER.index(nak_lord_fb)
         mahadasha = nak_lord_fb
         antar = VIMSHOTTARI_ORDER[(lord_idx + 1) % 9]
+        pratyantardasha = VIMSHOTTARI_ORDER[(lord_idx + 2) % 9]
 
     flags = compute_dosha_flags(mars_h, rahu_h, ketu_h)
     remedies = build_remedy_text(flags, rahu_h, ketu_h, mahadasha)
+
+    # ── Build planet data structures for new modules ──
+    planet_houses: Dict[str, int] = {
+        "Sun": sun_h, "Moon": moon_h, "Mars": mars_h,
+        "Mercury": mercury_h, "Venus": venus_h, "Jupiter": jupiter_h,
+        "Saturn": saturn_h, "Rahu": rahu_h, "Ketu": ketu_h,
+    }
+    planet_signs: Dict[str, str] = {
+        "Sun": sun_sign, "Moon": moon_sign,
+    }
+    planet_degrees: Dict[str, float] = {}
+
+    # Fill in planet signs from longitudes if available
+    if jd is not None:
+        for p in ["Mars", "Mercury", "Venus", "Jupiter", "Saturn", "Rahu", "Ketu"]:
+            lon = _get_planet_lon(jd, p)
+            planet_signs[p] = _sign_from_longitude(lon)
+            planet_degrees[p] = lon % 30.0
+        if moon_lon is not None:
+            planet_degrees["Moon"] = moon_lon % 30.0
+    else:
+        # Approximate signs from house placement (fallback)
+        for p, h in planet_houses.items():
+            if p not in planet_signs:
+                lagna_idx = ZODIAC_ORDER.index(lagna_sign) if lagna_sign in ZODIAC_ORDER else 0
+                planet_signs[p] = ZODIAC_ORDER[(lagna_idx + h - 1) % 12]
+
+    # ── Layer 3: Divisional Charts (Vargas) ──
+    vargas_data: Dict[str, Any] = {}
+    try:
+        from vedic.vargas import compute_key_vargas
+        if jd is not None:
+            planet_lons = {p: _get_planet_lon(jd, p) for p in planet_houses}
+            vargas_data = compute_key_vargas(planet_lons)
+    except Exception as e:
+        logger.warning("Varga computation skipped: %s", e)
+
+    # ── Layer 5: Planetary Strength ──
+    strength_data: Dict[str, Any] = {}
+    try:
+        from vedic.strength import planet_strength_summary
+        strength_data = planet_strength_summary(
+            planet_signs, planet_houses, planet_degrees,
+            is_day_birth=(birth_time.hour >= 6 and birth_time.hour < 18),
+        )
+    except Exception as e:
+        logger.warning("Strength computation skipped: %s", e)
+
+    # ── Layer 6: Yoga Detection ──
+    yoga_data: Dict[str, Any] = {}
+    try:
+        from vedic.yogas import detect_all_yogas
+        yoga_data = detect_all_yogas(planet_houses, planet_signs, lagna_sign)
+    except Exception as e:
+        logger.warning("Yoga detection skipped: %s", e)
+
+    # ── Layer 7: Transit & Gochara ──
+    transit_data: Dict[str, Any] = {}
+    try:
+        from vedic.transits import gochara_report, prediction_confidence
+        transit_data = gochara_report(moon_sign, lagna_sign)
+        # Layer 8: Dasha + Transit confidence
+        sade_sati = transit_data.get("sade_sati", {})
+        jupiter_tr = transit_data.get("jupiter_transit", {})
+        confidence = prediction_confidence(
+            mahadasha, antar,
+            transit_data.get("transit_score", 50),
+            sade_sati.get("active", False),
+            jupiter_tr.get("quality", "mixed"),
+        )
+        transit_data["prediction_confidence"] = confidence
+    except Exception as e:
+        logger.warning("Transit computation skipped: %s", e)
 
     house_lines = [
         f"Lagna ({lagna_sign}) occupies House 1 — {HOUSE_MEANINGS[1]}",
@@ -413,33 +516,66 @@ def build_vedic_bundle(
     )
 
     dasha_blurb = (
-        f"Vimshottari-style snapshot: Mahadasha flavor {mahadasha}, with a secondary emphasis {antar} for timing questions. "
-        "Use this as journaling language."
+        f"Vimshottari Dasha: {mahadasha} Mahadasha → {antar} Antardasha → {pratyantardasha} Pratyantardasha. "
+        "These three layers of timing shape your current life themes."
     )
 
     dosha_blurb = (
         "Dosha scan: " + ("; ".join(flags) if flags else "No major flag from Mars placement.")
     )
 
+    # ── Yoga section text ──
+    yoga_blurb = ""
+    if yoga_data.get("yogas"):
+        yoga_lines = [f"Yogas detected ({yoga_data['count']}):"]
+        for y in yoga_data["yogas"][:6]:
+            yoga_lines.append(f"• {y['name']}: {y['description']}")
+        yoga_blurb = " ".join(yoga_lines)
+    else:
+        yoga_blurb = "No classical yogas detected from current house placements."
+
+    # ── Transit section text ──
+    transit_blurb = ""
+    if transit_data:
+        sade = transit_data.get("sade_sati", {})
+        conf = transit_data.get("prediction_confidence", {})
+        transit_blurb = (
+            f"Transit Score: {transit_data.get('transit_score', '?')}% favorable. "
+            f"Sade Sati: {sade.get('phase_name', 'N/A')}. "
+            f"{transit_data.get('overall_description', '')} "
+            f"Prediction Confidence: {conf.get('score', '?')}% — {conf.get('description', '')}"
+        )
+
+    # ── Strength section text ──
+    strength_blurb = ""
+    if strength_data:
+        strong = [p for p, d in strength_data.items() if d.get("is_strong")]
+        dignity_list = [f"{p}: {d.get('dignity', '?')}" for p, d in strength_data.items() if p not in ("Rahu", "Ketu")]
+        strength_blurb = (
+            f"Strong planets: {', '.join(strong) if strong else 'None above threshold'}. "
+            f"Dignities — {'; '.join(dignity_list[:5])}."
+        )
+
     structured: Dict[str, Any] = {
         "lagna_sign": lagna_sign,
         "houses": {
-            "sun": sun_h,
-            "moon": moon_h,
-            "mars": mars_h,
-            "rahu": rahu_h,
-            "ketu": ketu_h,
-            "mercury": mercury_h,
-            "venus": venus_h,
-            "jupiter": jupiter_h,
-            "saturn": saturn_h,
+            "sun": sun_h, "moon": moon_h, "mars": mars_h,
+            "rahu": rahu_h, "ketu": ketu_h,
+            "mercury": mercury_h, "venus": venus_h,
+            "jupiter": jupiter_h, "saturn": saturn_h,
         },
+        "planet_signs": planet_signs,
         "mahadasha": mahadasha,
         "antardasha_demo": antar,
+        "pratyantardasha": pratyantardasha,
         "nakshatra": nak_name,
         "nakshatra_lord": nak_lord,
         "nakshatra_pada": nak_pada,
         "dosha_flags": flags,
+        "yogas": yoga_data,
+        "transits": transit_data,
+        "strength": strength_data,
+        "vargas": vargas_data,
         "has_kundli_image": has_kundli_image,
         "notes_used": bool(kundli_notes.strip()),
     }
@@ -450,6 +586,9 @@ def build_vedic_bundle(
         "rahu_ketu": rahu_blurb + " " + ketu_blurb,
         "vimshottari_timing": dasha_blurb + " " + dosha_blurb,
         "remedies_lifestyle": remedies,
+        "yogas": yoga_blurb,
+        "transits": transit_blurb,
+        "planet_strength": strength_blurb,
     }
     return sections, structured
 
@@ -479,9 +618,37 @@ def format_guru_context(name: str, profile: Dict[str, str], vedic: Dict[str, Any
     dosha_info = vedic.get('dosha_flags') or ['none flagged']
     mahadasha = vedic.get('mahadasha', 'unknown')
     antardasha = vedic.get('antardasha_demo', 'unknown')
+    pratyantardasha = vedic.get('pratyantardasha', 'unknown')
     nakshatra = vedic.get('nakshatra', 'unknown')
     nak_lord = vedic.get('nakshatra_lord', 'unknown')
     nak_pada = vedic.get('nakshatra_pada', 0)
+
+    # Yoga summary for context
+    yoga_info = vedic.get('yogas', {})
+    yoga_summary = yoga_info.get('summary', 'Not computed') if yoga_info else 'Not computed'
+
+    # Transit summary
+    transit_info = vedic.get('transits', {})
+    sade_sati_phase = transit_info.get('sade_sati', {}).get('phase_name', 'N/A') if transit_info else 'N/A'
+    transit_score = transit_info.get('transit_score', '?') if transit_info else '?'
+    confidence = transit_info.get('prediction_confidence', {}).get('score', '?') if transit_info else '?'
+
+    # Strength summary
+    strength_info = vedic.get('strength', {})
+    strength_lines = ""
+    if strength_info:
+        for p, data in list(strength_info.items())[:7]:
+            dignity = data.get('dignity', '?')
+            strong = "✓" if data.get('is_strong') else "✗"
+            strength_lines += f"  {p}: {dignity} (strong={strong})\n"
+
+    # Navamsa (D9) for marriage/dharma context
+    vargas_info = vedic.get('vargas', {})
+    navamsa_lines = ""
+    if vargas_info:
+        for p, v in vargas_info.items():
+            nav = v.get('navamsa', '?')
+            navamsa_lines += f"  {p}: D9={nav}\n"
 
     return (
         f"Querent: {name}.\n"
@@ -495,33 +662,28 @@ def format_guru_context(name: str, profile: Dict[str, str], vedic: Dict[str, Any
         f"  Sun → House {h.get('sun', '?')} | Moon → House {h.get('moon', '?')} | Mars → House {h.get('mars', '?')}\n"
         f"  Mercury → House {h.get('mercury', '?')} | Venus → House {h.get('venus', '?')} | Jupiter → House {h.get('jupiter', '?')}\n"
         f"  Saturn → House {h.get('saturn', '?')} | Rahu → House {h.get('rahu', '?')} | Ketu → House {h.get('ketu', '?')}\n\n"
+        f"PLANETARY DIGNITY & STRENGTH:\n{strength_lines}\n"
+        f"NAVAMSA CHART (D9 — Marriage & Dharma):\n{navamsa_lines}\n"
         f"KEY HOUSE ANALYSIS:\n"
         f"  1st (Lagna/Self): Lagna in {profile.get('ascendant')}.\n"
         f"  4th (Sukha/Home/Mother) hosts: {_planets_in_house(h, 4)}.\n"
         f"  5th (Putra/Romance/Creativity) hosts: {_planets_in_house(h, 5)}.\n"
-        f"  6th (Ari/Work/Health) hosts: {_planets_in_house(h, 6)}.\n"
         f"  7th (Yuvati/Marriage/Partners) hosts: {_planets_in_house(h, 7)}.\n"
-        f"  8th (Randhra/Transformation/Longevity) hosts: {_planets_in_house(h, 8)}.\n"
-        f"  9th (Bhagya/Dharma/Luck/Guru) hosts: {_planets_in_house(h, 9)}.\n"
         f"  10th (Karma/Career/Status) hosts: {_planets_in_house(h, 10)}.\n"
-        f"  11th (Labha/Gains/Income) hosts: {_planets_in_house(h, 11)}.\n"
-        f"  12th (Vyaya/Moksha/Foreign/Liberation) hosts: {_planets_in_house(h, 12)}.\n"
-        f"  2nd (Dhana/Wealth/Speech/Family) hosts: {_planets_in_house(h, 2)}.\n"
-        f"  3rd (Sahaj/Siblings/Courage/Skills) hosts: {_planets_in_house(h, 3)}.\n\n"
+        f"  11th (Labha/Gains/Income) hosts: {_planets_in_house(h, 11)}.\n\n"
+        f"YOGAS: {yoga_summary}\n\n"
         f"DASHA TIMING (Vimshottari from Moon Nakshatra):\n"
-        f"  Mahadasha lord: {mahadasha} (major life theme).\n"
-        f"  Antardasha lord: {antardasha} (sub-period).\n"
-        f"  Moon Nakshatra: {nakshatra} (lord: {nak_lord}).\n"
+        f"  Mahadasha: {mahadasha} | Antardasha: {antardasha} | Pratyantardasha: {pratyantardasha}\n"
         f"  Dosha flags: {', '.join(dosha_info)}.\n\n"
+        f"CURRENT TRANSITS:\n"
+        f"  Transit Score: {transit_score}% favorable | Sade Sati: {sade_sati_phase}\n"
+        f"  Prediction Confidence: {confidence}%\n\n"
         "INTERPRETATION RULES (STRICT):\n"
         "- ONLY use Vedic (Jyotish) astrology. NO Western astrology references.\n"
         "- Use ONLY the data provided above. Do NOT guess or hallucinate.\n"
         "- Always mention specific planet + house + dasha when giving reasons.\n"
-        "- Career questions → 10th house, 6th house, Saturn, Jupiter, Mahadasha.\n"
-        "- Love/marriage → 7th house, Venus, Moon, 5th house.\n"
-        "- Money/wealth → 2nd house, 11th house, Jupiter.\n"
-        "- Health → 6th house, 8th house, Mars/Saturn.\n"
-        "- Spiritual → 9th house, 12th house, Ketu, Jupiter.\n"
+        "- Reference yogas and planetary dignity when relevant.\n"
+        "- For timing questions, cite Dasha + Transit confluence.\n"
     )
 
 

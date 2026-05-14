@@ -118,10 +118,10 @@ def generate_dynamic_report_cards(full_name, profile, vedic_structured, vedic_se
         "You MUST return the output as a valid, raw JSON object exactly matching the keys provided. "
         "Do NOT wrap the JSON in markdown code blocks (like ```json ... ```). Just return the raw JSON object.\n\n"
         "REQUIRED KEYS:\n"
-        "- \"personality\": 2-3 sentences about their deep nature based on Sun, Moon, Lagna, and Nakshatra.\n"
-        "- \"career\": 2-3 sentences analyzing the 10th house, Saturn, and Mercury.\n"
-        "- \"love\": 2-3 sentences on relationships based on the 7th house, Venus, and Moon.\n"
-        "- \"future\": 2-3 sentences predicting the overarching life trajectory and karmic goals.\n"
+        "- \"personality\": 2-3 sentences about their deep nature based on Sun, Moon, Lagna, Nakshatra, and active Yogas.\n"
+        "- \"career\": 2-3 sentences analyzing the 10th house, Saturn, Mercury, and Dashamsha (D10).\n"
+        "- \"love\": 2-3 sentences on relationships based on the 7th house, Venus, Moon, and Navamsa (D9).\n"
+        "- \"future\": 2-3 sentences predicting trajectory using Dasha + Transit confidence score.\n"
         "- \"strengths\": 1-2 sentences on their strongest astrological assets.\n"
         "- \"weaknesses\": 1-2 sentences on challenges and how to overcome them.\n"
         "- \"wellness\": 1-2 sentences on health based on the 6th/8th house and Moon.\n"
@@ -186,6 +186,7 @@ def analyze():
         place_label = (request.form.get("place_label") or "").strip()
         place_tz = (request.form.get("place_tz") or "").strip()
         palm_enabled = request.form.get("palm_enabled", "no").strip().lower() == "yes"
+        gender = request.form.get("gender", "").strip().lower()
         hand_choice = request.form.get("hand_choice", "").strip().lower()
         palm_image = request.files.get("palm_image")
         kundli_notes = request.form.get("kundli_notes", "").strip()
@@ -302,7 +303,7 @@ def analyze():
         "vedic_sections": vedic_sections,
         "kundli_image_path": kundli_image_path,
         "hybrid_chart": hybrid_details,
-        # chart_debug and kundli_notes intentionally excluded from stored/returned blob
+        "gender": gender,
     }, ensure_ascii=True)
 
     user_id = getattr(request, "current_user", {}).get("id") if hasattr(request, "current_user") and request.current_user else None
@@ -320,6 +321,9 @@ def analyze():
         "success": True, "report_id": public_id, "profile": profile,
         "blueprint": blueprint, "vedic": vedic_structured, "sections": sections,
         "palm_analysis": palm_text, "report_html": report_html, "created_at": created_at,
+        "yogas": vedic_structured.get("yogas", {}),
+        "transits": vedic_structured.get("transits", {}),
+        "strength": vedic_structured.get("strength", {}),
         "palm_disclaimer": "AI-simulated palm reading — for entertainment purposes only" if palm_text else None,
         "ai_chat_available": bool(os.environ.get("GROQ_API_KEY", "").strip() or os.environ.get("OPENAI_API_KEY", "").strip()),
     })

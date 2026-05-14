@@ -10,6 +10,7 @@ openai==1.40.0
 
 # ── Astronomy / Timezone ─────────────────────────────
 skyfield==1.47
+pyswisseph>=2.10.3
 tzdata==2024.2
 
 # ── Database (PostgreSQL via Supabase) ────────────────
