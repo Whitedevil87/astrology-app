@@ -19,27 +19,27 @@ except ImportError:
 logger = logging.getLogger(__name__)
 
 
-def openai_guru_reply(system: str, user: str) -> Optional[str]:
+def openai_guru_reply(system: str, user: str, max_tokens: int = 350) -> Optional[str]:
     groq_key = os.environ.get("GROQ_API_KEY", "").strip()
     openai_key = os.environ.get("OPENAI_API_KEY", "").strip()
 
     logger.info(f"Chat attempt: groq_key_set={bool(groq_key)}, openai_key_set={bool(openai_key)}")
     if groq_key and GROQ_SDK_AVAILABLE:
-        return _groq_chat(system, user, groq_key)
+        return _groq_chat(system, user, groq_key, max_tokens)
     elif groq_key and not GROQ_SDK_AVAILABLE:
         logger.warning("⚠️  Groq key set but groq SDK not available. Install: pip install groq")
-        return _groq_http_fallback(system, user, groq_key)
+        return _groq_http_fallback(system, user, groq_key, max_tokens)
     if openai_key:
-        return _openai_chat(system, user, openai_key)
+        return _openai_chat(system, user, openai_key, max_tokens)
 
     logger.error("❌ No API key available (GROQ_API_KEY or OPENAI_API_KEY not set)")
     return None
 
 
-def _groq_chat(system: str, user: str, api_key: str) -> Optional[str]:
+def _groq_chat(system: str, user: str, api_key: str, max_tokens: int = 350) -> Optional[str]:
     if not GROQ_SDK_AVAILABLE or Groq is None:
         logger.warning("⚠️ Groq SDK not available, falling back to HTTP")
-        return _groq_http_fallback(system, user, api_key)
+        return _groq_http_fallback(system, user, api_key, max_tokens)
 
     try:
         model = os.environ.get("GROQ_MODEL", "").strip() or "llama-3.1-8b-instant"
@@ -61,7 +61,7 @@ def _groq_chat(system: str, user: str, api_key: str) -> Optional[str]:
             ],
             model=model,
             temperature=0.55,
-            max_tokens=350,
+            max_tokens=max_tokens,
         )
 
         result = chat_completion.choices[0].message.content.strip()
@@ -88,7 +88,7 @@ def _groq_chat(system: str, user: str, api_key: str) -> Optional[str]:
         return None
 
 
-def _groq_http_fallback(system: str, user: str, api_key: str) -> Optional[str]:
+def _groq_http_fallback(system: str, user: str, api_key: str, max_tokens: int = 350) -> Optional[str]:
     try:
         model = os.environ.get("GROQ_MODEL", "").strip() or "llama-3.1-8b-instant"
         logger.info(f"🔄 Using Groq HTTP fallback with model '{model}'")
@@ -99,7 +99,7 @@ def _groq_http_fallback(system: str, user: str, api_key: str) -> Optional[str]:
                 {"role": "user", "content": user},
             ],
             "temperature": 0.55,
-            "max_tokens": 350,
+            "max_tokens": max_tokens,
         }
 
         req = urllib.request.Request(
@@ -153,7 +153,7 @@ def _groq_http_fallback(system: str, user: str, api_key: str) -> Optional[str]:
         return None
 
 
-def _openai_chat(system: str, user: str, api_key: str) -> Optional[str]:
+def _openai_chat(system: str, user: str, api_key: str, max_tokens: int = 350) -> Optional[str]:
     try:
         model = os.environ.get("OPENAI_MODEL", "").strip() or "gpt-4o-mini"
         logger.info(f"🔄 Using OpenAI with model '{model}'")
@@ -164,7 +164,7 @@ def _openai_chat(system: str, user: str, api_key: str) -> Optional[str]:
                 {"role": "user", "content": user},
             ],
             "temperature": 0.55,
-            "max_tokens": 350,
+            "max_tokens": max_tokens,
         }
         req = urllib.request.Request(
             "https://api.openai.com/v1/chat/completions",

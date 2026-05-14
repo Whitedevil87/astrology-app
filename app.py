@@ -143,7 +143,7 @@ def generate_dynamic_report_cards(full_name, profile, vedic_structured, vedic_se
         f"HOUSES:\n{vedic_sections.get('vedic_houses')}\n\nGenerate the JSON report for this person."
     )
     def _call():
-        return openai_guru_reply(system_prompt, chart_data)
+        return openai_guru_reply(system_prompt, chart_data, max_tokens=1500)
 
     try:
         with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
@@ -359,8 +359,13 @@ def api_chat():
     if not report_id or not message:
         return jsonify({"success": False, "error": "report_id and message are required."}), 400
 
-    # CRITICAL-01: Only look up by public UUID — integer ID enumeration removed
-    row = fetch_report_by_public_id(str(report_id))
+    # CRITICAL-01: Look up by public UUID or fallback to integer ID for legacy cached frontend states
+    try:
+        report_id_int = int(report_id)
+        row = fetch_report_row(report_id_int)
+    except ValueError:
+        row = fetch_report_by_public_id(str(report_id))
+
     if row is None:
         return jsonify({"success": False, "error": "Report not found."}), 404
 
