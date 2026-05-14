@@ -296,8 +296,17 @@
 }
 
 .neo-option:hover,
-.neo-option[aria-selected="true"] {
+.neo-option[aria-selected="true"],
+.neo-option.active {
     background: linear-gradient(90deg, rgba(34, 211, 238, 0.12), rgba(168, 85, 247, 0.08));
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+@keyframes placeSpin {
+    to { transform: rotate(360deg); }
 }
 
 .btn-primary,

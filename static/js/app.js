@@ -130,6 +130,15 @@ document.addEventListener("DOMContentLoaded", function () {
         activePlaceIndex = -1;
     }
 
+    function showPlaceLoading() {
+        if (!placeDropdown) return;
+        placeDropdown.innerHTML =
+            '<div class="neo-option neo-option-loading" style="pointer-events:none;display:flex;align-items:center;gap:10px;color:rgba(200,180,255,0.75);font-style:italic;font-size:0.85em;">'
+            + '<span class="place-spinner" style="display:inline-block;width:14px;height:14px;border:2px solid rgba(180,140,255,0.35);border-top-color:#b57bee;border-radius:50%;animation:placeSpin 0.7s linear infinite;flex-shrink:0;"></span>'
+            + 'Loading your place…</div>';
+        placeDropdown.classList.remove("hidden");
+    }
+
     function showPlaceDropdown(items) {
         if (!placeDropdown) return;
         placeDropdown.innerHTML = "";
@@ -166,21 +175,37 @@ document.addEventListener("DOMContentLoaded", function () {
         hidePlaceDropdown();
     }
 
+    // Country priority: South Asia first, then rest of world, then US/Mexico last
+    var _COUNTRY_PRIORITY = {
+        "India": 0, "Nepal": 1, "Sri Lanka": 1, "Bangladesh": 1, "Pakistan": 1,
+        "Bhutan": 1, "Maldives": 1, "Afghanistan": 2
+    };
+    function _countryScore(country) {
+        if (_COUNTRY_PRIORITY.hasOwnProperty(country)) return _COUNTRY_PRIORITY[country];
+        // US and Mexico pushed to bottom
+        if (country === "United States" || country === "Mexico" || country === "Canada") return 99;
+        return 50;
+    }
+
     function _parseOpenMeteoResults(data) {
-        var results = (data && data.results) || [];
+        var raw = (data && data.results) || [];
         var places = [];
-        for (var i = 0; i < results.length && i < 7; i++) {
-            var res = results[i];
+        for (var i = 0; i < raw.length; i++) {
+            var res = raw[i];
             var lat = res.latitude, lon = res.longitude;
             if (lat == null || lon == null) continue;
-            var parts = [res.name || "", res.admin1 || "", res.country || ""].filter(function(p) { return p && p.trim(); });
+            var country = res.country || "";
+            var parts = [res.name || "", res.admin1 || "", country].filter(function(p) { return p && p.trim(); });
             var seen = {};
             var unique = parts.filter(function(p) { if (seen[p]) return false; seen[p] = true; return true; });
             var label = unique.join(", ").substring(0, 140);
             if (!label) continue;
-            places.push({ label: label, lat: parseFloat(lat), lon: parseFloat(lon), tz: res.timezone || "" });
+            places.push({ label: label, lat: parseFloat(lat), lon: parseFloat(lon), tz: res.timezone || "", _score: _countryScore(country) });
         }
-        return places;
+        // Sort: India/South-Asia first, then global, then US/Mexico last
+        places.sort(function(a, b) { return a._score - b._score; });
+        // Take top 5 only
+        return places.slice(0, 5).map(function(p) { return { label: p.label, lat: p.lat, lon: p.lon, tz: p.tz }; });
     }
 
     function _cachePlaces(q, places) {
@@ -205,15 +230,17 @@ document.addEventListener("DOMContentLoaded", function () {
         }
 
         clearTimeout(placeTimeout);
+        // Show loading immediately (before debounce fires)
+        showPlaceLoading();
         placeTimeout = setTimeout(function () {
             // Abort any in-flight request
             if (placeAbortCtrl) placeAbortCtrl.abort();
             placeAbortCtrl = new AbortController();
             var sig = placeAbortCtrl.signal;
 
-            // Try direct Open-Meteo API first (fastest, CORS-enabled)
+            // Fetch more results (count=15) so sorting/filtering works well
             var directUrl = "https://geocoding-api.open-meteo.com/v1/search?name="
-                + encodeURIComponent(q) + "&count=7&language=en&format=json";
+                + encodeURIComponent(q) + "&count=15&language=en&format=json";
 
             fetch(directUrl, { signal: sig })
                 .then(function (r) {
@@ -242,7 +269,7 @@ document.addEventListener("DOMContentLoaded", function () {
                             hidePlaceDropdown();
                         });
                 });
-        }, 150);
+        }, 200);
     }
 
     if (birthPlace) {
