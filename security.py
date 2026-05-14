@@ -35,6 +35,8 @@ def _get_redis():
             _redis_client = Redis(
                 url=UPSTASH_REDIS_REST_URL,
                 token=UPSTASH_REDIS_REST_TOKEN,
+                rest_retries=3,
+                rest_retry_interval=1,
             )
             logger.info("✅ Upstash Redis connected for rate limiting")
         else:
