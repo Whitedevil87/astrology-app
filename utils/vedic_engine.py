@@ -18,8 +18,8 @@ import math
 from typing import Any, Dict, List, Tuple, Optional
 from datetime import datetime, date, time as dt_time
 
-from astrology_math import lahiri_ayanamsa, _norm360 as _math_norm360
-from astrology_constants import (
+from utils.astrology_math import lahiri_ayanamsa, _norm360 as _math_norm360
+from utils.astrology_constants import (
     NAKSHATRA_DATA, VIMSHOTTARI_ORDER, VIMSHOTTARI_PERIODS,
     VIMSHOTTARI_TOTAL_YEARS,
 )

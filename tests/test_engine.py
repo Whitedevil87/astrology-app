@@ -1,10 +1,10 @@
 """Quick verification of the sidereal engine + service imports."""
 import datetime as dt
-from astrology_math import (
+from utils.astrology_math import (
     julian_day, sun_sidereal_longitude_deg, moon_sidereal_longitude_deg,
     lahiri_ayanamsa, nakshatra_index, nakshatra_pada, ascendant_sidereal_longitude_deg,
 )
-from astrology_constants import ZODIAC_ORDER, NAKSHATRA_DATA
+from utils.astrology_constants import ZODIAC_ORDER, NAKSHATRA_DATA
 
 def sign(lon):
     return ZODIAC_ORDER[int(lon // 30) % 12]
@@ -53,7 +53,7 @@ except Exception as e:
     print(f"  analysis_service: FAIL - {e}")
 
 try:
-    from vedic_engine import build_vedic_bundle, format_guru_context, compute_vimshottari_dasha
+    from utils.vedic_engine import build_vedic_bundle, format_guru_context, compute_vimshottari_dasha
     print("  vedic_engine: OK")
 
     # Test Vimshottari

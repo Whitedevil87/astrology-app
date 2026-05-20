@@ -11,12 +11,12 @@ from html import escape
 from typing import Any, Dict, Optional, Tuple
 from zoneinfo import ZoneInfo
 
-from astrology_constants import (
+from utils.astrology_constants import (
     PERSONALITY_RULES, CAREER_RULES, ZODIAC_ORDER, ZODIAC_META,
     STRENGTH_BLURBS, WEAKNESS_BLURBS, LUCKY_DAYS, ELEMENT_COLORS,
     NAKSHATRA_DATA, VIMSHOTTARI_ORDER, VIMSHOTTARI_PERIODS,
 )
-from astrology_math import (
+from utils.astrology_math import (
     julian_day, sun_ecliptic_longitude_deg, moon_ecliptic_longitude_deg,
     ascendant_longitude_deg, _norm360,
     nakshatra_index, nakshatra_pada, nakshatra_fraction,

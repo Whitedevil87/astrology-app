@@ -39,7 +39,7 @@ except ImportError:
     )
 
 # ── Fallback imports ────────────────────────────────────────────────
-from astrology_math import (
+from utils.astrology_math import (
     lahiri_ayanamsa as _fallback_ayanamsa,
     sun_tropical_longitude_deg as _fb_sun_trop,
     moon_tropical_longitude_deg as _fb_moon_trop,
@@ -136,7 +136,7 @@ def _tropical_longitude(jd: float, planet: str) -> float:
     if planet == "Moon":
         return _fb_moon_trop(jd)
     # Lazy import to avoid circular dependency
-    from vedic_engine import _get_planet_lon_tropical
+    from utils.vedic_engine import _get_planet_lon_tropical
     return _get_planet_lon_tropical(jd, planet)
 
 

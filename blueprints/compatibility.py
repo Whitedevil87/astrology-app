@@ -6,8 +6,8 @@ from services.analysis_service import (
     compute_hybrid_big_three, harmony_matches, growth_matches
 )
 from services.auth_service import optional_auth
-from geo import photon_search, timeapi_timezone_name
-from ai_client import openai_guru_reply
+from utils.geo import photon_search, timeapi_timezone_name
+from utils.ai_client import openai_guru_reply
 from datetime import datetime
 
 logger = logging.getLogger(__name__)

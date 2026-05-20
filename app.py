@@ -12,9 +12,9 @@ from flask import Flask, jsonify, render_template, request, session
 from dotenv import load_dotenv
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
-from ai_client import openai_guru_reply
+from utils.ai_client import openai_guru_reply
 from database import init_db, migrate_db, save_report, fetch_report_by_public_id, save_chat_message, get_chat_history
-from geo import photon_search, timeapi_timezone_name
+from utils.geo import photon_search, timeapi_timezone_name
 from security import register_security, ensure_csrf, client_ip
 from services.analysis_service import (
     compute_hybrid_big_three, build_blueprint, build_prediction,
@@ -24,7 +24,7 @@ from services.analysis_service import (
 )
 from services.storage_service import upload_palm_image, upload_kundli_image, delete_file
 from services.auth_service import optional_auth, require_auth
-from vedic_engine import build_vedic_bundle, format_guru_context, get_horoscope_for_sign, generate_kundli_chart_from_birth
+from utils.vedic_engine import build_vedic_bundle, format_guru_context, get_horoscope_for_sign, generate_kundli_chart_from_birth
 
 load_dotenv()
 

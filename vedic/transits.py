@@ -18,7 +18,7 @@ import logging
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
-from astrology_math import julian_day, _norm360
+from utils.astrology_math import julian_day, _norm360
 
 logger = logging.getLogger(__name__)
 
@@ -103,7 +103,7 @@ def current_planet_positions(
         logger.warning("Transit position calculation error: %s — using fallback", exc)
 
     # Fallback: use basic math engine
-    from vedic_engine import _get_planet_lon, _sign_from_longitude
+    from utils.vedic_engine import _get_planet_lon, _sign_from_longitude
     planets = ["Sun", "Moon", "Mars", "Mercury", "Jupiter", "Venus", "Saturn", "Rahu", "Ketu"]
     result = {}
     for planet in planets:

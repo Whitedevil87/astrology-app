@@ -66,7 +66,7 @@ def _send_daily_horoscopes(app):
     with app.app_context():
         try:
             from database import _get_engine, _use_postgres
-            from vedic_engine import get_horoscope_for_sign
+            from utils.vedic_engine import get_horoscope_for_sign
 
             engine = _get_engine()
             if not (_use_postgres and engine is not None):
