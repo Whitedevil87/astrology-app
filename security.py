@@ -142,9 +142,21 @@ _RATE_MAP = {
 
 
 def client_ip() -> str:
-    """Extract the real client IP behind a reverse proxy (Render, etc.)."""
-    fwd = (request.headers.get("X-Forwarded-For") or "").split(",")[0].strip()
-    return fwd or (request.remote_addr or "unknown")
+    """Extract the real client IP safely behind a reverse proxy (Render, Vercel, etc.)."""
+    # Vercel and Render set X-Real-IP. These are harder to spoof.
+    for header in ["X-Real-IP", "True-Client-IP", "CF-Connecting-IP"]:
+        ip = request.headers.get(header)
+        if ip:
+            return ip.strip()
+            
+    # Fallback to X-Forwarded-For, but take the *right-most* (last) IP 
+    # as the first one can be easily spoofed by the client before hitting the proxy.
+    fwd = request.headers.get("X-Forwarded-For")
+    if fwd:
+        parts = [p.strip() for p in fwd.split(",")]
+        return parts[-1]
+        
+    return request.remote_addr or "unknown"
 
 
 def check_rate_limits(ip: str, action: str) -> Optional[Tuple]:

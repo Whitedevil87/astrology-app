@@ -359,20 +359,21 @@ def api_chat():
     if not report_id or not message:
         return jsonify({"success": False, "error": "report_id and message are required."}), 400
 
+    user_id = getattr(request, "current_user", {}).get("id") if hasattr(request, "current_user") and request.current_user else None
+
     # CRITICAL-01: Look up by public UUID or fallback to integer ID for legacy cached frontend states
     try:
         report_id_int = int(report_id)
         row = fetch_report_row(report_id_int)
     except ValueError:
-        row = fetch_report_by_public_id(str(report_id))
+        row = fetch_report_by_public_id(str(report_id), user_id=user_id)
 
     if row is None:
         return jsonify({"success": False, "error": "Report not found."}), 404
 
-    # CRITICAL-02: Ownership check — block if logged-in user doesn't own this report
-    user_id = getattr(request, "current_user", {}).get("id") if hasattr(request, "current_user") and request.current_user else None
-    if user_id and row.get("user_id") and row["user_id"] != user_id:
-        return jsonify({"success": False, "error": "Report not found."}), 404
+    # CRITICAL-02: Ownership check — block if user doesn't own this report
+    if row.get("user_id") and row["user_id"] != user_id:
+        return jsonify({"success": False, "error": "Report not found or unauthorized."}), 404
 
     extras: Dict[str, Any] = {}
     if row.get("report_extras"):

@@ -366,7 +366,7 @@ def fetch_report_by_public_id(public_id: str, user_id: Optional[str] = None) -> 
                 )
             else:
                 result = conn.execute(
-                    text("SELECT * FROM reports WHERE public_id = :pid"),
+                    text("SELECT * FROM reports WHERE public_id = :pid AND user_id IS NULL"),
                     {"pid": public_id}
                 )
             row = result.fetchone()
@@ -382,7 +382,7 @@ def fetch_report_by_public_id(public_id: str, user_id: Optional[str] = None) -> 
             ).fetchone()
         else:
             row = conn.execute(
-                "SELECT * FROM reports WHERE public_id = ?",
+                "SELECT * FROM reports WHERE public_id = ? AND user_id IS NULL",
                 (public_id,)
             ).fetchone()
         conn.close()
