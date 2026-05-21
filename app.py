@@ -532,7 +532,10 @@ def api_delete_report(public_id):
 
 
 # ── Startup ──────────────────────────────────────────────────────────
-os.makedirs(INSTANCE_DIR, exist_ok=True)
+try:
+    os.makedirs(INSTANCE_DIR, exist_ok=True)
+except OSError:
+    pass  # Vercel has a read-only filesystem
 validate_startup_config()
 init_db()
 migrate_db()

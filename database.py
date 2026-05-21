@@ -50,7 +50,10 @@ def _get_engine():
             logger.warning("⚠️ Falling back to SQLite")
 
     # SQLite fallback
-    os.makedirs(INSTANCE_DIR, exist_ok=True)
+    try:
+        os.makedirs(INSTANCE_DIR, exist_ok=True)
+    except OSError:
+        pass  # Vercel read-only filesystem
     _use_postgres = False
     logger.info(f"📁 Using SQLite database: {SQLITE_FALLBACK_PATH}")
     return None  # Signals to use sqlite3 directly
