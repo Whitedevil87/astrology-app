@@ -21,13 +21,27 @@
     <link rel="preload" href="{{ url_for('static', filename='images/celestial-sequence-288/frame_0002.webp') }}" as="image">
     <link rel="preload" href="{{ url_for('static', filename='images/celestial-sequence-288/frame_0003.webp') }}" as="image">
 
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/landing.css') }}?v=28.0">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/landing.css') }}?v=30.0">
 </head>
 
 <body>
-    <!-- Page Loader -->
+    <!-- Page Loader (Skeleton) -->
     <div class="page-loader" id="pageLoader">
-        <div class="page-loader__ring"></div>
+        <div class="skeleton-hero">
+            <div class="skeleton-nav">
+                <div class="skeleton-logo pulse"></div>
+                <div class="skeleton-btn pulse"></div>
+            </div>
+            <div class="skeleton-content">
+                <div class="skeleton-label pulse"></div>
+                <div class="skeleton-title pulse"></div>
+                <div class="skeleton-title pulse" style="width: 60%; margin-top: 12px;"></div>
+                <div class="skeleton-subtitle pulse" style="margin-top: 32px;"></div>
+                <div class="skeleton-subtitle pulse" style="width: 80%; margin-top: 12px;"></div>
+                <div class="skeleton-subtitle pulse" style="width: 50%; margin-top: 12px;"></div>
+                <div class="skeleton-btn-main pulse"></div>
+            </div>
+        </div>
     </div>
 
     <!-- Preload Progress Bar -->
@@ -387,7 +401,7 @@
         }
     </script>
 
-    <script src="{{ url_for('static', filename='js/landing.js') }}?v=28.0"></script>
+    <script src="{{ url_for('static', filename='js/landing.js') }}?v=30.0"></script>
 </body>
 
 </html>
