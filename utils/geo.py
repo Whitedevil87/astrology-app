@@ -50,7 +50,8 @@ def photon_search(q: str, limit: int = 7) -> list[Dict[str, Any]]:
             label = ", ".join(dict.fromkeys(parts))[:140]
             if not label:
                 continue
-            out.append({"label": label, "lat": float(lat), "lon": float(lon)})
+        tz = res.get("timezone") or None
+out.append({"label": label, "lat": float(lat), "lon": float(lon), "tz": tz})
         except (TypeError, ValueError):
             continue
     return out
