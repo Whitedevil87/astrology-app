@@ -93,10 +93,12 @@ def moon_sign(birth_date: date) -> str:
 
 
 def ascendant_sign(birth_time: time, birth_place: str) -> str:
-    """Fallback ascendant — rough hash-based approximation."""
-    place_score = sum(ord(ch) for ch in birth_place.lower() if ch.isalpha())
-    time_bucket = birth_time.hour * 2 + (1 if birth_time.minute >= 30 else 0)
-    return ZODIAC_ORDER[(place_score + time_bucket) % 12]
+    """
+    Fallback ascendant - called ONLY when lat/lon/tz unavailable.
+    Returns 'Unknown' so UI shows clear error instead of wrong sign.
+    Real ascendant is computed in compute_hybrid_big_three().
+    """
+    return "Unknown"
 
 
 # ── Sign from Longitude ─────────────────────────────────────────────
