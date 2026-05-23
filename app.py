@@ -266,12 +266,14 @@ def analyze():
             chart_debug["hybrid_error"] = str(e)
 
     if profile is None:
+        # NOTE: ascendant cannot be calculated without lat/lon/timezone
+        # Sun & Moon signs use date-based fallback, ascendant shows Unknown
         profile = {
             "zodiac": zodiac_sign(parsed_date),
             "moon_sign": moon_sign(parsed_date),
-            "ascendant": ascendant_sign(parsed_time, birth_place),
+            "ascendant": "Unknown (location required)",
         }
-        chart_debug["fallback"] = "legacy_approx"
+        chart_debug["fallback"] = "legacy_approx — ascendant unavailable without geocoding"
 
     # Always add the Western/tropical sign for comparison
     profile["western_zodiac"] = western_zodiac_sign(parsed_date)
