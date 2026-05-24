@@ -904,11 +904,14 @@ def generate_kundli_chart_from_birth(
         _lat_r = _math.radians(_lat)
         _lmst_r = _math.radians(_LMST)
         # Step 5: Ascendant formula
+        # Note: atan2(-cos(LMST), sin(e)*tan(lat)+cos(e)*sin(LMST)) gives DESCENDANT
+        # Adding 180° converts to ASCENDANT (eastern horizon point)
         _y = -_math.cos(_lmst_r)
         _x = _math.sin(_eps) * _math.tan(_lat_r) + _math.cos(_eps) * _math.sin(_lmst_r)
-        _asc_trop = _math.degrees(_math.atan2(_y, _x)) % 360
+        _asc_trop = (_math.degrees(_math.atan2(_y, _x)) + 180.0) % 360
         # Step 6: Apply Lahiri Ayanamsa for sidereal (Vedic) ascendant
-        _ayanamsa = 22.460148 + (_year - 1900) * 0.013611
+        # Using precise Lahiri base: 22°27'47.76" in 1900, +50.2388" per year
+        _ayanamsa = (22 + 27/60 + 47.76/3600) + (_year - 1900) * (50.2388/3600)
         _asc_sid = (_asc_trop - _ayanamsa) % 360
         ascendant = ZODIAC_ORDER[int(_asc_sid / 30)]
         
