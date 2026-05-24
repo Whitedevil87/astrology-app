@@ -131,9 +131,10 @@ button {
   z-index: 10000;
   background: var(--color-bg-deep);
   display: flex;
+  flex-direction: column;
   align-items: center;
-  justify-content: center;
-  transition: opacity 0.6s var(--ease-out-expo), visibility 0.6s;
+  justify-content: space-between;
+  transition: opacity 0.4s ease, visibility 0.4s;
 }
 
 .page-loader--hidden {
@@ -142,6 +143,7 @@ button {
   pointer-events: none;
 }
 
+/* ── Skeleton: full page layout ── */
 .skeleton-hero {
   width: 100%;
   height: 100vh;
@@ -152,74 +154,156 @@ button {
   flex-direction: column;
 }
 
+/* Nav */
 .skeleton-nav {
-  height: 72px; /* matches .nav__inner height + padding roughly */
+  height: 72px;
   display: flex;
   justify-content: space-between;
   align-items: center;
   width: 100%;
+  gap: 20px;
 }
 
 .skeleton-logo {
-  width: 140px;
-  height: 24px;
-  background: rgba(255, 255, 255, 0.05);
+  width: 130px;
+  height: 22px;
+  background: rgba(255,255,255,0.07);
+  border-radius: 4px;
+  flex-shrink: 0;
+}
+
+.skeleton-nav-links {
+  display: flex;
+  gap: 24px;
+  flex: 1;
+  justify-content: center;
+}
+
+.skeleton-nav-link {
+  width: 60px;
+  height: 14px;
+  background: rgba(255,255,255,0.05);
   border-radius: 4px;
 }
 
 .skeleton-btn {
-  width: 140px;
-  height: 38px;
-  background: rgba(255, 255, 255, 0.05);
+  width: 120px;
+  height: 36px;
+  background: rgba(255,255,255,0.06);
   border-radius: 8px;
+  flex-shrink: 0;
 }
 
+/* Content */
 .skeleton-content {
   flex: 1;
   display: flex;
   flex-direction: column;
   justify-content: center;
-  max-width: 560px;
-  padding-bottom: 10vh;
+  max-width: 580px;
+  padding-bottom: 8vh;
+  gap: 14px;
 }
 
 .skeleton-label {
-  width: 220px;
-  height: 18px;
-  background: rgba(255, 215, 0, 0.15); /* gold hint */
-  border-radius: 4px;
-  margin-bottom: 24px;
+  width: 200px;
+  height: 16px;
+  background: rgba(255,215,0,0.12);
+  border-radius: 20px;
+  margin-bottom: 8px;
 }
 
 .skeleton-title {
-  width: 90%;
-  height: 56px;
-  background: rgba(255, 255, 255, 0.08);
+  width: 100%;
+  height: 52px;
+  background: rgba(255,255,255,0.08);
   border-radius: 8px;
 }
 
 .skeleton-subtitle {
   width: 100%;
-  height: 16px;
-  background: rgba(255, 255, 255, 0.05);
+  height: 14px;
+  background: rgba(255,255,255,0.05);
   border-radius: 4px;
 }
 
+.skeleton-actions {
+  display: flex;
+  gap: 16px;
+  margin-top: 12px;
+}
+
 .skeleton-btn-main {
-  width: 220px;
+  width: 180px;
   height: 48px;
-  background: rgba(74, 124, 255, 0.15); /* blue hint */
+  background: rgba(74,124,255,0.18);
   border-radius: 12px;
-  margin-top: 40px;
+}
+
+.skeleton-btn-secondary {
+  width: 140px;
+  height: 48px;
+  background: rgba(255,255,255,0.06);
+  border-radius: 12px;
+}
+
+/* Bottom loading indicator */
+.skeleton-loader-text {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 20px;
+  font-size: 0.75rem;
+  color: rgba(255,255,255,0.3);
+  letter-spacing: 0.05em;
+}
+
+.skeleton-spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(255,255,255,0.1);
+  border-top-color: rgba(140,170,255,0.6);
+  border-radius: 50%;
+  animation: skeletonSpin 0.8s linear infinite;
+  flex-shrink: 0;
+}
+
+@keyframes skeletonSpin {
+  to { transform: rotate(360deg); }
 }
 
 .pulse {
-  animation: skeletonPulse 1.2s ease-in-out infinite alternate;
+  animation: skeletonPulse 1.4s ease-in-out infinite alternate;
 }
 
 @keyframes skeletonPulse {
-  0% { opacity: 0.3; }
-  100% { opacity: 0.8; }
+  0%   { opacity: 0.25; }
+  100% { opacity: 0.65; }
+}
+
+/* ── Mobile skeleton ── */
+@media (max-width: 768px) {
+  .skeleton-nav-links { display: none; } /* hide nav links on mobile */
+
+  .skeleton-logo { width: 100px; }
+  .skeleton-btn  { width: 90px; height: 32px; }
+
+  .skeleton-title { height: 40px; }
+
+  .skeleton-actions {
+    flex-direction: column;
+    gap: 10px;
+  }
+  .skeleton-btn-main,
+  .skeleton-btn-secondary {
+    width: 100%;
+    height: 44px;
+  }
+
+  /* Show page faster — fade out skeleton quicker */
+  .page-loader {
+    transition: opacity 0.25s ease, visibility 0.25s;
+  }
 }
 
 /* ── AMBIENT BACKGROUND ───────────────────────────────── */
@@ -1728,5 +1812,117 @@ button {
 
   .story-panel {
     filter: none !important;
+  }
+}
+
+/* ════════════════════════════════════════════════════════════
+   MOBILE PERFORMANCE & TEXT VISIBILITY FIXES
+   ════════════════════════════════════════════════════════════ */
+
+@media (max-width: 768px) {
+
+  /* ── Disable GPU-heavy effects on mobile ── */
+  .story-panel {
+    will-change: opacity;          /* remove filter from will-change */
+    filter: none !important;       /* no blur — kills GPU on mobile */
+    -webkit-backdrop-filter: none !important;
+    backdrop-filter: none !important;
+  }
+
+  .story-panel--active {
+    filter: none !important;
+  }
+
+  /* ── Text panels: full width, bottom-anchored so canvas shows above ── */
+  .story-panel__inner {
+    padding: 0 16px;
+  }
+
+  .panel-hero .story-panel__inner,
+  .panel-engine .story-panel__inner,
+  .panel-intelligence .story-panel__inner,
+  .panel-activation .story-panel__inner {
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: flex-end !important;
+    grid-template-columns: 1fr !important;
+    min-height: 100vh;
+    padding-bottom: 80px;
+    padding-top: 72px;
+  }
+
+  /* ── Strong text shadow so text is readable over any video frame ── */
+  .hero__title,
+  .hero__tagline,
+  .panel-hero h1,
+  .panel-hero h2,
+  .panel-hero p,
+  .panel-engine h2,
+  .panel-engine p,
+  .panel-intelligence h2,
+  .panel-intelligence p,
+  .panel-activation h2,
+  .panel-activation p {
+    text-shadow: 0 2px 16px rgba(0,0,0,0.95),
+                 0 0 40px rgba(0,0,0,0.8) !important;
+  }
+
+  /* ── Dark gradient behind text so it's always readable ── */
+  .panel-hero .story-panel__inner::before,
+  .panel-engine .story-panel__inner::before,
+  .panel-intelligence .story-panel__inner::before,
+  .panel-activation .story-panel__inner::before {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 55%;
+    background: linear-gradient(to top, rgba(4,7,14,0.92) 0%, transparent 100%);
+    z-index: -1;
+    pointer-events: none;
+  }
+
+  /* ── Smaller heading sizes for mobile ── */
+  .hero__title {
+    font-size: clamp(2rem, 9vw, 3.2rem) !important;
+    line-height: 1.1 !important;
+  }
+
+  /* ── Reduce particle canvas overhead ── */
+  canvas + canvas {
+    display: none;
+  }
+
+  /* ── Hide decorative animated elements on mobile ── */
+  .hero__visual,
+  .floating-orb,
+  .parallax-element {
+    display: none !important;
+  }
+
+  /* ── Cinematic overlay: stronger on mobile for text contrast ── */
+  .cinematic-overlay {
+    opacity: 0.6 !important;
+  }
+
+  /* ── Engine cards: single column, smaller ── */
+  .engine-features {
+    grid-template-columns: 1fr !important;
+    gap: 12px !important;
+  }
+
+  .engine-card {
+    padding: 18px 14px !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    background: rgba(10, 15, 40, 0.85) !important;
+  }
+
+  /* ── Intel cards ── */
+  .intel-card {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    background: rgba(10, 15, 40, 0.85) !important;
   }
 }
