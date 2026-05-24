@@ -875,7 +875,42 @@ def generate_kundli_chart_from_birth(
         
         # Use moon sign (simplified)
         moon_sign = ZODIAC_ORDER[(int(sun_lon / 30) + 3) % 12]
-        ascendant = ZODIAC_ORDER[(int(sun_lon / 30) + 6) % 12]
+        
+        # --- Proper Ascendant Calculation (LMST-based) ---
+        import math as _math
+        # Step 1: Convert IST birth time to UTC (subtract 5h 30m)
+        _lon = birth_place_lon if birth_place_lon else 91.0  # default: Guwahati
+        _lat = birth_place_lat if birth_place_lat else 26.0
+        _ut = birth_dt.hour + birth_dt.minute / 60.0 + birth_dt.second / 3600.0
+        _ut_utc = _ut - 5.5  # IST -> UTC
+        _day = birth_dt.day
+        _month = birth_dt.month
+        _year = birth_dt.year
+        if _ut_utc < 0:
+            _ut_utc += 24
+            _day -= 1
+        # Step 2: Julian Day Number
+        _A = int((14 - _month) / 12)
+        _Y = _year + 4800 - _A
+        _M = _month + 12 * _A - 3
+        _JD = _day + int((153 * _M + 2) / 5) + 365 * _Y + int(_Y / 4) - int(_Y / 100) + int(_Y / 400) - 32045
+        _JD = _JD + (_ut_utc - 12) / 24.0
+        # Step 3: GMST -> LMST
+        _T = (_JD - 2451545.0) / 36525.0
+        _GMST = (280.46061837 + 360.98564736629 * (_JD - 2451545.0) + 0.000387933 * _T ** 2) % 360
+        _LMST = (_GMST + _lon) % 360
+        # Step 4: Obliquity
+        _eps = _math.radians(23.439291111 - 0.013004167 * _T)
+        _lat_r = _math.radians(_lat)
+        _lmst_r = _math.radians(_LMST)
+        # Step 5: Ascendant formula
+        _y = -_math.cos(_lmst_r)
+        _x = _math.sin(_eps) * _math.tan(_lat_r) + _math.cos(_eps) * _math.sin(_lmst_r)
+        _asc_trop = _math.degrees(_math.atan2(_y, _x)) % 360
+        # Step 6: Apply Lahiri Ayanamsa for sidereal (Vedic) ascendant
+        _ayanamsa = 22.460148 + (_year - 1900) * 0.013611
+        _asc_sid = (_asc_trop - _ayanamsa) % 360
+        ascendant = ZODIAC_ORDER[int(_asc_sid / 30)]
         
         # Generate SVG
         svg = generate_kundli_svg(zodiac, moon_sign, ascendant, {})
