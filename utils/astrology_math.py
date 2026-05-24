@@ -120,15 +120,26 @@ def ascendant_tropical_longitude_deg(jd: float, lat_deg: float, lon_deg: float) 
     """
     Tropical Ascendant ecliptic longitude (degrees).
     Standard formula: tan(ASC) = -cos(RAMC) / [sin(eps)*tan(lat) + cos(eps)*sin(RAMC)]
+
+    IMPORTANT: atan2 returns one of two possible solutions 180° apart.
+    Quadrant correction: when RAMC is in [0°, 180°), add 180° to the result
+    so the Ascendant lands on the correct (eastern) horizon.
     """
     eps = _deg_to_rad(23.4393 - 0.0000004 * (jd - 2451545.0))
     lat = _deg_to_rad(lat_deg)
-    ramc = _deg_to_rad(_norm360(gmst_hours(jd) * 15.0 + lon_deg))
+    ramc_deg = _norm360(gmst_hours(jd) * 15.0 + lon_deg)
+    ramc = _deg_to_rad(ramc_deg)
 
     y_val = -math.cos(ramc)
     x_val = math.sin(eps) * math.tan(lat) + math.cos(eps) * math.sin(ramc)
-    asc_rad = math.atan2(y_val, x_val)
-    return _norm360(_rad_to_deg(asc_rad))
+    asc_deg = _norm360(_rad_to_deg(math.atan2(y_val, x_val)))
+
+    # Quadrant correction: atan2 can be off by 180°.
+    # When RAMC < 180°, the eastern horizon is in the second half of the zodiac.
+    if ramc_deg < 180.0:
+        asc_deg = _norm360(asc_deg + 180.0)
+
+    return asc_deg
 
 def ascendant_sidereal_longitude_deg(jd: float, lat_deg: float, lon_deg: float) -> float:
     """Sidereal Ascendant using KP Ayanamsa."""
