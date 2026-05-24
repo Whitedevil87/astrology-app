@@ -25,8 +25,14 @@
   'use strict';
 
   // ── CONFIGURATION ──────────────────────────────────────
+  // ── Mobile detection: use every 3rd frame on phones to reduce memory ──
+  const isMobile = /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent) || window.innerWidth < 768;
+  const FRAME_STEP = isMobile ? 3 : 1;   // mobile: ~96 effective frames, desktop: all 288
+  const EFFECTIVE_FRAMES = Math.floor(288 / FRAME_STEP);
+
   const CONFIG = {
     totalFrames: 288,
+    frameStep: FRAME_STEP,
     frameBasePath: '/static/images/celestial-sequence-288/frame_',
     frameExtension: '.webp',
 
@@ -38,12 +44,12 @@
       activation:   { start: 0.75, end: 1.00, overlay: 'overlay-activation' },
     },
 
-    // Panel transitions: fade begins this far before/after boundary
-    panelFadeZone: 0.04,
+    // Panel transitions: wider fade zone so text is visible longer
+    panelFadeZone: isMobile ? 0.10 : 0.06,
 
-    // Preloading
-    preloadBatchSize: 10,
-    preloadInterval: 30,
+    // Preloading — smaller batches on mobile
+    preloadBatchSize: isMobile ? 5 : 10,
+    preloadInterval: isMobile ? 50 : 30,
 
     // Rendering
     navScrollThreshold: 40,
@@ -51,8 +57,8 @@
     particleMaxSize: 1.5,
     particleMinSize: 0.3,
 
-    // Smooth interpolation factor (higher = snappier, lower = smoother)
-    lerpFactor: 0.12,
+    // Smooth interpolation factor (lower = heavier, more expensive feel)
+    lerpFactor: 0.06,
   };
 
   // ── UTILITIES ──────────────────────────────────────────
@@ -119,17 +125,24 @@
   }
 
   async function preloadAllFrames() {
-    // Phase 1: Critical frames — first 15 + evenly spaced keyframes
+    // Phase 1: Critical frames
+    // Mobile: only first 3 frames — show page FAST, load rest in background
+    // Desktop: first 15 + keyframes every 10th
     const critical = new Set();
-    for (let i = 1; i <= 15; i++) critical.add(i);
-    // Keyframes at every 10th frame
-    for (let i = 20; i <= CONFIG.totalFrames; i += 10) critical.add(i);
-    critical.add(CONFIG.totalFrames);
+
+    if (isMobile) {
+      // Just 3 frames — enough to show page immediately
+      for (let i = 1; i <= 3; i++) critical.add(i);
+    } else {
+      for (let i = 1; i <= 15; i++) critical.add(i);
+      for (let i = 20; i <= CONFIG.totalFrames; i += 10) critical.add(i);
+      critical.add(CONFIG.totalFrames);
+    }
 
     const criticalArr = [...critical].sort((a, b) => a - b);
     await Promise.all(criticalArr.map(preloadImage));
 
-    // Reveal the page once critical frames are ready
+    // Reveal the page immediately — don't wait for all frames
     hideLoader();
 
     // Immediately draw the first frame so the user doesn't see a black screen
@@ -154,10 +167,14 @@
       }
     }, { passive: true });
 
-    // Phase 2: Remaining frames in batches
+    // Phase 2: Remaining frames in background
+    // Mobile: only load step frames (every 3rd), skip rest entirely
     const remaining = [];
     for (let i = 1; i <= CONFIG.totalFrames; i++) {
-      if (!critical.has(i)) remaining.push(i);
+      if (!critical.has(i)) {
+        if (isMobile && i % FRAME_STEP !== 1) continue; // skip non-step frames on mobile
+        remaining.push(i);
+      }
     }
 
     let idx = 0;
@@ -165,6 +182,14 @@
       const batch = remaining.slice(idx, idx + CONFIG.preloadBatchSize);
       await Promise.all(batch.map(preloadImage));
       idx += CONFIG.preloadBatchSize;
+      // On mobile free memory of frames far from current position
+      if (isMobile && loadedCount % 30 === 0) {
+        imageCache.forEach((img, key) => {
+          if (Math.abs(key - Math.round(displayFrame)) > 40) {
+            imageCache.delete(key);
+          }
+        });
+      }
       // Yield to main thread
       if (idx < remaining.length) {
         await new Promise(r => setTimeout(r, CONFIG.preloadInterval));
@@ -298,7 +323,7 @@
 
   function resizeCanvas() {
     if (!canvas) return;
-    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const dpr = isMobile ? Math.min(window.devicePixelRatio || 1, 1.5) : Math.min(window.devicePixelRatio || 1, 2);
     const w = window.innerWidth;
     const h = window.innerHeight;
 
@@ -333,19 +358,22 @@
 
     currentProgress = clamp(scrolled / runway, 0, 1);
 
-    // Map progress → frame index
-    targetFrame = 1 + currentProgress * (CONFIG.totalFrames - 1);
+    // Map progress → frame index (snap to step grid on mobile)
+    let rawFrame = 1 + currentProgress * (CONFIG.totalFrames - 1);
+    rawFrame = clamp(rawFrame, 1, CONFIG.totalFrames);
+    // On mobile round to nearest loaded step to avoid blank frames
+    targetFrame = isMobile
+      ? Math.round((rawFrame - 1) / FRAME_STEP) * FRAME_STEP + 1
+      : rawFrame;
     targetFrame = clamp(targetFrame, 1, CONFIG.totalFrames);
   }
 
   function animationLoop() {
-    // Smooth interpolation toward target
+    // Pure, buttery smooth continuous interpolation
     const diff = Math.abs(displayFrame - targetFrame);
 
-    if (diff > 0.3) {
-      // Dynamic lerp: faster when far away, slower when close
-      const factor = diff > 5 ? 0.2 : CONFIG.lerpFactor;
-      displayFrame = lerp(displayFrame, targetFrame, factor);
+    if (diff > 0.05) {
+      displayFrame = lerp(displayFrame, targetFrame, CONFIG.lerpFactor);
     } else {
       displayFrame = targetFrame;
     }
@@ -465,7 +493,13 @@
 
       if (opacity > 0.01) {
         panel.style.opacity = opacity;
-        panel.style.filter = opacity < 0.5 ? `blur(${(1 - opacity * 2) * 6}px)` : 'blur(0px)';
+        // Skip blur on mobile — GPU-expensive and causes lag
+        panel.style.filter = (!isMobile && opacity < 0.5) ? `blur(${(1 - opacity * 2) * 6}px)` : 'none';
+        
+        // Premium floating reveal effect based directly on scroll progress
+        const translateY = (1 - opacity) * 30;
+        panel.style.transform = `translateY(${translateY}px)`;
+        
         panel.style.pointerEvents = opacity > 0.5 ? 'auto' : 'none';
         panel.classList.add('story-panel--active');
 
@@ -478,6 +512,7 @@
       } else {
         panel.style.opacity = 0;
         panel.style.filter = 'blur(6px)';
+        panel.style.transform = 'translateY(30px)';
         panel.style.pointerEvents = 'none';
         panel.classList.remove('story-panel--active');
       }
@@ -529,7 +564,7 @@
     function resize() {
       width = window.innerWidth;
       height = window.innerHeight;
-      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      const dpr = isMobile ? Math.min(window.devicePixelRatio || 1, 1.5) : Math.min(window.devicePixelRatio || 1, 2);
       particleCanvas.width = width * dpr;
       particleCanvas.height = height * dpr;
       particleCanvas.style.width = width + 'px';
@@ -542,11 +577,11 @@
         x: Math.random() * width,
         y: Math.random() * height,
         size: CONFIG.particleMinSize + Math.random() * (CONFIG.particleMaxSize - CONFIG.particleMinSize),
-        speedX: (Math.random() - 0.5) * 0.1,
-        speedY: (Math.random() - 0.5) * 0.05,
-        opacity: 0.06 + Math.random() * 0.2,
+        speedX: (Math.random() - 0.5) * 0.04,
+        speedY: (Math.random() - 0.5) * 0.02,
+        opacity: 0.03 + Math.random() * 0.15,
         pulse: Math.random() * Math.PI * 2,
-        pulseSpeed: 0.003 + Math.random() * 0.006,
+        pulseSpeed: 0.001 + Math.random() * 0.003,
       };
     }
 
