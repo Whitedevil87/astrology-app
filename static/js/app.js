@@ -239,6 +239,32 @@ document.addEventListener("DOMContentLoaded", function () {
             var directUrl = "https://geocoding-api.open-meteo.com/v1/search?name="
                 + encodeURIComponent(q) + "&count=15&language=en&format=json";
 
+            function tryNominatim() {
+                var nominatimUrl = "https://nominatim.openstreetmap.org/search?q="
+                    + encodeURIComponent(q) + "&format=json&limit=8&addressdetails=1";
+                return fetch(nominatimUrl, { signal: sig, headers: { "Accept-Language": "en" } })
+                    .then(function (r) { return r.json(); })
+                    .then(function (data) {
+                        if (lastPlaceQuery !== q) return;
+                        if (!data || !data.length) { hidePlaceDropdown(); return; }
+                        var places = data.slice(0, 5).map(function (item) {
+                            var parts = [];
+                            if (item.address) {
+                                var a = item.address;
+                                var city = a.city || a.town || a.village || a.county || "";
+                                var state = a.state || "";
+                                var country = a.country || "";
+                                [city, state, country].forEach(function (p) { if (p && p.trim()) parts.push(p.trim()); });
+                            }
+                            var seen = {}; var unique = parts.filter(function (p) { if (seen[p]) return false; seen[p] = true; return true; });
+                            var label = unique.join(", ") || item.display_name || "";
+                            return { label: label.substring(0, 140), lat: parseFloat(item.lat), lon: parseFloat(item.lon), tz: "" };
+                        }).filter(function (p) { return p.label; });
+                        _cachePlaces(q, places);
+                        showPlaceDropdown(places);
+                    });
+            }
+
             fetch(directUrl, { signal: sig })
                 .then(function (r) {
                     if (!r.ok) throw new Error("HTTP " + r.status);
@@ -247,24 +273,41 @@ document.addEventListener("DOMContentLoaded", function () {
                 .then(function (data) {
                     if (lastPlaceQuery !== q) return;
                     var places = _parseOpenMeteoResults(data);
-                    _cachePlaces(q, places);
-                    showPlaceDropdown(places);
+                    if (places.length) {
+                        _cachePlaces(q, places);
+                        showPlaceDropdown(places);
+                    } else {
+                        // Open-Meteo returned empty — try Nominatim
+                        return tryNominatim().catch(function () {
+                            // Nominatim failed too — try backend
+                            return fetch("/api/places?q=" + encodeURIComponent(q), { signal: sig })
+                                .then(function (r) { return r.json(); })
+                                .then(function (d) {
+                                    if (lastPlaceQuery !== q) return;
+                                    var ps = (d && d.places) || [];
+                                    _cachePlaces(q, ps);
+                                    showPlaceDropdown(ps);
+                                });
+                        });
+                    }
                 })
                 .catch(function (err) {
                     if (err && err.name === "AbortError") return;
-                    // Fallback: use the backend /api/places route
-                    fetch("/api/places?q=" + encodeURIComponent(q), { signal: sig })
-                        .then(function (r) { return r.json(); })
-                        .then(function (data) {
-                            if (lastPlaceQuery !== q) return;
-                            var places = (data && data.places) || [];
-                            _cachePlaces(q, places);
-                            showPlaceDropdown(places);
-                        })
-                        .catch(function (err2) {
-                            if (err2 && err2.name === "AbortError") return;
-                            hidePlaceDropdown();
-                        });
+                    // Open-Meteo failed — try Nominatim first, then backend
+                    tryNominatim().catch(function () {
+                        fetch("/api/places?q=" + encodeURIComponent(q), { signal: sig })
+                            .then(function (r) { return r.json(); })
+                            .then(function (data) {
+                                if (lastPlaceQuery !== q) return;
+                                var places = (data && data.places) || [];
+                                _cachePlaces(q, places);
+                                showPlaceDropdown(places);
+                            })
+                            .catch(function (err2) {
+                                if (err2 && err2.name === "AbortError") return;
+                                hidePlaceDropdown();
+                            });
+                    });
                 });
         }, 200);
     }
@@ -275,7 +318,7 @@ document.addEventListener("DOMContentLoaded", function () {
             fetchPlaceSuggestions(this.value);
         });
         birthPlace.addEventListener("blur", function () {
-            setTimeout(hidePlaceDropdown, 120);
+            setTimeout(hidePlaceDropdown, 220);
         });
         birthPlace.addEventListener("focus", function () {
             fetchPlaceSuggestions(this.value);
@@ -332,7 +375,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
         const nowY = new Date().getFullYear();
         birthYear.innerHTML = '<option value="">Year</option>';
-        for (let y = nowY; y >= 1940; y -= 1) {
+        for (let y = nowY; y >= 1920; y -= 1) {
             const opt = document.createElement("option");
             opt.value = String(y);
             opt.textContent = String(y);
