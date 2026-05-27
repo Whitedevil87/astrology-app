@@ -301,7 +301,9 @@ def compute_panchanga(
     }
 
     # ── 5. KARANA (Half-tithi) ─────────────────────────────────
-    karana_num = int(moon_sun_diff / 6.0)   # 0-59 for the full month
+   
+
+    karana_num = math.floor(moon_sun_diff / 6.0)  # 0-59 for the full month
     karana_name = _karana_name(karana_num)
     karana = {
         "name": karana_name,
@@ -394,7 +396,7 @@ def _karana_name(karana_num: int) -> str:
     elif karana_num >= 57:
         return _FIXED_KARANAS[karana_num - 57 + 1]
     else:
-       return _MOVING_KARANAS[karana_num % 7]
+       return _MOVING_KARANAS[(karana_num - 1) % 7]
 
 
 def _compute_hora(
