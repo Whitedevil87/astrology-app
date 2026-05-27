@@ -394,7 +394,7 @@ def _karana_name(karana_num: int) -> str:
     elif karana_num >= 57:
         return _FIXED_KARANAS[karana_num - 57 + 1]
     else:
-        return _MOVING_KARANAS[(karana_num - 1) % 7]
+       return _MOVING_KARANAS[karana_num % 7]
 
 
 def _compute_hora(
