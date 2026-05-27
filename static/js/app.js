@@ -2,6 +2,16 @@
  * Celestial Arc — step flow, manual DOB validation,
  * API call, blueprint chips, and rich report rendering.
  */
+
+function escapeHtml(value) {
+    return String(value || "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+}
+
 document.addEventListener("DOMContentLoaded", function () {
     "use strict";
 
@@ -97,19 +107,6 @@ document.addEventListener("DOMContentLoaded", function () {
                     chatHint.textContent = "Ask about Rahu/Ketu, marriage, career, dasha, or remedies.";
                 }
             });
-    }
-
-    // ============================================
-    // HTML ESCAPING
-    // ============================================
-
-    function escapeHtml(value) {
-        return String(value || "")
-            .replace(/&/g, "&amp;")
-            .replace(/</g, "&lt;")
-            .replace(/>/g, "&gt;")
-            .replace(/"/g, "&quot;")
-            .replace(/'/g, "&#039;");
     }
 
     // ============================================
@@ -517,6 +514,12 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     function renderResults(data) {
+        ["ca-dasha-section", "ca-panchanga-section", "ca-ashtakavarga-section", "vedicInfoBanner"]
+            .forEach(function (id) {
+                var el = document.getElementById(id);
+                if (el) el.remove();
+            });
+
         const profile = data.profile || {};
         const bp = data.blueprint || {};
         var westernSign = profile.western_zodiac || "";
@@ -663,14 +666,13 @@ document.addEventListener("DOMContentLoaded", function () {
             reportSections.innerHTML = html;
         }
 
-        // ── NEW: Dasha Timeline ──────────────────────────────────────
-        _renderDashaSection(data.dasha);
-
-        // ── NEW: Panchanga ───────────────────────────────────────────
-        _renderPanchangaSection(data.panchanga);
-
-        // ── NEW: Ashtakavarga ────────────────────────────────────────
-        _renderAshtakavargaSection(data.ashtakavarga, (data.profile || {}).ascendant);
+        try {
+            _renderDashaSection(data.dasha);
+            _renderPanchangaSection(data.panchanga);
+            _renderAshtakavargaSection(data.ashtakavarga, (data.profile || {}).ascendant);
+        } catch (featureErr) {
+            console.error("Feature section render error:", featureErr);
+        }
 
         if (reportPrintBlock && data.report_html) {
             reportPrintBlock.innerHTML = data.report_html;
@@ -847,6 +849,10 @@ document.addEventListener("DOMContentLoaded", function () {
 
     async function _playKundliAnimation(chartData, doneCallback) {
         var anim = document.getElementById("kundliAnimation");
+        if (!anim) {
+            if (doneCallback) doneCallback();
+            return;
+        }
         var stars = document.getElementById("kundliStars");
         var grid = document.getElementById("kundliGrid");
         var portal = document.getElementById("kundliPortal");
@@ -856,6 +862,10 @@ document.addEventListener("DOMContentLoaded", function () {
         var progFill = document.getElementById("kundliProgressFill");
         var completeOv = document.getElementById("kundliComplete");
         var skipBtn = document.getElementById("kundliSkip");
+        if (!chartArea) {
+            if (doneCallback) doneCallback();
+            return;
+        }
 
         var skipped = false;
         function doSkip() { skipped = true; }
@@ -1259,16 +1269,26 @@ document.addEventListener("DOMContentLoaded", function () {
             .then(function (data) {
                 finishProgress();
                 setTimeout(function () {
-                    if (processing) processing.classList.add("hidden");
                     try {
-                        _playKundliAnimation(data, function () {
-                            renderResults(data);
-                            onlyStep(results, 4);
-                        });
-                    } catch (animErr) {
-                        console.error("Animation error:", animErr);
                         renderResults(data);
                         onlyStep(results, 4);
+                        if (processing) processing.classList.add("hidden");
+
+                        var skipAnim = window.matchMedia("(max-width: 768px)").matches
+                            || window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+                        if (!skipAnim && data.vedic && data.vedic.houses) {
+                            try {
+                                _playKundliAnimation(data, function () {});
+                            } catch (animErr) {
+                                console.warn("Kundli animation skipped:", animErr);
+                            }
+                        }
+                    } catch (renderErr) {
+                        console.error("Render error:", renderErr);
+                        resetProgress();
+                        if (processing) processing.classList.add("hidden");
+                        showError("Your reading was created but could not be shown. Please refresh and try again.");
+                        onlyStep(step1, 1);
                     }
                 }, 320);
             })
@@ -1516,8 +1536,13 @@ document.addEventListener("DOMContentLoaded", function () {
                         sections: {
                             personality: r.personality,
                             career: r.career,
-                            love: r.love_life, // DB col is love_life
-                            future: r.future_outlook // DB col is future_outlook
+                            love: r.love_life,
+                            future: r.future_outlook,
+                            strengths: r.strengths,
+                            weaknesses: r.weaknesses,
+                            wellness: r.wellness,
+                            compatibility: r.compatibility,
+                            seasonal_energy: r.seasonal_energy
                         },
                         palm_analysis: r.palm_analysis,
                         report_html: r.report_html,
@@ -1526,6 +1551,8 @@ document.addEventListener("DOMContentLoaded", function () {
                         panchanga: extras.panchanga || {},
                         ashtakavarga: extras.ashtakavarga || {}
                     });
+                    onlyStep(results, 4);
+                    if (processing) processing.classList.add("hidden");
                 } else {
                     showError(json.error || "Report not found.");
                     onlyStep(step1, 1);
@@ -1756,7 +1783,7 @@ function _renderDashaSection(dasha) {
             <td><strong>${escapeHtml(m.lord)}</strong>${isCur ? '<span class="ca-cur-badge">NOW</span>' : ""}</td>
             <td>${escapeHtml(m.start_date)}</td>
             <td>${escapeHtml(m.end_date)}</td>
-            <td>${m.years.toFixed(1)} yrs</td>
+            <td>${(Number(m.years) || 0).toFixed(1)} yrs</td>
             <td>${m.antardashas && m.antardashas.length
                 ? `<button class="ca-toggle-btn" onclick="_toggleAntar('${id}')">▶ Show sub-periods</button>`
                 : ""}</td>
