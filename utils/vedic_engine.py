@@ -1,7 +1,7 @@
 """
-Vedic astrology engine — KP (Krishnamurti Paddhati) sidereal system.
-Whole-sign houses, true Vimshottari Dasha from Moon Nakshatra,
-sidereal planet positions via KP Ayanamsa.
+Vedic astrology engine — Lahiri sidereal system (AstroSage-compatible default).
+Whole-sign houses, Vimshottari Dasha from Moon Nakshatra,
+sidereal planet positions via Swiss Ephemeris when available.
 
 Integrates:
     - vedic.vargas     (Layer 3 — Divisional charts)
@@ -78,7 +78,13 @@ def _sign_from_longitude(lon_deg: float) -> str:
 
 
 def _get_planet_lon(jd: float, planet: str) -> float:
-    """Compute SIDEREAL longitude for a planet (Lahiri Ayanamsa applied)."""
+    """Sidereal longitude (Lahiri) — Swiss Ephemeris when available."""
+    try:
+        from vedic.swisseph_engine import SWISSEPH_AVAILABLE, get_planet_longitude
+        if SWISSEPH_AVAILABLE:
+            return get_planet_longitude(jd, planet, sidereal=True, aya_type="lahiri")
+    except Exception:
+        pass
     tropical = _get_planet_lon_tropical(jd, planet)
     return _norm360(tropical - lahiri_ayanamsa(jd))
 
@@ -364,7 +370,7 @@ def build_vedic_bundle(
         ketu_sign = _sign_from_longitude(_get_planet_lon(jd, "Ketu"))
         rahu_h = overrides.get("rahu_house") or _whole_sign_house(rahu_sign, lagna_sign)
         ketu_h = overrides.get("ketu_house") or _whole_sign_house(ketu_sign, lagna_sign)
-        house_msg = "KP sidereal positions calculated from planetary ephemeris."
+        house_msg = "Lahiri sidereal positions (Swiss Ephemeris) with whole-sign houses."
     else:
         # Fallback pseudo-seed logic
         sun_h = overrides.get("sun_house") or _whole_sign_house(sun_sign, lagna_sign)
@@ -388,7 +394,7 @@ def build_vedic_bundle(
         venus_h = overrides.get("venus_house") or _clamp_house((seed // 5 % 12) + 1)
         jupiter_h = overrides.get("jupiter_house") or _clamp_house((seed // 7 % 12) + 1)
         saturn_h = overrides.get("saturn_house") or _clamp_house((seed // 11 % 12) + 1)
-        house_msg = "Approximate positions; provide exact coordinates for KP precision."
+        house_msg = "Approximate positions; provide exact birth place and time for Lahiri precision."
 
     # ── Proper Vimshottari Dasha from Moon Nakshatra ──
     moon_lon = hybrid_details.get("moon_lon_deg") if hybrid_details else None
@@ -396,8 +402,25 @@ def build_vedic_bundle(
     nak_lord = (hybrid_details or {}).get("nakshatra_lord", "")
     nak_pada = (hybrid_details or {}).get("nakshatra_pada", 0)
 
+    mahadasha = ""
+    antar = ""
     pratyantardasha = ""
-    if moon_lon is not None:
+    if moon_lon is not None and jd is not None:
+        try:
+            from vedic.dasha import compute_dasha, current_dasha as _cur_dasha
+            _dasha = compute_dasha(moon_lon, jd)
+            _cur = _cur_dasha(_dasha)
+            mahadasha = _cur.get("mahadasha") or ""
+            antar = _cur.get("antardasha") or ""
+            pratyantardasha = _cur.get("pratyantar") or ""
+            if not nak_name:
+                nak_name = _dasha.get("moon_nakshatra", {}).get("name", nak_name)
+            if not nak_lord:
+                nak_lord = _dasha.get("moon_nakshatra", {}).get("lord", nak_lord)
+        except Exception as e:
+            logger.warning("JD-based dasha failed, using age-walk fallback: %s", e)
+            mahadasha, antar, pratyantardasha, _md_left = compute_vimshottari_dasha(moon_lon, birth_date)
+    elif moon_lon is not None:
         mahadasha, antar, pratyantardasha, _md_left = compute_vimshottari_dasha(moon_lon, birth_date)
     else:
         day_of_year = birth_date.timetuple().tm_yday
@@ -424,8 +447,9 @@ def build_vedic_bundle(
 
     # Fill in planet signs from longitudes if available
     if jd is not None:
+        precomputed = (hybrid_details or {}).get("planet_longitudes") or {}
         for p in ["Mars", "Mercury", "Venus", "Jupiter", "Saturn", "Rahu", "Ketu"]:
-            lon = _get_planet_lon(jd, p)
+            lon = precomputed.get(p) or _get_planet_lon(jd, p)
             planet_signs[p] = _sign_from_longitude(lon)
             planet_degrees[p] = lon % 30.0
         if moon_lon is not None:
@@ -442,7 +466,11 @@ def build_vedic_bundle(
     try:
         from vedic.vargas import compute_key_vargas
         if jd is not None:
-            planet_lons = {p: _get_planet_lon(jd, p) for p in planet_houses}
+            precomputed = (hybrid_details or {}).get("planet_longitudes") or {}
+            planet_lons = {
+                p: precomputed.get(p) or _get_planet_lon(jd, p)
+                for p in ["Sun", "Moon", "Mars", "Mercury", "Venus", "Jupiter", "Saturn", "Rahu", "Ketu"]
+            }
             vargas_data = compute_key_vargas(planet_lons)
     except Exception as e:
         logger.warning("Varga computation skipped: %s", e)
@@ -601,7 +629,7 @@ def _planets_in_house(houses: Dict[str, Any], house_num: int) -> str:
 
 
 def format_guru_context(name: str, profile: Dict[str, str], vedic: Dict[str, Any], blueprint: Dict[str, Any]) -> str:
-    """Rich Vedic astrological context for the Guru Arya AI persona (KP system)."""
+    """Rich Vedic astrological context for the Guru Arya AI persona (Lahiri sidereal)."""
     h = vedic.get("houses") or {}
     career_hint = ""
     if blueprint:
@@ -652,7 +680,7 @@ def format_guru_context(name: str, profile: Dict[str, str], vedic: Dict[str, Any
 
     return (
         f"Querent: {name}.\n"
-        f"SYSTEM: KP (Krishnamurti Paddhati) Sidereal Astrology. All positions are sidereal.\n\n"
+        f"SYSTEM: Lahiri Sidereal Vedic Astrology (Swiss Ephemeris). All positions are sidereal.\n\n"
         f"Sun Rashi: {profile.get('zodiac')} (aatma, ego, life purpose).\n"
         f"Moon Rashi: {profile.get('moon_sign')} (mann, emotions, subconscious patterns).\n"
         f"Lagna (Ascendant): {profile.get('ascendant')} (shareer, first impression, physical constitution).\n"
@@ -838,92 +866,86 @@ def generate_kundli_chart_from_birth(
     birth_time: str,
     birth_place_lat: Optional[float] = None,
     birth_place_lon: Optional[float] = None,
+    tz_offset_hours: float = 5.5,  # Default IST; pass correct offset for other timezones
 ) -> Dict[str, Any]:
     """
     Generate Kundli chart data from birth information.
     Returns dictionary with zodiac, moon_sign, ascendant, and SVG chart.
+
+    Parameters
+    ----------
+    birth_date       : "YYYY-MM-DD" string (local date at birth)
+    birth_time       : "HH:MM" or "HH:MM:SS" string (local time at birth)
+    birth_place_lat  : Latitude of birth place
+    birth_place_lon  : Longitude of birth place
+    tz_offset_hours  : UTC offset in hours (e.g. IST=5.5, EST=-5, GMT=0)
+                       IMPORTANT: pass the correct offset — default is IST (5.5)
     """
     if not SKYFIELD_AVAILABLE:
-        # Fallback to simplified calculation if Skyfield not available
         return {
             "success": False,
             "message": "Skyfield not available for chart generation",
         }
-    
+
     try:
-        # Parse birth date and time
-        birth_dt = datetime.fromisoformat(f"{birth_date}T{birth_time}")
-        
-        # Load ephemeris
-        ts = load.timescale()
-        eph = load("de421.bsp")  # Planetary ephemeris
-        
-        # Create observer at birth location (use default if not provided)
-        if birth_place_lat and birth_place_lon:
-            location = wgs84.latlong(birth_place_lat, birth_place_lon)
-            observer = eph["earth"].at(location)
-        else:
-            observer = eph["earth"]
-        
-        # Calculate planetary positions at birth time
-        t = ts.utc(birth_dt.year, birth_dt.month, birth_dt.day, birth_dt.hour, birth_dt.minute, birth_dt.second)
-        astrometric = observer.at(t).apparent_geocentric_ecliptic_position()
-        
-        # Convert to zodiac signs (tropical zodiac for simplicity)
-        sun_lon = astrometric.ecliptic_longitude().degrees
-        zodiac = ZODIAC_ORDER[int(sun_lon / 30) % 12]
-        
-        # Use moon sign (simplified)
-        moon_sign = ZODIAC_ORDER[(int(sun_lon / 30) + 3) % 12]
-        
-        # --- Proper Ascendant Calculation (LMST-based) ---
         import math as _math
-        # Step 1: Convert IST birth time to UTC (subtract 5h 30m)
-        _lon = birth_place_lon if birth_place_lon else 91.0  # default: Guwahati
-        _lat = birth_place_lat if birth_place_lat else 26.0
-        _ut = birth_dt.hour + birth_dt.minute / 60.0 + birth_dt.second / 3600.0
-        _ut_utc = _ut - 5.5  # IST -> UTC
-        _day = birth_dt.day
-        _month = birth_dt.month
-        _year = birth_dt.year
-        if _ut_utc < 0:
-            _ut_utc += 24
-            _day -= 1
-        # Step 2: Julian Day Number
-        _A = int((14 - _month) / 12)
-        _Y = _year + 4800 - _A
-        _M = _month + 12 * _A - 3
-        _JD = _day + int((153 * _M + 2) / 5) + 365 * _Y + int(_Y / 4) - int(_Y / 100) + int(_Y / 400) - 32045
-        _JD = _JD + (_ut_utc - 12) / 24.0
-        # Step 3: GMST -> LMST
-        _T = (_JD - 2451545.0) / 36525.0
-        _GMST = (280.46061837 + 360.98564736629 * (_JD - 2451545.0) + 0.000387933 * _T ** 2) % 360
-        _LMST = (_GMST + _lon) % 360
-        # Step 4: Obliquity
-        _eps = _math.radians(23.439291111 - 0.013004167 * _T)
-        _lat_r = _math.radians(_lat)
-        _lmst_r = _math.radians(_LMST)
-        # Step 5: Ascendant formula
-        # Note: atan2(-cos(LMST), sin(e)*tan(lat)+cos(e)*sin(LMST)) gives DESCENDANT
-        # Adding 180° converts to ASCENDANT (eastern horizon point)
-        _y = -_math.cos(_lmst_r)
-        _x = _math.sin(_eps) * _math.tan(_lat_r) + _math.cos(_eps) * _math.sin(_lmst_r)
-        _asc_trop = (_math.degrees(_math.atan2(_y, _x)) + 180.0) % 360
-        # Step 6: Apply Lahiri Ayanamsa for sidereal (Vedic) ascendant
-        # Using precise Lahiri base: 22°27'47.76" in 1900, +50.2388" per year
-        _ayanamsa = (22 + 27/60 + 47.76/3600) + (_year - 1900) * (50.2388/3600)
-        _asc_sid = (_asc_trop - _ayanamsa) % 360
-        ascendant = ZODIAC_ORDER[int(_asc_sid / 30)]
-        
+        from utils.astrology_math import (
+            julian_day as _jd_func,
+            ascendant_tropical_longitude_deg as _asc_trop_func,
+            moon_tropical_longitude_deg as _moon_trop_func,
+            sun_tropical_longitude_deg as _sun_trop_func,
+            lahiri_ayanamsa as _aya_func,
+            _norm360 as _n360,
+        )
+        from datetime import timezone as _tz, timedelta as _td
+
+        # Parse birth date and time as LOCAL time
+        birth_dt = datetime.fromisoformat(f"{birth_date}T{birth_time}")
+
+        # Convert local → UTC using the provided offset
+        utc_offset = _td(hours=tz_offset_hours)
+        local_tz = _tz(utc_offset)
+        birth_dt_local = birth_dt.replace(tzinfo=local_tz)
+        birth_dt_utc = birth_dt_local.astimezone(_tz.utc)
+
+        # Julian Day in UT
+        from utils.astrology_math import julian_day as _jd_calc
+        jd = _jd_calc(birth_dt_utc)
+
+        _lon = birth_place_lon if birth_place_lon is not None else 91.0
+        _lat = birth_place_lat if birth_place_lat is not None else 26.0
+
+        # --- Accurate planetary positions ---
+        aya = _aya_func(jd)
+
+        # Sun sidereal longitude
+        sun_trop = _sun_trop_func(jd)
+        sun_sid = _n360(sun_trop - aya)
+        zodiac = ZODIAC_ORDER[int(sun_sid / 30) % 12]
+
+        # Moon sidereal longitude (25-term formula)
+        moon_trop = _moon_trop_func(jd)
+        moon_sid = _n360(moon_trop - aya)
+        moon_sign = ZODIAC_ORDER[int(moon_sid / 30) % 12]
+
+        # Ascendant — uses corrected quadrant formula
+        asc_trop = _asc_trop_func(jd, _lat, _lon)
+        asc_sid = _n360(asc_trop - aya)
+        ascendant = ZODIAC_ORDER[int(asc_sid / 30) % 12]
+
         # Generate SVG
         svg = generate_kundli_svg(zodiac, moon_sign, ascendant, {})
-        
+
         return {
             "success": True,
             "zodiac": zodiac,
             "moon_sign": moon_sign,
             "ascendant": ascendant,
             "chart_svg": svg,
+            "jd": jd,
+            "sun_lon": sun_sid,
+            "moon_lon": moon_sid,
+            "asc_lon": asc_sid,
         }
     except Exception as e:
         return {

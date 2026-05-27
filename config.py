@@ -50,6 +50,10 @@ FROM_EMAIL = os.environ.get("FROM_EMAIL", "noreply@celestialarc.com").strip()
 # ── Monitoring ────────────────────────────────────────────────────────
 SENTRY_DSN = os.environ.get("SENTRY_DSN", "").strip()
 
+# ── Astrology ─────────────────────────────────────────────────────────
+# Lahiri matches AstroSage / mainstream Indian Vedic software defaults.
+AYANAMSA = os.environ.get("AYANAMSA", "lahiri").strip().lower()
+
 # ── Feature Flags ─────────────────────────────────────────────────────
 ENABLE_PALM_VISION = os.environ.get("ENABLE_PALM_VISION", "false").lower() in ("1", "true", "yes")
 ENABLE_PHONE_OTP = os.environ.get("ENABLE_PHONE_OTP", "false").lower() in ("1", "true", "yes")
@@ -96,12 +100,12 @@ def validate_startup_config():
     if not DATABASE_URL:
         logger.warning("⚠️ DATABASE_URL not set — using SQLite fallback (not suitable for production)")
     if not SUPABASE_URL:
-        logger.warning("⚠️ SUPABASE_URL not set — Supabase Auth and Storage disabled")
+        logger.warning("SUPABASE_URL not set - Supabase Auth and Storage disabled")
     if not UPSTASH_REDIS_REST_URL:
-        logger.warning("⚠️ UPSTASH_REDIS_REST_URL not set — using in-memory rate limiting (resets on restart)")
+        logger.warning("UPSTASH_REDIS_REST_URL not set - using in-memory rate limiting (resets on restart)")
     if not GROQ_API_KEY and not OPENAI_API_KEY:
-        logger.warning("⚠️ No AI provider configured — Guru Arya chat will be unavailable")
+        logger.warning("No AI provider configured - Guru Arya chat will be unavailable")
     if SENTRY_DSN:
-        logger.info("✅ Sentry error tracking enabled")
+        logger.info("Sentry error tracking enabled")
     if RESEND_API_KEY:
-        logger.info("✅ Email sending enabled via Resend")
+        logger.info("Email sending enabled via Resend")

@@ -20,7 +20,9 @@ from services.analysis_service import (
     compute_hybrid_big_three, build_blueprint, build_prediction,
     simulate_palm_analysis, zodiac_sign, moon_sign, ascendant_sign,
     western_zodiac_sign,
-    build_report_html
+    build_report_html, build_report_html_v2,
+    compute_full_dasha, compute_birth_panchanga,
+    compute_ashtakavarga, compute_compatibility,
 )
 from services.storage_service import upload_palm_image, upload_kundli_image, delete_file
 from services.auth_service import optional_auth, require_auth
@@ -61,7 +63,13 @@ def parse_date(date_str: str) -> date:
     return datetime.strptime(date_str, "%Y-%m-%d").date()
 
 def parse_time(time_str: str) -> time:
-    return datetime.strptime(time_str, "%H:%M").time()
+    time_str = (time_str or "").strip()
+    for fmt in ("%H:%M:%S", "%H:%M"):
+        try:
+            return datetime.strptime(time_str, fmt).time()
+        except ValueError:
+            continue
+    raise ValueError(f"Invalid time format: {time_str!r}")
 
 def allowed_file(filename: str) -> bool:
     return "." in filename and filename.rsplit(".", 1)[1].lower() in ALLOWED_EXTENSIONS
@@ -296,7 +304,58 @@ def analyze():
         logger.warning("Dynamic cards failed, falling back to static predictions")
     sections.update(vedic_sections)
 
-    report_html = build_report_html(full_name, profile, sections, palm_text)
+    # ── New Features: Dasha, Panchanga, Ashtakavarga ─────────────────
+    birth_jd    = hybrid_details.get("jd")
+    moon_lon    = hybrid_details.get("moon_lon_deg")
+    tz_offset   = hybrid_details.get("tz_offset_hours", 5.5)
+
+    # Use birth-date offset (handles DST correctly; do not use datetime.now())
+    if tz_name and tz_offset == 5.5:
+        try:
+            _tz = ZoneInfo(tz_name)
+            _dt_local = datetime.combine(parsed_date, parsed_time, tzinfo=_tz)
+            tz_offset = _dt_local.utcoffset().total_seconds() / 3600.0
+        except Exception:
+            tz_offset = 5.5
+
+    dasha_data         = {}
+    panchanga_data     = {}
+    ashtakavarga_data  = {}
+
+    if birth_jd and moon_lon is not None:
+        try:
+            dasha_data = compute_full_dasha(moon_lon, birth_jd)
+        except Exception as e:
+            logger.warning("Dasha computation failed: %s", e)
+            dasha_data = {"error": str(e)}
+
+        try:
+            _lat = lat or 20.0
+            _lon = lon or 78.0
+            panchanga_data = compute_birth_panchanga(birth_jd, _lat, _lon, tz_offset)
+        except Exception as e:
+            logger.warning("Panchanga computation failed: %s", e)
+            panchanga_data = {"error": str(e)}
+
+        # Ashtakavarga needs all planet signs from vedic_structured
+        try:
+            _planet_signs = vedic_structured.get("planet_signs", {})
+            if _planet_signs:
+                ashtakavarga_data = compute_ashtakavarga(
+                    _planet_signs,
+                    profile.get("ascendant", "Aries"),
+                    profile.get("moon_sign", "Aries"),
+                )
+        except Exception as e:
+            logger.warning("Ashtakavarga computation failed: %s", e)
+            ashtakavarga_data = {"error": str(e)}
+
+    report_html = build_report_html_v2(
+        full_name, profile, sections, palm_text,
+        dasha_data or None,
+        panchanga_data or None,
+        ashtakavarga_data or None,
+    )
     created_at = now.strftime("%Y-%m-%d %H:%M:%S UTC")
     logger.debug("Chart debug info: %s", chart_debug)  # Internal only — never sent to client
     report_extras = json.dumps({
@@ -306,6 +365,9 @@ def analyze():
         "kundli_image_path": kundli_image_path,
         "hybrid_chart": hybrid_details,
         "gender": gender,
+        "dasha": dasha_data,
+        "panchanga": panchanga_data,
+        "ashtakavarga": ashtakavarga_data,
     }, ensure_ascii=True)
 
     user_id = getattr(request, "current_user", {}).get("id") if hasattr(request, "current_user") and request.current_user else None
@@ -326,6 +388,9 @@ def analyze():
         "yogas": vedic_structured.get("yogas", {}),
         "transits": vedic_structured.get("transits", {}),
         "strength": vedic_structured.get("strength", {}),
+        "dasha": dasha_data,
+        "panchanga": panchanga_data,
+        "ashtakavarga": ashtakavarga_data,
         "palm_disclaimer": "AI-simulated palm reading — for entertainment purposes only" if palm_text else None,
         "ai_chat_available": bool(os.environ.get("GROQ_API_KEY", "").strip() or os.environ.get("OPENAI_API_KEY", "").strip()),
     })
@@ -338,8 +403,106 @@ def api_config():
     openai_key = os.environ.get("OPENAI_API_KEY", "").strip()
     return jsonify({
         "ai_chat": bool(groq_key or openai_key),
-        # provider intentionally omitted to prevent targeted attacks
     })
+
+
+# ── New Feature Endpoints ─────────────────────────────────────────────
+
+@app.route("/api/dasha", methods=["POST"])
+def api_dasha():
+    """
+    Get full Vimshottari Dasha timeline for a birth chart.
+    Body: { "moon_lon": float, "birth_jd": float }
+    """
+    try:
+        data = request.get_json(force=True) or {}
+        moon_lon  = float(data.get("moon_lon", 0))
+        birth_jd  = float(data.get("birth_jd", 0))
+        if not birth_jd:
+            return jsonify({"success": False, "error": "birth_jd required"}), 400
+        result = compute_full_dasha(moon_lon, birth_jd)
+        return jsonify({"success": True, "dasha": result})
+    except Exception as e:
+        logger.exception("Dasha API error")
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+@app.route("/api/panchanga", methods=["POST"])
+def api_panchanga():
+    """
+    Get Panchanga for any date/time/location.
+    Body: { "jd": float, "lat": float, "lon": float, "tz_offset": float }
+    OR:   { "date": "YYYY-MM-DD", "time": "HH:MM", "lat": float, "lon": float, "tz_offset": float }
+    """
+    try:
+        data = request.get_json(force=True) or {}
+        lat        = float(data.get("lat", 20.0))
+        lon        = float(data.get("lon", 78.0))
+        tz_offset  = float(data.get("tz_offset", 5.5))
+
+        if "jd" in data:
+            jd = float(data["jd"])
+        else:
+            # Build JD from date+time
+            date_str = data.get("date", "")
+            time_str = data.get("time", "00:00")
+            if not date_str:
+                return jsonify({"success": False, "error": "date or jd required"}), 400
+            from utils.astrology_math import julian_day as _jd_func
+            from datetime import timezone as _tz_mod, timedelta
+            dt_local = datetime.fromisoformat(f"{date_str}T{time_str}")
+            dt_utc   = dt_local.replace(tzinfo=_tz_mod(timedelta(hours=tz_offset))).astimezone(_tz_mod.utc)
+            jd = _jd_func(dt_utc)
+
+        result = compute_birth_panchanga(jd, lat, lon, tz_offset)
+        return jsonify({"success": True, "panchanga": result})
+    except Exception as e:
+        logger.exception("Panchanga API error")
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+@app.route("/api/ashtakavarga", methods=["POST"])
+def api_ashtakavarga():
+    """
+    Get Ashtakavarga for a birth chart.
+    Body: { "planet_signs": {planet: sign}, "lagna": str, "moon_sign": str }
+    """
+    try:
+        data = request.get_json(force=True) or {}
+        planet_signs = data.get("planet_signs", {})
+        lagna        = data.get("lagna", "Aries")
+        moon_sign_v  = data.get("moon_sign", "Aries")
+        if not planet_signs:
+            return jsonify({"success": False, "error": "planet_signs required"}), 400
+        result = compute_ashtakavarga(planet_signs, lagna, moon_sign_v)
+        return jsonify({"success": True, "ashtakavarga": result})
+    except Exception as e:
+        logger.exception("Ashtakavarga API error")
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+@app.route("/api/compatibility", methods=["POST"])
+def api_compatibility():
+    """
+    Compute Kundli Matching (36-point Guna Milan) for two people.
+    Body: {
+        "person1_moon_lon": float,  (sidereal)
+        "person2_moon_lon": float,  (sidereal)
+        "person1_planet_houses": {planet: house_num},  (optional)
+        "person2_planet_houses": {planet: house_num},  (optional)
+    }
+    """
+    try:
+        data = request.get_json(force=True) or {}
+        p1_moon = float(data.get("person1_moon_lon", 0))
+        p2_moon = float(data.get("person2_moon_lon", 0))
+        p1_houses = data.get("person1_planet_houses")
+        p2_houses = data.get("person2_planet_houses")
+        result = compute_compatibility(p1_moon, p2_moon, p1_houses, p2_houses)
+        return jsonify({"success": True, "compatibility": result})
+    except Exception as e:
+        logger.exception("Compatibility API error")
+        return jsonify({"success": False, "error": str(e)}), 500
 
 
 # /api/ai/status removed — CRITICAL-04: made live AI probe calls with no auth/rate-limiting

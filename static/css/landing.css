@@ -58,6 +58,9 @@
   --max-width-narrow: 960px;
   --content-padding: clamp(20px, 5vw, 80px);
 
+  /* Cinematic scroll runway — taller = slower, more readable story beats */
+  --cinematic-scroll-height: 920vh;
+
   /* Transitions */
   --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
   --ease-out-quart: cubic-bezier(0.25, 1, 0.5, 1);
@@ -589,13 +592,11 @@ button {
    SCROLL-DRIVEN CINEMATIC ENGINE
    ═══════════════════════════════════════════════════════════ */
 
-/* The scroll container that drives the animation.
-   Height = number of "screens" the user scrolls through while
-   the sticky viewport stays pinned. 5 screens = 4 transitions
-   between the 4 story panels + extra for the CTA overlap. */
+/* Tall scroll runway: more vh = each story panel stays visible longer */
 .cinematic-scroll {
   position: relative;
-  height: 500vh;
+  height: var(--cinematic-scroll-height);
+  contain: layout style;
 }
 
 /* The sticky canvas container — stays pinned at top:0 for the
@@ -606,8 +607,11 @@ button {
   top: 0;
   width: 100%;
   height: 100vh;
+  height: 100dvh;
   overflow: hidden;
   z-index: 1;
+  contain: strict;
+  transform: translateZ(0);
 }
 
 /* The canvas that renders the frame sequence */
@@ -618,8 +622,8 @@ button {
   width: 100%;
   height: 100%;
   z-index: 1;
-  /* Preserve sharpness — prevent browser smoothing on scale */
-  /* image-rendering: crisp-edges removed to allow high-quality bicubic smoothing for cinematic feel */
+  transform: translateZ(0);
+  backface-visibility: hidden;
 }
 
 /* Dark overlay for text readability */
@@ -651,16 +655,15 @@ button {
   display: flex;
   align-items: center;
   pointer-events: none;
-  will-change: opacity, filter;
-  /* Cinematic reveal: opacity + subtle blur */
+  will-change: opacity, transform;
   opacity: 0;
-  filter: blur(6px);
-  /* Removed transition because JS smoothstep handles this per-frame. Having both causes lag/rubber-banding. */
+  transform: translate3d(0, 24px, 0);
+  /* Opacity-only reveals — no blur (blur per frame is costly on mobile GPUs) */
 }
 
 .story-panel--active {
   opacity: 1;
-  filter: blur(0px);
+  transform: translate3d(0, 0, 0);
   pointer-events: auto;
 }
 
@@ -1719,9 +1722,16 @@ button {
 }
 
 /* ── Mobile ── */
+@media (max-width: 768px) {
+  :root {
+    --cinematic-scroll-height: 780vh;
+  }
+}
+
 @media (max-width: 640px) {
   :root {
     --content-padding: 20px;
+    --cinematic-scroll-height: 720vh;
   }
 
   .nav__inner {

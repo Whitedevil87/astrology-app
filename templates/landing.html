@@ -21,7 +21,7 @@
     <link rel="preload" href="{{ url_for('static', filename='images/celestial-sequence-288/frame_0002.webp') }}" as="image">
     <link rel="preload" href="{{ url_for('static', filename='images/celestial-sequence-288/frame_0003.webp') }}" as="image">
 
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/landing.css') }}?v=30.0">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/landing.css') }}?v=31.0">
 </head>
 
 <body>
@@ -125,7 +125,7 @@
         <!-- Sticky viewport (stays pinned while user scrolls) -->
         <div class="cinematic-sticky">
 
-            <!-- Canvas: renders the 150-frame image sequence -->
+            <!-- Canvas: renders the 288-frame image sequence -->
             <canvas class="cinematic-canvas" id="cinematicCanvas" aria-hidden="true"></canvas>
 
             <!-- Dynamic overlay (changes gradient per active panel) -->
@@ -415,7 +415,7 @@
         }
     </script>
 
-    <script src="{{ url_for('static', filename='js/landing.js') }}?v=30.0"></script>
+    <script src="{{ url_for('static', filename='js/landing.js') }}?v=31.0"></script>
 </body>
 
 </html>

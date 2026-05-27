@@ -1,15 +1,46 @@
 """
 Celestial Arc — Analysis service.
 Computes Vedic (sidereal) Big Three, Nakshatra, blueprint, and predictions.
-All zodiac logic uses KP Ayanamsa sidereal positions.
+All zodiac logic uses Lahiri (Chitrapaksha) sidereal positions — same default as AstroSage.
 Prediction text: Simple English + light Hinglish.
+
+Integrates:
+  - vedic.dasha           (Vimshottari Dasha with exact dates)
+  - vedic.panchanga       (Complete Panchanga — Tithi, Vara, Yoga, etc.)
+  - vedic.ashtakavarga    (Ashtakavarga + Sarvashtakavarga)
+  - vedic.kundli_matching (36-point Guna Milan + Mangal Dosha)
 """
 
 import math
 from datetime import date, datetime, time, timezone
 from html import escape
-from typing import Any, Dict, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 from zoneinfo import ZoneInfo
+
+# ── New feature modules (graceful fallback if not yet deployed) ──────
+try:
+    from vedic.dasha import compute_dasha, current_dasha as get_current_dasha
+    _DASHA_AVAILABLE = True
+except ImportError:
+    _DASHA_AVAILABLE = False
+
+try:
+    from vedic.panchanga import compute_panchanga, birth_panchanga
+    _PANCHANGA_AVAILABLE = True
+except ImportError:
+    _PANCHANGA_AVAILABLE = False
+
+try:
+    from vedic.ashtakavarga import ashtakavarga_report
+    _ASHTAK_AVAILABLE = True
+except ImportError:
+    _ASHTAK_AVAILABLE = False
+
+try:
+    from vedic.kundli_matching import compute_guna_milan, check_mangal_dosha
+    _MATCHING_AVAILABLE = True
+except ImportError:
+    _MATCHING_AVAILABLE = False
 
 from utils.astrology_constants import (
     PERSONALITY_RULES, CAREER_RULES, ZODIAC_ORDER, ZODIAC_META,
@@ -24,7 +55,7 @@ from utils.astrology_math import (
 )
 
 # ── Sidereal Zodiac Sign from Date (Fallback) ───────────────────────
-# Approximate sidereal Sun-transit dates (KP system).
+# Approximate sidereal Sun-transit dates (Lahiri; fallback only).
 # Used ONLY when geocoding fails and we can't compute exact longitude.
 
 _SIDEREAL_SUN_TRANSITS = [
@@ -45,7 +76,7 @@ _SIDEREAL_SUN_TRANSITS = [
 
 
 def zodiac_sign(birth_date: date) -> str:
-    """Fallback sidereal Sun sign from date (approximate KP transit dates)."""
+    """Fallback sidereal Sun sign from date (approximate Lahiri transit dates)."""
     month, day = birth_date.month, birth_date.day
     # Default: last entry covers Dec 16 onward into next year's Jan 13
     result = _SIDEREAL_SUN_TRANSITS[-1][2]  # Scorpio (Dec 16+)
@@ -116,21 +147,42 @@ def compute_hybrid_big_three(
     lat: float, lon: float, tz_name: str
 ) -> Tuple[Dict[str, str], Dict[str, Any]]:
     """
-    Compute sidereal Sun, Moon, Ascendant signs using KP Ayanamsa.
-    Returns (profile dict, details dict).
+    Compute sidereal Sun, Moon, Ascendant using Lahiri ayanamsa (AstroSage standard).
+
+    Uses Swiss Ephemeris when installed (arc-second accuracy); falls back to
+    internal math only if pyswisseph is unavailable.
     """
     tz = ZoneInfo(tz_name)
     dt_local = datetime(
         birth_date.year, birth_date.month, birth_date.day,
-        birth_time.hour, birth_time.minute, tzinfo=tz,
+        birth_time.hour, birth_time.minute, getattr(birth_time, "second", 0),
+        tzinfo=tz,
     )
     dt_utc = dt_local.astimezone(timezone.utc)
     jd = julian_day(dt_utc)
+    tz_offset = dt_local.utcoffset().total_seconds() / 3600.0
 
-    # These functions already return SIDEREAL longitudes (KP Ayanamsa applied)
-    sun_lon = sun_ecliptic_longitude_deg(jd)
-    moon_lon = moon_ecliptic_longitude_deg(jd)
-    asc_lon = ascendant_longitude_deg(jd, lat, lon)
+    method = "lahiri_approx"
+    try:
+        from vedic.swisseph_engine import (
+            SWISSEPH_AVAILABLE,
+            get_planet_longitude,
+            get_ascendant,
+            get_all_planet_longitudes,
+        )
+        if SWISSEPH_AVAILABLE:
+            sun_lon = get_planet_longitude(jd, "Sun", sidereal=True, aya_type="lahiri")
+            moon_lon = get_planet_longitude(jd, "Moon", sidereal=True, aya_type="lahiri")
+            asc_lon = get_ascendant(jd, lat, lon, sidereal=True, aya_type="lahiri")
+            all_lons = get_all_planet_longitudes(jd, sidereal=True, aya_type="lahiri")
+            method = "lahiri_swisseph"
+        else:
+            raise ImportError("swisseph unavailable")
+    except Exception:
+        sun_lon = sun_ecliptic_longitude_deg(jd)
+        moon_lon = moon_ecliptic_longitude_deg(jd)
+        asc_lon = ascendant_longitude_deg(jd, lat, lon)
+        all_lons = {}
 
     # Nakshatra from sidereal Moon
     nak_idx = nakshatra_index(moon_lon)
@@ -143,15 +195,18 @@ def compute_hybrid_big_three(
         "ascendant": sign_from_longitude(asc_lon),
     }
     details = {
-        "method": "kp_sidereal",
+        "method": method,
+        "ayanamsa": "lahiri",
         "place_input": birth_place,
         "lat": lat, "lon": lon, "tz": tz_name,
+        "tz_offset_hours": tz_offset,
         "local_datetime": dt_local.isoformat(),
         "utc_datetime": dt_utc.isoformat(),
         "jd": jd,
         "sun_lon_deg": sun_lon,
         "moon_lon_deg": moon_lon,
         "asc_lon_deg": asc_lon,
+        "planet_longitudes": all_lons,
         "nakshatra": nak_data["name"],
         "nakshatra_lord": nak_data["lord"],
         "nakshatra_pada": nak_pd,
@@ -375,3 +430,269 @@ def build_report_html(
     rendered = "".join(html_parts)
     rendered = "".join(ch for ch in rendered if ch == "\n" or ch == "\t" or ord(ch) >= 32)
     return rendered
+
+
+# ════════════════════════════════════════════════════════════════════
+# NEW FEATURE FUNCTIONS — Dasha, Panchanga, Ashtakavarga, Matching
+# ════════════════════════════════════════════════════════════════════
+
+def compute_full_dasha(moon_lon_sid: float, birth_jd: float) -> Dict[str, Any]:
+    """
+    Compute complete Vimshottari Dasha with exact dates.
+    Returns mahadasha timeline, current running period, and predictions.
+
+    Parameters
+    ----------
+    moon_lon_sid : Moon sidereal longitude (degrees)
+    birth_jd     : Julian Day of birth (UT)
+    """
+    if not _DASHA_AVAILABLE:
+        return {"error": "Dasha module not available — place dasha.py in vedic/ folder"}
+
+    dasha_data = compute_dasha(moon_lon_sid, birth_jd)
+    current = get_current_dasha(dasha_data)
+
+    # Format the mahadasha list for API response (keep compact)
+    timeline = []
+    for maha in dasha_data.get("mahadasha_list", []):
+        antardashas_compact = []
+        for antar in maha.get("antardashas", []):
+            antardashas_compact.append({
+                "lord":       antar["lord"],
+                "start_date": antar["start_date"],
+                "end_date":   antar["end_date"],
+                "months":     antar["months"],
+                "is_current": antar["is_current"],
+                "prediction": antar["prediction"],
+                # Pratyantar only for current antardasha
+                "pratyantars": antar.get("pratyantars", []) if antar["is_current"] else [],
+            })
+        timeline.append({
+            "lord":        maha["lord"],
+            "start_date":  maha["start_date"],
+            "end_date":    maha["end_date"],
+            "years":       maha["years"],
+            "is_current":  maha["is_current"],
+            "prediction":  maha["prediction"],
+            "antardashas": antardashas_compact,
+        })
+
+    return {
+        "birth_balance":  dasha_data["birth_balance"],
+        "moon_nakshatra": dasha_data["moon_nakshatra"],
+        "timeline":       timeline,
+        "current": {
+            "mahadasha":       current.get("mahadasha"),
+            "mahadasha_ends":  current.get("mahadasha_ends"),
+            "antardasha":      current.get("antardasha"),
+            "antardasha_ends": current.get("antardasha_ends"),
+            "pratyantar":      current.get("pratyantar"),
+            "pratyantar_ends": current.get("pratyantar_ends"),
+            "prediction":      current.get("prediction", ""),
+        },
+        "next_change": dasha_data.get("next_change", {}),
+    }
+
+
+def compute_birth_panchanga(
+    birth_jd: float,
+    lat: float,
+    lon: float,
+    tz_offset: float = 5.5,
+) -> Dict[str, Any]:
+    """
+    Compute complete Panchanga (Pancha-anga) at the moment of birth.
+
+    Returns Vara, Tithi, Nakshatra, Yoga, Karana, Rahukalam,
+    Abhijit Muhurta, Hora, and auspiciousness score.
+    """
+    if not _PANCHANGA_AVAILABLE:
+        return {"error": "Panchanga module not available — place panchanga.py in vedic/ folder"}
+
+    return birth_panchanga(birth_jd, lat, lon, tz_offset)
+
+
+def compute_ashtakavarga(
+    planet_signs: Dict[str, str],
+    lagna_sign: str,
+    moon_sign: str,
+) -> Dict[str, Any]:
+    """
+    Compute complete Ashtakavarga analysis.
+
+    Parameters
+    ----------
+    planet_signs : dict of planet → sign name (sidereal)
+    lagna_sign   : Ascendant sign
+    moon_sign    : Moon sign
+
+    Returns Bhinnashtakavarga, Sarvashtakavarga, life area scores,
+    transit quality for Jupiter/Saturn, and interpretation.
+    """
+    if not _ASHTAK_AVAILABLE:
+        return {"error": "Ashtakavarga module not available — place ashtakavarga.py in vedic/ folder"}
+
+    report = ashtakavarga_report(planet_signs, lagna_sign, moon_sign)
+
+    # Format Sarvashtakavarga as sign→score dict for easy frontend use
+    sarva_by_sign = {}
+    zodiac = [
+        "Aries","Taurus","Gemini","Cancer","Leo","Virgo",
+        "Libra","Scorpio","Sagittarius","Capricorn","Aquarius","Pisces"
+    ]
+    for i, sign in enumerate(zodiac):
+        sarva_by_sign[sign] = report["sarva"][i]
+
+    return {
+        "sarva_by_sign":       sarva_by_sign,
+        "total_score":         report["total_score"],
+        "average_per_sign":    report["average_per_sign"],
+        "sign_analysis":       report["sign_analysis"],
+        "life_areas":          report["life_areas"],
+        "strongest_signs":     report["strongest_signs"],
+        "weakest_signs":       report["weakest_signs"],
+        "planet_totals":       report["planet_totals"],
+        "jupiter_transit":     report["jupiter_transit_scores"],
+        "saturn_transit":      report["saturn_transit_scores"],
+        "interpretation":      report["interpretation"],
+        # Full Bhinna grid (for advanced display)
+        "bhinna": {
+            planet: {zodiac[i]: pts for i, pts in enumerate(scores)}
+            for planet, scores in report["bhinna"].items()
+        },
+    }
+
+
+def compute_compatibility(
+    person1_moon_sid: float,
+    person2_moon_sid: float,
+    person1_planet_houses: Optional[Dict[str, int]] = None,
+    person2_planet_houses: Optional[Dict[str, int]] = None,
+) -> Dict[str, Any]:
+    """
+    Compute Kundli Matching (36-point Guna Milan) + Mangal Dosha.
+
+    Parameters
+    ----------
+    person1_moon_sid : Person 1 (boy/groom) sidereal Moon longitude
+    person2_moon_sid : Person 2 (girl/bride) sidereal Moon longitude
+    person1_planet_houses : dict of planet → house number for person 1
+    person2_planet_houses : dict of planet → house number for person 2
+    """
+    if not _MATCHING_AVAILABLE:
+        return {"error": "Kundli matching module not available — place kundli_matching.py in vedic/ folder"}
+
+    result = compute_guna_milan(person1_moon_sid, person2_moon_sid)
+
+    # Add Mangal Dosha for both if house data available
+    if person1_planet_houses:
+        result["person1_mangal_dosha"] = check_mangal_dosha(person1_planet_houses)
+    if person2_planet_houses:
+        result["person2_mangal_dosha"] = check_mangal_dosha(person2_planet_houses)
+
+    return result
+
+
+# ── Enhanced build_report_html with new sections ─────────────────────
+
+def build_report_html_v2(
+    name: str,
+    profile: Dict[str, str],
+    sections: Dict[str, str],
+    palm_text: Optional[str],
+    dasha_data: Optional[Dict[str, Any]] = None,
+    panchanga_data: Optional[Dict[str, Any]] = None,
+    ashtakavarga_data: Optional[Dict[str, Any]] = None,
+) -> str:
+    """
+    Enhanced report HTML including Dasha timeline, Panchanga, and Ashtakavarga sections.
+    Backward-compatible — falls back to build_report_html if new data not provided.
+    """
+    # Build base HTML
+    base_html = build_report_html(name, profile, sections, palm_text)
+
+    extra_sections: List[str] = []
+
+    # ── Dasha section ──────────────────────────────────────────
+    if dasha_data and not dasha_data.get("error"):
+        cur = dasha_data.get("current", {})
+        bb  = dasha_data.get("birth_balance", {})
+        maha   = cur.get("mahadasha", "")
+        antar  = cur.get("antardasha", "")
+        prat   = cur.get("pratyantar", "")
+        pred   = cur.get("prediction", "")
+        maha_ends = cur.get("mahadasha_ends", "")
+        antar_ends = cur.get("antardasha_ends", "")
+
+        dasha_html = (
+            '<article class="report-section-card" id="dasha-section">'
+            '<div class="report-section-heading">'
+            '<span class="report-icon">⏱</span><h3>Vimshottari Dasha — Exact Timeline</h3></div>'
+            f"<p class='report-copy'><strong>Birth Balance:</strong> {escape(bb.get('message',''))}</p>"
+            f"<p class='report-copy'><strong>Currently Running:</strong> "
+            f"{escape(maha)} Mahadasha → {escape(antar)} Antardasha → {escape(prat)} Pratyantar</p>"
+            f"<p class='report-copy'><strong>Mahadasha ends:</strong> {escape(maha_ends)} | "
+            f"<strong>Antardasha ends:</strong> {escape(antar_ends)}</p>"
+            f"<p class='report-copy'>{escape(pred)}</p>"
+            "</article>"
+        )
+        extra_sections.append(dasha_html)
+
+    # ── Panchanga section ──────────────────────────────────────
+    if panchanga_data and not panchanga_data.get("error"):
+        vara    = panchanga_data.get("vara", {})
+        tithi   = panchanga_data.get("tithi", {})
+        nak     = panchanga_data.get("nakshatra", {})
+        yoga    = panchanga_data.get("yoga", {})
+        karana  = panchanga_data.get("karana", {})
+        timing  = panchanga_data.get("timing", {})
+        rahu    = timing.get("rahukalam", {})
+        abhijit = timing.get("abhijit_muhurta", {})
+        score   = panchanga_data.get("auspiciousness_score", {})
+
+        panch_html = (
+            '<article class="report-section-card" id="panchanga-section">'
+            '<div class="report-section-heading">'
+            '<span class="report-icon">📅</span><h3>Birth Panchanga (Pancha-anga)</h3></div>'
+            '<div class="panchanga-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:12px 0">'
+            f'<div><strong>Vara:</strong> {escape(vara.get("name",""))} ({escape(vara.get("lord",""))})</div>'
+            f'<div><strong>Tithi:</strong> {escape(tithi.get("name",""))} — {escape(tithi.get("paksha",""))}</div>'
+            f'<div><strong>Nakshatra:</strong> {escape(nak.get("name",""))} Pada {nak.get("pada","")} ({escape(nak.get("lord",""))})</div>'
+            f'<div><strong>Yoga:</strong> {escape(yoga.get("name",""))} ({escape(yoga.get("quality",""))})</div>'
+            f'<div><strong>Karana:</strong> {escape(karana.get("name",""))}</div>'
+            f'<div><strong>Auspiciousness:</strong> {escape(score.get("label",""))}</div>'
+            '</div>'
+            f"<p class='report-copy'>{escape(score.get('recommendation',''))}</p>"
+            "</article>"
+        )
+        extra_sections.append(panch_html)
+
+    # ── Ashtakavarga section ────────────────────────────────────
+    if ashtakavarga_data and not ashtakavarga_data.get("error"):
+        avg    = ashtakavarga_data.get("average_per_sign", 0)
+        interp = ashtakavarga_data.get("interpretation", "")
+        strong = ashtakavarga_data.get("strongest_signs", [])
+        weak   = ashtakavarga_data.get("weakest_signs", [])
+
+        strong_str = ", ".join(f"{s[0]} ({s[1]} pts)" for s in strong[:3])
+        weak_str   = ", ".join(f"{s[0]} ({s[1]} pts)" for s in weak[:3])
+
+        ashtak_html = (
+            '<article class="report-section-card" id="ashtakavarga-section">'
+            '<div class="report-section-heading">'
+            '<span class="report-icon">⭐</span><h3>Ashtakavarga — Planetary Strength Grid</h3></div>'
+            f"<p class='report-copy'><strong>Sarvashtakavarga Average:</strong> {avg}/28 per sign</p>"
+            f"<p class='report-copy'><strong>Strongest Signs:</strong> {escape(strong_str)}</p>"
+            f"<p class='report-copy'><strong>Challenging Signs:</strong> {escape(weak_str)}</p>"
+            f"<p class='report-copy'>{escape(interp)}</p>"
+            "</article>"
+        )
+        extra_sections.append(ashtak_html)
+
+    if not extra_sections:
+        return base_html
+
+    # Insert extra sections before closing — find the last </article> and append after
+    insert_html = "\n".join(extra_sections)
+    # Append at end of base HTML
+    return base_html + "\n" + insert_html

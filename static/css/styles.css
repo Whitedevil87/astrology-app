@@ -1307,3 +1307,401 @@
     .kundli-complete-title { font-size: 1.2rem; }
     .kundli-skip-btn { top: 14px; right: 14px; font-size: 0.7rem; }
 }
+
+/* ═══════════════════════════════════════════════════════════════════
+   NEW FEATURE CARDS — Dasha · Panchanga · Ashtakavarga
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* ── Base card ──────────────────────────────────────────────────── */
+.ca-feature-card {
+    background: rgba(15, 10, 40, 0.72);
+    border: 1px solid rgba(139, 92, 246, 0.22);
+    border-radius: 18px;
+    padding: 1.5rem 1.6rem 1.6rem;
+    margin-top: 1.6rem;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    box-shadow: 0 2px 32px rgba(139, 92, 246, 0.07);
+    overflow: hidden;
+}
+
+.ca-feature-heading {
+    display: flex;
+    align-items: center;
+    gap: .55rem;
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: #e9d5ff;
+    margin-bottom: 1rem;
+    letter-spacing: .01em;
+}
+
+.ca-icon {
+    font-size: 1.15rem;
+    flex-shrink: 0;
+}
+
+/* ── DASHA ──────────────────────────────────────────────────────── */
+.ca-dasha-current {
+    background: rgba(139, 92, 246, 0.1);
+    border: 1px solid rgba(139, 92, 246, 0.28);
+    border-radius: 12px;
+    padding: .9rem 1.1rem;
+    margin-bottom: 1.2rem;
+}
+
+.ca-dasha-label {
+    font-size: .68rem;
+    text-transform: uppercase;
+    letter-spacing: .14em;
+    color: rgba(192, 132, 252, 0.75);
+    margin-bottom: .4rem;
+}
+
+.ca-dasha-row {
+    display: flex;
+    align-items: center;
+    gap: .45rem;
+    flex-wrap: wrap;
+}
+
+.ca-dasha-lord {
+    font-size: 1rem;
+    font-weight: 700;
+    color: #ddd6fe;
+    background: rgba(139, 92, 246, 0.18);
+    padding: .15rem .55rem;
+    border-radius: 6px;
+}
+
+.ca-dasha-sep {
+    color: rgba(167, 139, 250, 0.5);
+    font-size: .85rem;
+}
+
+.ca-dasha-end {
+    font-size: .75rem;
+    color: rgba(192, 132, 252, 0.7);
+}
+
+.ca-dasha-pred {
+    font-size: .82rem;
+    color: #c4b5fd;
+    margin-top: .65rem;
+    line-height: 1.55;
+    border-top: 1px solid rgba(139, 92, 246, 0.15);
+    padding-top: .55rem;
+}
+
+/* Dasha timeline table */
+.ca-dasha-timeline {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    border-radius: 10px;
+    border: 1px solid rgba(139, 92, 246, 0.15);
+}
+
+.ca-dasha-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: .78rem;
+}
+
+.ca-dasha-table thead tr {
+    background: rgba(139, 92, 246, 0.14);
+}
+
+.ca-dasha-table th {
+    padding: .5rem .7rem;
+    text-align: left;
+    color: rgba(167, 139, 250, 0.85);
+    font-size: .68rem;
+    text-transform: uppercase;
+    letter-spacing: .1em;
+    white-space: nowrap;
+}
+
+.ca-dasha-table td {
+    padding: .48rem .7rem;
+    color: #ddd6fe;
+    border-top: 1px solid rgba(139, 92, 246, 0.08);
+    white-space: nowrap;
+}
+
+.ca-current-row td {
+    background: rgba(139, 92, 246, 0.12);
+    color: #f5f3ff;
+}
+
+.ca-cur-badge {
+    display: inline-block;
+    background: rgba(167, 139, 250, 0.25);
+    color: #c4b5fd;
+    font-size: .6rem;
+    font-weight: 700;
+    letter-spacing: .1em;
+    padding: 0 .35rem;
+    border-radius: 4px;
+    margin-left: .35rem;
+    vertical-align: middle;
+}
+
+.ca-toggle-btn {
+    background: rgba(139, 92, 246, 0.15);
+    border: 1px solid rgba(139, 92, 246, 0.3);
+    color: #c4b5fd;
+    padding: .2rem .55rem;
+    border-radius: 6px;
+    font-size: .7rem;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background .15s;
+}
+
+.ca-toggle-btn:hover {
+    background: rgba(139, 92, 246, 0.28);
+}
+
+.ca-antar-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: .73rem;
+    margin-top: .3rem;
+}
+
+.ca-antar-table td {
+    padding: .28rem .5rem;
+    color: #c4b5fd;
+    border-top: 1px solid rgba(139, 92, 246, 0.07);
+}
+
+/* ── PANCHANGA ──────────────────────────────────────────────────── */
+.ca-panch-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: .65rem;
+    margin-bottom: 1rem;
+}
+
+.ca-panch-cell {
+    background: rgba(139, 92, 246, 0.09);
+    border: 1px solid rgba(139, 92, 246, 0.18);
+    border-radius: 10px;
+    padding: .6rem .75rem;
+}
+
+.ca-panch-lbl {
+    font-size: .63rem;
+    text-transform: uppercase;
+    letter-spacing: .1em;
+    color: rgba(167, 139, 250, 0.7);
+    margin-bottom: .2rem;
+}
+
+.ca-panch-val {
+    font-size: .9rem;
+    font-weight: 600;
+    color: #e9d5ff;
+    line-height: 1.3;
+}
+
+.ca-panch-sub {
+    font-size: .7rem;
+    color: rgba(192, 132, 252, 0.65);
+    margin-top: .15rem;
+}
+
+/* Auspiciousness bar */
+.ca-auspicious-bar {
+    display: flex;
+    align-items: center;
+    gap: .65rem;
+    flex-wrap: wrap;
+    margin: .85rem 0 .5rem;
+}
+
+.ca-aus-label {
+    font-size: .72rem;
+    color: rgba(167, 139, 250, 0.8);
+    white-space: nowrap;
+}
+
+.ca-aus-track {
+    flex: 1;
+    min-width: 80px;
+    height: 7px;
+    background: rgba(139, 92, 246, 0.15);
+    border-radius: 99px;
+    overflow: hidden;
+}
+
+.ca-aus-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #7c3aed, #c084fc, #6ee7b7);
+    border-radius: 99px;
+    transition: width .6s ease;
+}
+
+.ca-aus-score {
+    font-size: .8rem;
+    font-weight: 700;
+    color: #ddd6fe;
+    white-space: nowrap;
+}
+
+/* Timing pills */
+.ca-timing-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .55rem;
+    margin-top: .9rem;
+}
+
+.ca-timing-pill {
+    background: rgba(139, 92, 246, 0.1);
+    border: 1px solid rgba(139, 92, 246, 0.18);
+    border-radius: 9px;
+    padding: .45rem .75rem;
+    display: flex;
+    flex-direction: column;
+    gap: .15rem;
+    min-width: 150px;
+}
+
+.ca-timing-pill.ca-rahu {
+    border-color: rgba(239, 68, 68, 0.3);
+    background: rgba(239, 68, 68, 0.06);
+}
+
+.ca-timing-pill.ca-abhijit {
+    border-color: rgba(110, 231, 183, 0.3);
+    background: rgba(110, 231, 183, 0.05);
+}
+
+.ca-tl {
+    font-size: .65rem;
+    text-transform: uppercase;
+    letter-spacing: .08em;
+    color: rgba(167, 139, 250, 0.7);
+}
+
+.ca-rahu .ca-tl { color: rgba(252, 165, 165, 0.8); }
+.ca-abhijit .ca-tl { color: rgba(110, 231, 183, 0.8); }
+
+.ca-tv {
+    font-size: .8rem;
+    font-weight: 600;
+    color: #e9d5ff;
+}
+
+/* ── ASHTAKAVARGA ───────────────────────────────────────────────── */
+/* SAV grid */
+.ca-sav-grid {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: .38rem;
+    margin-bottom: 1rem;
+}
+
+@media (max-width: 480px) {
+    .ca-sav-grid { grid-template-columns: repeat(4, 1fr); }
+}
+
+.ca-sav-cell {
+    border-radius: 9px;
+    padding: .5rem .35rem;
+    text-align: center;
+    border: 1px solid transparent;
+    cursor: default;
+    transition: transform .12s;
+}
+
+.ca-sav-cell:hover { transform: scale(1.06); }
+
+.ca-sav-strong { background: rgba(110,231,183,.12); border-color: rgba(110,231,183,.3); }
+.ca-sav-good   { background: rgba(167,139,250,.12); border-color: rgba(167,139,250,.3); }
+.ca-sav-avg    { background: rgba(252,211, 77,.08); border-color: rgba(252,211, 77,.22); }
+.ca-sav-weak   { background: rgba(252,165,165,.08); border-color: rgba(252,165,165,.2);  }
+
+.ca-sav-sign {
+    display: block;
+    font-size: .62rem;
+    color: rgba(196, 181, 253, 0.75);
+    text-transform: uppercase;
+    letter-spacing: .06em;
+    margin-bottom: .12rem;
+}
+
+.ca-sav-pts {
+    display: block;
+    font-size: .95rem;
+    font-weight: 700;
+    color: #ddd6fe;
+}
+
+.ca-sav-strong .ca-sav-pts { color: #6ee7b7; }
+.ca-sav-good   .ca-sav-pts { color: #c4b5fd; }
+.ca-sav-avg    .ca-sav-pts { color: #fcd34d; }
+.ca-sav-weak   .ca-sav-pts { color: #fca5a5; }
+
+/* Life areas */
+.ca-life-areas {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: .55rem;
+}
+
+.ca-la-cell {
+    background: rgba(139, 92, 246, 0.07);
+    border: 1px solid rgba(139, 92, 246, 0.14);
+    border-radius: 10px;
+    padding: .6rem .75rem;
+}
+
+.ca-la-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: .35rem;
+}
+
+.ca-la-name {
+    font-size: .75rem;
+    font-weight: 600;
+    color: #ddd6fe;
+}
+
+.ca-la-pts {
+    font-size: .72rem;
+    font-weight: 700;
+    padding: .05rem .35rem;
+    border-radius: 5px;
+}
+
+.ca-la-pts.strong { background: rgba(110,231,183,.18); color: #6ee7b7; }
+.ca-la-pts.good   { background: rgba(167,139,250,.18); color: #c4b5fd; }
+.ca-la-pts.avg    { background: rgba(252,211, 77,.15); color: #fcd34d; }
+.ca-la-pts.weak   { background: rgba(252,165,165,.12); color: #fca5a5; }
+
+.ca-la-bar-track {
+    width: 100%;
+    height: 4px;
+    background: rgba(139, 92, 246, 0.15);
+    border-radius: 99px;
+    margin-bottom: .35rem;
+    overflow: hidden;
+}
+
+.ca-la-bar-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #7c3aed, #c084fc);
+    border-radius: 99px;
+    transition: width .6s ease;
+}
+
+.ca-la-pred {
+    font-size: .68rem;
+    color: rgba(196, 181, 253, 0.65);
+    line-height: 1.45;
+}
+

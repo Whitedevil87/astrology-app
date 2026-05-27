@@ -43,7 +43,7 @@ def _get_engine():
 
             _engine = create_engine(db_url, poolclass=NullPool)
             _use_postgres = True
-            logger.info("✅ PostgreSQL (Supabase) database connected")
+            logger.info("PostgreSQL (Supabase) database connected")
             return _engine
         except Exception as e:
             logger.error(f"❌ Failed to connect to PostgreSQL: {e}")
@@ -188,7 +188,7 @@ def init_db() -> None:
                 except Exception:
                     logger.info("ℹ️ user_profiles table creation skipped (auth.users may not exist yet)")
                 conn.commit()
-            logger.info("✅ PostgreSQL tables initialised")
+            logger.info("PostgreSQL tables initialised")
         except Exception as e:
             logger.error(f"❌ PostgreSQL init error: {e}")
     else:
@@ -197,7 +197,7 @@ def init_db() -> None:
         conn.execute(_SQLITE_CHAT_TABLE)
         conn.commit()
         conn.close()
-        logger.info("✅ SQLite tables initialised")
+        logger.info("SQLite tables initialised")
 
 
 def migrate_db() -> None:

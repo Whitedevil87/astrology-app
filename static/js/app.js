@@ -545,7 +545,7 @@ document.addEventListener("DOMContentLoaded", function () {
             banner.innerHTML =
                 '<span class="text-lg mt-0.5">🔮</span>' +
                 '<p class="text-xs text-purple-200/80 leading-relaxed">' +
-                '<strong class="text-purple-100">KP Sidereal (Vedic) Reading</strong> — ' +
+                '<strong class="text-purple-100">Lahiri Sidereal (Vedic) Reading</strong> — ' +
                 'Your Vedic Sun sign is <strong>' + escapeHtml(profile.zodiac || "—") + '</strong> (Lahiri Ayanamsa). ' +
                 bannerNote +
                 ' Both systems are valid — Vedic astrology aligns with the fixed star positions.' +
@@ -608,7 +608,13 @@ document.addEventListener("DOMContentLoaded", function () {
                 ["Easy resonance", bp.best_matches || "—"],
                 ["Growth catalysts", bp.growth_signs || "—"]
             ];
-            if (data.vedic && data.vedic.houses) {
+            // Real Dasha from new module
+            const dasha = data.dasha || {};
+            const cur = dasha.current || {};
+            if (cur.mahadasha) {
+                pairs.push(["Mahadasha", cur.mahadasha + " (ends " + (cur.mahadasha_ends || "—") + ")"]);
+                if (cur.antardasha) pairs.push(["Antardasha", cur.antardasha + " (ends " + (cur.antardasha_ends || "—") + ")"]);
+            } else if (data.vedic && data.vedic.houses) {
                 const h = data.vedic.houses;
                 pairs.push(
                     ["Rahu (house)", String(h.rahu)],
@@ -616,6 +622,12 @@ document.addEventListener("DOMContentLoaded", function () {
                     ["Mahadasha (demo)", String(data.vedic.mahadasha || "—")]
                 );
             }
+            // Panchanga chips
+            const panch = data.panchanga || {};
+            if (panch.tithi) pairs.push(["Birth Tithi", panch.tithi.name || "—"]);
+            if (panch.nakshatra) pairs.push(["Birth Nakshatra", (panch.nakshatra.name || "—") + " Pada " + (panch.nakshatra.pada || "")]);
+            if (panch.yoga) pairs.push(["Birth Yoga", panch.yoga.name || "—"]);
+
             blueprintChips.innerHTML = pairs.map(function (pair) {
                 return chip(pair[0], pair[1]);
             }).join("");
@@ -650,6 +662,15 @@ document.addEventListener("DOMContentLoaded", function () {
             }
             reportSections.innerHTML = html;
         }
+
+        // ── NEW: Dasha Timeline ──────────────────────────────────────
+        _renderDashaSection(data.dasha);
+
+        // ── NEW: Panchanga ───────────────────────────────────────────
+        _renderPanchangaSection(data.panchanga);
+
+        // ── NEW: Ashtakavarga ────────────────────────────────────────
+        _renderAshtakavargaSection(data.ashtakavarga, (data.profile || {}).ascendant);
 
         if (reportPrintBlock && data.report_html) {
             reportPrintBlock.innerHTML = data.report_html;
@@ -1500,7 +1521,10 @@ document.addEventListener("DOMContentLoaded", function () {
                         },
                         palm_analysis: r.palm_analysis,
                         report_html: r.report_html,
-                        created_at: r.created_at
+                        created_at: r.created_at,
+                        dasha: extras.dasha || {},
+                        panchanga: extras.panchanga || {},
+                        ashtakavarga: extras.ashtakavarga || {}
                     });
                 } else {
                     showError(json.error || "Report not found.");
@@ -1517,3 +1541,441 @@ document.addEventListener("DOMContentLoaded", function () {
         onlyStep(step1, 1);
     }
 });
+
+// ═══════════════════════════════════════════════════════════════════
+// NEW FEATURE RENDERERS — Dasha, Panchanga, Ashtakavarga
+// ═══════════════════════════════════════════════════════════════════
+
+// ── Inject styles once ───────────────────────────────────────────────
+(function _injectNewStyles() {
+    if (document.getElementById("ca-new-feature-styles")) return;
+    const s = document.createElement("style");
+    s.id = "ca-new-feature-styles";
+    s.textContent = `
+        /* ── Shared card wrapper ── */
+        .ca-feature-card {
+            margin-top: 2rem;
+            background: rgba(30,18,60,0.55);
+            border: 1px solid rgba(139,92,246,0.22);
+            border-radius: 1rem;
+            padding: 1.5rem;
+            backdrop-filter: blur(8px);
+        }
+        .ca-feature-heading {
+            display: flex; align-items: center; gap: .6rem;
+            font-size: 1.15rem; font-weight: 600; color: #e8d5ff;
+            margin-bottom: 1rem; padding-bottom: .6rem;
+            border-bottom: 1px solid rgba(139,92,246,0.2);
+        }
+        .ca-feature-heading .ca-icon { font-size: 1.3rem; }
+
+        /* ── Dasha ── */
+        .ca-dasha-current {
+            background: rgba(139,92,246,0.15);
+            border: 1px solid rgba(139,92,246,0.35);
+            border-radius: .75rem; padding: 1rem 1.2rem; margin-bottom: 1rem;
+        }
+        .ca-dasha-current .ca-dasha-label {
+            font-size: .7rem; letter-spacing: .12em; color: #c4b5fd;
+            text-transform: uppercase; margin-bottom: .25rem;
+        }
+        .ca-dasha-row {
+            display: flex; flex-wrap: wrap; gap: .5rem; align-items: center;
+            font-size: .95rem; color: #f3f0ff;
+        }
+        .ca-dasha-lord {
+            background: rgba(192,132,252,0.18);
+            border: 1px solid rgba(192,132,252,0.35);
+            border-radius: .4rem; padding: .15rem .6rem;
+            font-weight: 700; color: #ddd6fe;
+        }
+        .ca-dasha-sep { color: rgba(192,132,252,0.5); font-size: 1.2rem; }
+        .ca-dasha-end { font-size: .8rem; color: #a78bfa; margin-left:.2rem; }
+        .ca-dasha-pred {
+            font-size: .88rem; color: #c4b5fd; line-height: 1.55;
+            margin-top: .6rem;
+        }
+        .ca-dasha-timeline { overflow-x: auto; }
+        .ca-dasha-table {
+            width: 100%; border-collapse: collapse;
+            font-size: .82rem; color: #ddd6fe;
+        }
+        .ca-dasha-table th {
+            text-align: left; padding: .4rem .7rem;
+            color: #a78bfa; font-weight: 600; font-size: .72rem;
+            text-transform: uppercase; letter-spacing: .08em;
+            border-bottom: 1px solid rgba(139,92,246,0.25);
+        }
+        .ca-dasha-table td {
+            padding: .4rem .7rem;
+            border-bottom: 1px solid rgba(139,92,246,0.1);
+        }
+        .ca-dasha-table tr.ca-current-row td {
+            background: rgba(139,92,246,0.12);
+            color: #f3f0ff; font-weight: 600;
+        }
+        .ca-dasha-table .ca-cur-badge {
+            display:inline-block; font-size:.65rem; padding:.1rem .4rem;
+            background:rgba(192,132,252,0.25); border-radius:.3rem;
+            color:#c4b5fd; margin-left:.4rem;
+        }
+        .ca-toggle-btn {
+            margin-top: .6rem; font-size: .78rem;
+            color: #a78bfa; background: none; border: none; cursor: pointer;
+            padding: .2rem 0; text-decoration: underline; text-underline-offset: 3px;
+        }
+        .ca-antar-table { margin-top: .5rem; width: 100%; border-collapse: collapse; font-size: .8rem; color:#c4b5fd; }
+        .ca-antar-table td { padding: .3rem .5rem; border-bottom: 1px solid rgba(139,92,246,0.08); }
+        .ca-antar-table tr.ca-current-row td { color:#f3f0ff; font-weight:600; background:rgba(139,92,246,0.1); }
+
+        /* ── Panchanga ── */
+        .ca-panch-grid {
+            display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+            gap: .7rem; margin-bottom: 1rem;
+        }
+        .ca-panch-cell {
+            background: rgba(139,92,246,0.1);
+            border: 1px solid rgba(139,92,246,0.2);
+            border-radius: .6rem; padding: .7rem .9rem;
+        }
+        .ca-panch-cell .ca-panch-lbl {
+            font-size: .68rem; color: #a78bfa; text-transform: uppercase;
+            letter-spacing: .1em; margin-bottom: .2rem;
+        }
+        .ca-panch-cell .ca-panch-val {
+            font-size: .92rem; color: #f3f0ff; font-weight: 600;
+        }
+        .ca-panch-cell .ca-panch-sub {
+            font-size: .75rem; color: #c4b5fd; margin-top: .15rem;
+        }
+        .ca-timing-row {
+            display: flex; flex-wrap: wrap; gap: .6rem; margin-top: .8rem;
+        }
+        .ca-timing-pill {
+            display: flex; flex-direction: column;
+            background: rgba(30,18,60,0.6);
+            border: 1px solid rgba(139,92,246,0.2);
+            border-radius: .6rem; padding: .5rem .9rem; font-size: .8rem;
+        }
+        .ca-timing-pill.ca-rahu { border-color: rgba(239,68,68,0.35); }
+        .ca-timing-pill.ca-abhijit { border-color: rgba(52,211,153,0.35); }
+        .ca-timing-pill .ca-tl { font-size: .68rem; color: #a78bfa; margin-bottom: .15rem; }
+        .ca-timing-pill.ca-rahu .ca-tl { color: #fca5a5; }
+        .ca-timing-pill.ca-abhijit .ca-tl { color: #6ee7b7; }
+        .ca-timing-pill .ca-tv { color: #f3f0ff; font-weight: 600; }
+        .ca-auspicious-bar {
+            display: flex; align-items: center; gap: .8rem; margin-top: .8rem;
+        }
+        .ca-aus-track {
+            flex: 1; height: 8px; background: rgba(139,92,246,0.15);
+            border-radius: 99px; overflow: hidden;
+        }
+        .ca-aus-fill {
+            height: 100%; border-radius: 99px;
+            background: linear-gradient(90deg, #7c3aed, #c084fc);
+            transition: width .6s ease;
+        }
+        .ca-aus-label { font-size: .8rem; color: #c4b5fd; white-space: nowrap; }
+        .ca-aus-score { font-size: .9rem; font-weight: 700; color: #ddd6fe; }
+
+        /* ── Ashtakavarga ── */
+        .ca-sav-grid {
+            display: grid; grid-template-columns: repeat(6, 1fr);
+            gap: 4px; margin: .8rem 0;
+        }
+        @media (max-width: 500px) { .ca-sav-grid { grid-template-columns: repeat(4, 1fr); } }
+        .ca-sav-cell {
+            aspect-ratio: 1; display: flex; flex-direction: column;
+            align-items: center; justify-content: center;
+            border-radius: .4rem; font-size: .72rem;
+            border: 1px solid rgba(139,92,246,0.15);
+            transition: transform .15s;
+        }
+        .ca-sav-cell:hover { transform: scale(1.08); }
+        .ca-sav-cell .ca-sav-sign { font-size: .6rem; color: #a78bfa; }
+        .ca-sav-cell .ca-sav-pts { font-weight: 700; font-size: .9rem; }
+        .ca-sav-strong { background: rgba(52,211,153,0.18); border-color: rgba(52,211,153,0.35); }
+        .ca-sav-strong .ca-sav-pts { color: #6ee7b7; }
+        .ca-sav-good { background: rgba(139,92,246,0.15); border-color: rgba(139,92,246,0.3); }
+        .ca-sav-good .ca-sav-pts { color: #c4b5fd; }
+        .ca-sav-avg { background: rgba(251,191,36,0.1); border-color: rgba(251,191,36,0.25); }
+        .ca-sav-avg .ca-sav-pts { color: #fcd34d; }
+        .ca-sav-weak { background: rgba(239,68,68,0.1); border-color: rgba(239,68,68,0.25); }
+        .ca-sav-weak .ca-sav-pts { color: #fca5a5; }
+        .ca-life-areas {
+            display: grid; grid-template-columns: repeat(auto-fill, minmax(200px,1fr));
+            gap: .6rem; margin-top: .8rem;
+        }
+        .ca-la-cell {
+            background: rgba(139,92,246,0.08);
+            border: 1px solid rgba(139,92,246,0.18);
+            border-radius: .6rem; padding: .6rem .8rem;
+        }
+        .ca-la-header { display: flex; justify-content: space-between; align-items: center; }
+        .ca-la-name { font-size: .8rem; color: #e8d5ff; font-weight: 600; }
+        .ca-la-pts { font-size: .85rem; font-weight: 700; }
+        .ca-la-pts.strong { color: #6ee7b7; }
+        .ca-la-pts.good { color: #c4b5fd; }
+        .ca-la-pts.avg { color: #fcd34d; }
+        .ca-la-pts.weak { color: #fca5a5; }
+        .ca-la-bar-track { height: 4px; background: rgba(139,92,246,0.15); border-radius:99px; margin:.35rem 0; }
+        .ca-la-bar-fill { height: 100%; border-radius:99px; background: linear-gradient(90deg,#7c3aed,#c084fc); }
+        .ca-la-pred { font-size: .72rem; color: #a78bfa; line-height: 1.45; }
+    `;
+    document.head.appendChild(s);
+})();
+
+// ── 1. Dasha Section ────────────────────────────────────────────────
+function _renderDashaSection(dasha) {
+    if (!dasha || dasha.error || !dasha.current) return;
+
+    const cur   = dasha.current || {};
+    const bb    = dasha.birth_balance || {};
+    const tl    = dasha.timeline || [];
+
+    const container = document.getElementById("results");
+    if (!container) return;
+
+    const wrap = document.createElement("div");
+    wrap.className = "ca-feature-card";
+    wrap.id = "ca-dasha-section";
+
+    // Current dasha summary
+    const maha  = cur.mahadasha  || "—";
+    const antar = cur.antardasha || "—";
+    const prat  = cur.pratyantar || "—";
+    const pred  = cur.prediction || "";
+
+    // Build timeline rows (show all mahadashas, collapse antardashas)
+    let timelineHtml = "";
+    tl.forEach(function(m) {
+        const isCur = m.is_current;
+        const id = "antar-" + m.lord.replace(/\s/g, "");
+        timelineHtml += `
+        <tr class="${isCur ? "ca-current-row" : ""}">
+            <td><strong>${escapeHtml(m.lord)}</strong>${isCur ? '<span class="ca-cur-badge">NOW</span>' : ""}</td>
+            <td>${escapeHtml(m.start_date)}</td>
+            <td>${escapeHtml(m.end_date)}</td>
+            <td>${m.years.toFixed(1)} yrs</td>
+            <td>${m.antardashas && m.antardashas.length
+                ? `<button class="ca-toggle-btn" onclick="_toggleAntar('${id}')">▶ Show sub-periods</button>`
+                : ""}</td>
+        </tr>
+        ${m.antardashas && m.antardashas.length ? `
+        <tr id="${id}" style="display:none"><td colspan="5" style="padding:0 .5rem .6rem 1.5rem">
+            <table class="ca-antar-table">
+                <tr><th style="color:#a78bfa;font-size:.68rem;padding:.25rem .5rem">Antardasha</th>
+                    <th style="color:#a78bfa;font-size:.68rem;padding:.25rem .5rem">Start</th>
+                    <th style="color:#a78bfa;font-size:.68rem;padding:.25rem .5rem">End</th>
+                    <th style="color:#a78bfa;font-size:.68rem;padding:.25rem .5rem">Months</th></tr>
+                ${m.antardashas.map(a => `
+                <tr class="${a.is_current ? "ca-current-row" : ""}">
+                    <td>${escapeHtml(a.lord)}${a.is_current ? '<span class="ca-cur-badge">NOW</span>' : ""}</td>
+                    <td>${escapeHtml(a.start_date)}</td>
+                    <td>${escapeHtml(a.end_date)}</td>
+                    <td>${(a.months || 0).toFixed(1)}</td>
+                </tr>`).join("")}
+            </table>
+        </td></tr>` : ""}`;
+    });
+
+    wrap.innerHTML = `
+        <div class="ca-feature-heading"><span class="ca-icon">⏱</span> Vimshottari Dasha — Exact Timeline</div>
+        <p style="font-size:.85rem;color:#c4b5fd;margin-bottom:.8rem">${escapeHtml(bb.message || "")}</p>
+        <div class="ca-dasha-current">
+            <div class="ca-dasha-label">Currently Running</div>
+            <div class="ca-dasha-row">
+                <span class="ca-dasha-lord">${escapeHtml(maha)}</span>
+                <span class="ca-dasha-sep">›</span>
+                <span class="ca-dasha-lord">${escapeHtml(antar)}</span>
+                <span class="ca-dasha-sep">›</span>
+                <span class="ca-dasha-lord">${escapeHtml(prat)}</span>
+            </div>
+            <div class="ca-dasha-row" style="margin-top:.35rem">
+                <span class="ca-dasha-end">Mahadasha ends: ${escapeHtml(cur.mahadasha_ends || "—")}</span>
+                <span style="color:rgba(192,132,252,0.4)">·</span>
+                <span class="ca-dasha-end">Antardasha ends: ${escapeHtml(cur.antardasha_ends || "—")}</span>
+            </div>
+            ${pred ? `<p class="ca-dasha-pred">${escapeHtml(pred)}</p>` : ""}
+        </div>
+        <div class="ca-dasha-timeline">
+            <table class="ca-dasha-table">
+                <thead><tr>
+                    <th>Mahadasha Lord</th><th>Start</th><th>End</th><th>Duration</th><th>Sub-periods</th>
+                </tr></thead>
+                <tbody>${timelineHtml}</tbody>
+            </table>
+        </div>`;
+
+    container.appendChild(wrap);
+}
+
+window._toggleAntar = function(id) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    const hidden = el.style.display === "none";
+    el.style.display = hidden ? "table-row" : "none";
+    const btn = el.previousElementSibling && el.previousElementSibling.querySelector(".ca-toggle-btn");
+    if (btn) btn.textContent = hidden ? "▼ Hide sub-periods" : "▶ Show sub-periods";
+};
+
+// ── 2. Panchanga Section ─────────────────────────────────────────────
+function _renderPanchangaSection(panch) {
+    if (!panch || panch.error || !panch.tithi) return;
+
+    const container = document.getElementById("results");
+    if (!container) return;
+
+    const wrap = document.createElement("div");
+    wrap.className = "ca-feature-card";
+    wrap.id = "ca-panchanga-section";
+
+    const vara    = panch.vara    || {};
+    const tithi   = panch.tithi   || {};
+    const nak     = panch.nakshatra || {};
+    const yoga    = panch.yoga    || {};
+    const karana  = panch.karana  || {};
+    const timing  = panch.timing  || {};
+    const rahu    = timing.rahukalam       || {};
+    const abhijit = timing.abhijit_muhurta || {};
+    const aus     = panch.auspiciousness_score || {};
+    const score   = aus.score || 50;
+
+    function cell(lbl, val, sub) {
+        return `<div class="ca-panch-cell">
+            <div class="ca-panch-lbl">${escapeHtml(lbl)}</div>
+            <div class="ca-panch-val">${escapeHtml(val)}</div>
+            ${sub ? `<div class="ca-panch-sub">${escapeHtml(sub)}</div>` : ""}
+        </div>`;
+    }
+
+    wrap.innerHTML = `
+        <div class="ca-feature-heading"><span class="ca-icon">📅</span> Birth Panchanga (Pancha-anga)</div>
+        <div class="ca-panch-grid">
+            ${cell("Vara (Day)", vara.name || "—", "Lord: " + (vara.lord || "—"))}
+            ${cell("Tithi", tithi.name || "—", tithi.paksha || "")}
+            ${cell("Nakshatra", (nak.name || "—") + " Pada " + (nak.pada || ""), "Lord: " + (nak.lord || "—"))}
+            ${cell("Yoga", yoga.name || "—", yoga.quality || "")}
+            ${cell("Karana", karana.name || "—", "")}
+            ${cell("Lunar Month", panch.lunar_month || "—", panch.paksha || "")}
+        </div>
+
+        <div class="ca-auspicious-bar">
+            <span class="ca-aus-label">Auspiciousness</span>
+            <div class="ca-aus-track">
+                <div class="ca-aus-fill" style="width:${score}%"></div>
+            </div>
+            <span class="ca-aus-score">${score}/100</span>
+            <span class="ca-aus-label" style="color:#e8d5ff;font-weight:600">${escapeHtml(aus.label || "")}</span>
+        </div>
+        ${aus.recommendation ? `<p style="font-size:.82rem;color:#c4b5fd;margin-top:.5rem">${escapeHtml(aus.recommendation)}</p>` : ""}
+
+        <div class="ca-timing-row">
+            <div class="ca-timing-pill">
+                <span class="ca-tl">Sunrise / Sunset</span>
+                <span class="ca-tv">${escapeHtml(timing.sunrise || "—")} — ${escapeHtml(timing.sunset || "—")}</span>
+            </div>
+            ${rahu.start ? `<div class="ca-timing-pill ca-rahu">
+                <span class="ca-tl">⚠ Rahukalam (avoid new starts)</span>
+                <span class="ca-tv">${escapeHtml(rahu.start)} — ${escapeHtml(rahu.end)}</span>
+            </div>` : ""}
+            ${abhijit.start ? `<div class="ca-timing-pill ca-abhijit">
+                <span class="ca-tl">✓ Abhijit Muhurta (most auspicious)</span>
+                <span class="ca-tv">${escapeHtml(abhijit.start)} — ${escapeHtml(abhijit.end)}</span>
+            </div>` : ""}
+            ${timing.hora && timing.hora.lord ? `<div class="ca-timing-pill">
+                <span class="ca-tl">Current Hora</span>
+                <span class="ca-tv">${escapeHtml(timing.hora.lord)} (until ${escapeHtml(timing.hora.ends_at || "—")})</span>
+            </div>` : ""}
+        </div>`;
+
+    container.appendChild(wrap);
+}
+
+// ── 3. Ashtakavarga Section ──────────────────────────────────────────
+function _renderAshtakavargaSection(ashtak, lagna) {
+    if (!ashtak || ashtak.error || !ashtak.sarva_by_sign) return;
+
+    const container = document.getElementById("results");
+    if (!container) return;
+
+    const wrap = document.createElement("div");
+    wrap.className = "ca-feature-card";
+    wrap.id = "ca-ashtakavarga-section";
+
+    const sarva = ashtak.sarva_by_sign || {};
+    const lifeAreas = ashtak.life_areas || {};
+    const avg  = ashtak.average_per_sign || 0;
+    const interp = ashtak.interpretation || "";
+    const strong = ashtak.strongest_signs || [];
+    const weak   = ashtak.weakest_signs   || [];
+
+    // Sarvashtakavarga 12-sign grid
+    const SIGNS_SHORT = ["Ari","Tau","Gem","Can","Leo","Vir","Lib","Sco","Sag","Cap","Aqu","Pis"];
+    const SIGNS_FULL  = ["Aries","Taurus","Gemini","Cancer","Leo","Virgo",
+                         "Libra","Scorpio","Sagittarius","Capricorn","Aquarius","Pisces"];
+    let gridHtml = "";
+    SIGNS_FULL.forEach(function(sign, i) {
+        const pts = sarva[sign] || 0;
+        let cls = "ca-sav-weak";
+        if (pts >= 30) cls = "ca-sav-strong";
+        else if (pts >= 25) cls = "ca-sav-good";
+        else if (pts >= 20) cls = "ca-sav-avg";
+        const isLagna = sign === lagna;
+        gridHtml += `<div class="ca-sav-cell ${cls}" title="${sign}: ${pts} points${isLagna?" (Lagna)":""}">
+            <span class="ca-sav-sign">${SIGNS_SHORT[i]}${isLagna?"✦":""}</span>
+            <span class="ca-sav-pts">${pts}</span>
+        </div>`;
+    });
+
+    // Life areas grid (12 houses)
+    let areasHtml = "";
+    for (let h = 1; h <= 12; h++) {
+        const la = lifeAreas[h] || {};
+        const pts = la.points || 0;
+        let ptsClass = "weak";
+        if (pts >= 30) ptsClass = "strong";
+        else if (pts >= 25) ptsClass = "good";
+        else if (pts >= 20) ptsClass = "avg";
+        const barW = Math.round((pts / 45) * 100);
+        areasHtml += `<div class="ca-la-cell">
+            <div class="ca-la-header">
+                <span class="ca-la-name">H${h}: ${escapeHtml(la.name || "")}</span>
+                <span class="ca-la-pts ${ptsClass}">${pts}</span>
+            </div>
+            <div class="ca-la-bar-track"><div class="ca-la-bar-fill" style="width:${barW}%"></div></div>
+            <div class="ca-la-pred">${escapeHtml((la.prediction || "").slice(0, 90))}${(la.prediction||"").length > 90 ? "…" : ""}</div>
+        </div>`;
+    }
+
+    const strongStr = strong.slice(0,3).map(s => `${s[0]} (${s[1]})`).join(", ");
+    const weakStr   = weak.slice(0,3).map(s  => `${s[0]} (${s[1]})`).join(", ");
+
+    wrap.innerHTML = `
+        <div class="ca-feature-heading"><span class="ca-icon">⭐</span> Ashtakavarga — Planetary Strength Grid</div>
+        <p style="font-size:.85rem;color:#c4b5fd;margin-bottom:.8rem">${escapeHtml(interp)}</p>
+
+        <div style="display:flex;flex-wrap:wrap;gap:1rem;margin-bottom:.8rem;font-size:.82rem">
+            <span style="color:#a78bfa">Average/sign: <strong style="color:#ddd6fe">${avg}/28</strong></span>
+            <span style="color:#a78bfa">Strongest: <strong style="color:#6ee7b7">${escapeHtml(strongStr)}</strong></span>
+            <span style="color:#a78bfa">Weakest: <strong style="color:#fca5a5">${escapeHtml(weakStr)}</strong></span>
+        </div>
+
+        <p style="font-size:.75rem;color:#a78bfa;margin-bottom:.5rem;text-transform:uppercase;letter-spacing:.1em">
+            Sarvashtakavarga — Benefic Points Per Sign (✦ = Your Lagna)
+        </p>
+        <div class="ca-sav-grid">${gridHtml}</div>
+        <div style="display:flex;gap:1rem;flex-wrap:wrap;font-size:.7rem;color:#a78bfa;margin-bottom:1rem">
+            <span><span style="color:#6ee7b7">■</span> Strong (30+)</span>
+            <span><span style="color:#c4b5fd">■</span> Good (25–29)</span>
+            <span><span style="color:#fcd34d">■</span> Average (20–24)</span>
+            <span><span style="color:#fca5a5">■</span> Weak (&lt;20)</span>
+        </div>
+
+        <p style="font-size:.75rem;color:#a78bfa;margin-bottom:.5rem;text-transform:uppercase;letter-spacing:.1em">
+            Life Area Analysis (House-wise)
+        </p>
+        <div class="ca-life-areas">${areasHtml}</div>`;
+
+    container.appendChild(wrap);
+}

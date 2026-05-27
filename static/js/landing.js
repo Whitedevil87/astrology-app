@@ -1,7 +1,7 @@
 /* ═══════════════════════════════════════════════════════════
    CELESTIAL ARC — Scroll-Driven Cinematic Engine v2
    
-   Core: 150-frame image sequence controlled by scroll position.
+   Core: 288-frame image sequence controlled by scroll position.
    Architecture: position:sticky viewport inside tall scroll container.
    Rendering: High-DPR canvas with cover-fit and smooth interpolation.
    
@@ -16,49 +16,45 @@
    └──────────────────────────────────────────────────┘
    │ .cta-section (flows normally after scroll ends)  │
    
-   The user scrolls through 500vh total. The sticky element
-   stays pinned for 400vh of travel. During that 400vh,
-   progress goes 0→1, driving frames 1→150 and panel reveals.
+   Scroll height is set in CSS (--cinematic-scroll-height). Progress 0→1
+   maps frames 1→288. Panels use wide overlap so copy stays readable longer.
    ═══════════════════════════════════════════════════════════ */
 
 (function () {
   'use strict';
 
-  // ── CONFIGURATION ──────────────────────────────────────
-  // ── Mobile detection: use every 3rd frame on phones to reduce memory ──
-  const isMobile = /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent) || window.innerWidth < 768;
-  const FRAME_STEP = isMobile ? 3 : 1;   // mobile: ~96 effective frames, desktop: all 288
-  const EFFECTIVE_FRAMES = Math.floor(288 / FRAME_STEP);
+  const isMobile = window.matchMedia('(max-width: 768px)').matches;
+  const isReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const isLowPower = isMobile || isReducedMotion;
 
+  // ── CONFIGURATION ──────────────────────────────────────
   const CONFIG = {
     totalFrames: 288,
-    frameStep: FRAME_STEP,
+    frameStep: isMobile ? 2 : 1,
     frameBasePath: '/static/images/celestial-sequence-288/frame_',
     frameExtension: '.webp',
 
-    // Story panel scroll ranges (% of scroll progress 0→1)
+    // Story panel scroll ranges — wide overlap, long hold in the middle
     panels: {
-      hero:         { start: -0.10, end: 0.25, overlay: 'overlay-hero' },
-      engine:       { start: 0.25, end: 0.50, overlay: 'overlay-engine' },
-      intelligence: { start: 0.50, end: 0.75, overlay: 'overlay-intelligence' },
-      activation:   { start: 0.75, end: 1.00, overlay: 'overlay-activation' },
+      hero:         { start: -0.05, end: 0.34, overlay: 'overlay-hero' },
+      engine:       { start: 0.26, end: 0.58, overlay: 'overlay-engine' },
+      intelligence: { start: 0.50, end: 0.82, overlay: 'overlay-intelligence' },
+      activation:   { start: 0.74, end: 1.06, overlay: 'overlay-activation' },
     },
 
-    // Panel transitions: wider fade zone so text is visible longer
-    panelFadeZone: isMobile ? 0.10 : 0.06,
+    panelFadeZone: 0.09,
 
-    // Preloading — smaller batches on mobile
-    preloadBatchSize: isMobile ? 5 : 10,
-    preloadInterval: isMobile ? 50 : 30,
+    preloadBatchSize: isMobile ? 6 : 12,
+    preloadInterval: isMobile ? 50 : 20,
 
-    // Rendering
     navScrollThreshold: 40,
-    particleCount: 35,
-    particleMaxSize: 1.5,
+    particleCount: isMobile ? 0 : 18,
+    particleMaxSize: 1.2,
     particleMinSize: 0.3,
 
-    // Smooth interpolation factor (lower = heavier, more expensive feel)
-    lerpFactor: 0.06,
+    maxDpr: isMobile ? 1.25 : 2,
+    enableParticles: !isLowPower,
+    smoothingQuality: isMobile ? 'medium' : 'high',
   };
 
   // ── UTILITIES ──────────────────────────────────────────
@@ -87,6 +83,14 @@
 
   function framePath(idx) {
     return CONFIG.frameBasePath + padFrame(idx) + CONFIG.frameExtension;
+  }
+
+  /** Snap to loaded frame step on mobile (e.g. 2, 4, 6 …). */
+  function snapFrameIndex(idx) {
+    const step = CONFIG.frameStep;
+    if (step <= 1) return clamp(Math.round(idx), 1, CONFIG.totalFrames);
+    const snapped = Math.round((idx - 1) / step) * step + 1;
+    return clamp(snapped, 1, CONFIG.totalFrames);
   }
 
   // ── IMAGE PRELOADER ────────────────────────────────────
@@ -125,24 +129,17 @@
   }
 
   async function preloadAllFrames() {
-    // Phase 1: Critical frames
-    // Mobile: only first 3 frames — show page FAST, load rest in background
-    // Desktop: first 15 + keyframes every 10th
+    // Phase 1: Critical frames — first 15 + evenly spaced keyframes
     const critical = new Set();
-
-    if (isMobile) {
-      // Just 3 frames — enough to show page immediately
-      for (let i = 1; i <= 3; i++) critical.add(i);
-    } else {
-      for (let i = 1; i <= 15; i++) critical.add(i);
-      for (let i = 20; i <= CONFIG.totalFrames; i += 10) critical.add(i);
-      critical.add(CONFIG.totalFrames);
-    }
+    for (let i = 1; i <= 15; i++) critical.add(i);
+    // Keyframes at every 10th frame
+    for (let i = 20; i <= CONFIG.totalFrames; i += 10) critical.add(i);
+    critical.add(CONFIG.totalFrames);
 
     const criticalArr = [...critical].sort((a, b) => a - b);
     await Promise.all(criticalArr.map(preloadImage));
 
-    // Reveal the page immediately — don't wait for all frames
+    // Reveal the page once critical frames are ready
     hideLoader();
 
     // Immediately draw the first frame so the user doesn't see a black screen
@@ -167,14 +164,12 @@
       }
     }, { passive: true });
 
-    // Phase 2: Remaining frames in background
-    // Mobile: only load step frames (every 3rd), skip rest entirely
+    // Phase 2: Remaining frames in batches
     const remaining = [];
     for (let i = 1; i <= CONFIG.totalFrames; i++) {
-      if (!critical.has(i)) {
-        if (isMobile && i % FRAME_STEP !== 1) continue; // skip non-step frames on mobile
-        remaining.push(i);
-      }
+      if (critical.has(i)) continue;
+      if (CONFIG.frameStep > 1 && (i - 1) % CONFIG.frameStep !== 0 && i !== CONFIG.totalFrames) continue;
+      remaining.push(i);
     }
 
     let idx = 0;
@@ -182,14 +177,6 @@
       const batch = remaining.slice(idx, idx + CONFIG.preloadBatchSize);
       await Promise.all(batch.map(preloadImage));
       idx += CONFIG.preloadBatchSize;
-      // On mobile free memory of frames far from current position
-      if (isMobile && loadedCount % 30 === 0) {
-        imageCache.forEach((img, key) => {
-          if (Math.abs(key - Math.round(displayFrame)) > 40) {
-            imageCache.delete(key);
-          }
-        });
-      }
       // Yield to main thread
       if (idx < remaining.length) {
         await new Promise(r => setTimeout(r, CONFIG.preloadInterval));
@@ -287,10 +274,9 @@
   let scrollContainer;
   let panelElements = {};
   let overlayEl;
-
-  // Animation state
-  let targetFrame = 1;
-  let displayFrame = 1;
+  let cinematicActive = false;
+  let scrollRafPending = false;
+  let lastPanelProgress = -1;
   let currentProgress = 0;
 
   function initCinematicEngine() {
@@ -298,32 +284,32 @@
     scrollContainer = $('#cinematicScroll');
     if (!canvas || !scrollContainer) return;
 
-    ctx = canvas.getContext('2d', { alpha: false });
+    ctx = canvas.getContext('2d', { alpha: false, desynchronized: true });
     if (!ctx) return;
 
-    // Cache DOM references
     Object.keys(CONFIG.panels).forEach(key => {
       panelElements[key] = $('#panel-' + key);
     });
     overlayEl = $('#cinematicOverlay');
 
-    // Size canvas
     resizeCanvas();
-    window.addEventListener('resize', resizeCanvas);
-
-    // Scroll listener — no throttle, we use rAF internally
+    window.addEventListener('resize', resizeCanvas, { passive: true });
     window.addEventListener('scroll', onCinematicScroll, { passive: true });
 
-    // Render first frame
-    renderFrame(1);
+    const io = new IntersectionObserver(([entry]) => {
+      cinematicActive = entry.isIntersecting;
+      if (cinematicActive) scheduleCinematicTick();
+    }, { root: null, threshold: 0, rootMargin: '120px 0px' });
+    io.observe(scrollContainer);
 
-    // Start animation loop
-    raf(animationLoop);
+    cinematicActive = true;
+    renderFrame(1, true);
+    updateCinematicFromScroll();
   }
 
   function resizeCanvas() {
     if (!canvas) return;
-    const dpr = isMobile ? Math.min(window.devicePixelRatio || 1, 1.5) : Math.min(window.devicePixelRatio || 1, 2);
+    const dpr = Math.min(window.devicePixelRatio || 1, CONFIG.maxDpr);
     const w = window.innerWidth;
     const h = window.innerHeight;
 
@@ -345,52 +331,41 @@
 
   function onCinematicScroll() {
     if (!scrollContainer) return;
+    scheduleCinematicTick();
+  }
 
-    // How far has .cinematic-scroll scrolled past the top of the viewport?
+  function scheduleCinematicTick() {
+    if (scrollRafPending) return;
+    scrollRafPending = true;
+    raf(() => {
+      scrollRafPending = false;
+      if (!scrollContainer) return;
+      updateCinematicFromScroll();
+    });
+  }
+
+  function updateCinematicFromScroll() {
     const rect = scrollContainer.getBoundingClientRect();
     const scrolled = -rect.top;
-
-    // Total scroll runway = container height - viewport height
-    // This is the distance the sticky element stays pinned
     const runway = scrollContainer.offsetHeight - window.innerHeight;
-
     if (runway <= 0) return;
 
     currentProgress = clamp(scrolled / runway, 0, 1);
 
-    // Map progress → frame index (snap to step grid on mobile)
-    let rawFrame = 1 + currentProgress * (CONFIG.totalFrames - 1);
-    rawFrame = clamp(rawFrame, 1, CONFIG.totalFrames);
-    // On mobile round to nearest loaded step to avoid blank frames
-    targetFrame = isMobile
-      ? Math.round((rawFrame - 1) / FRAME_STEP) * FRAME_STEP + 1
-      : rawFrame;
-    targetFrame = clamp(targetFrame, 1, CONFIG.totalFrames);
-  }
-
-  function animationLoop() {
-    // Pure, buttery smooth continuous interpolation
-    const diff = Math.abs(displayFrame - targetFrame);
-
-    if (diff > 0.05) {
-      displayFrame = lerp(displayFrame, targetFrame, CONFIG.lerpFactor);
-    } else {
-      displayFrame = targetFrame;
-    }
-
-    const frameToRender = Math.round(displayFrame);
+    const rawFrame = 1 + currentProgress * (CONFIG.totalFrames - 1);
+    const frameToRender = snapFrameIndex(rawFrame);
     if (frameToRender !== currentFrame) {
       renderFrame(frameToRender);
     }
 
-    // Update panels every frame for smooth transitions
-    updatePanels(currentProgress);
-
-    raf(animationLoop);
+    if (Math.abs(currentProgress - lastPanelProgress) > 0.002 || lastPanelProgress < 0) {
+      updatePanels(currentProgress);
+      lastPanelProgress = currentProgress;
+    }
   }
 
   function renderFrame(idx, force) {
-    idx = clamp(idx, 1, CONFIG.totalFrames);
+    idx = snapFrameIndex(clamp(idx, 1, CONFIG.totalFrames));
     if (idx === currentFrame && !force) return;
 
     const img = imageCache.get(idx);
@@ -443,18 +418,9 @@
       sy = 0;
     }
 
-    // Enable high-quality image smoothing for sharp rendering
     ctx.imageSmoothingEnabled = true;
-    ctx.imageSmoothingQuality = 'high';
-
-    // Cinematic post-processing: boost contrast, saturation, and brightness
-    // This makes 720p images look premium and vibrant when upscaled to 4K
-    ctx.filter = 'contrast(1.15) saturate(1.1) brightness(1.05)';
-
+    ctx.imageSmoothingQuality = CONFIG.smoothingQuality;
     ctx.drawImage(img, sx, sy, sw, sh, 0, 0, cw, ch);
-    
-    // Reset filter
-    ctx.filter = 'none';
   }
 
   // ── PANEL VISIBILITY (with smooth crossfade) ──────────
@@ -492,27 +458,20 @@
       opacity = clamp(opacity, 0, 1);
 
       if (opacity > 0.01) {
-        panel.style.opacity = opacity;
-        // Skip blur on mobile — GPU-expensive and causes lag
-        panel.style.filter = (!isMobile && opacity < 0.5) ? `blur(${(1 - opacity * 2) * 6}px)` : 'none';
-        
-        // Premium floating reveal effect based directly on scroll progress
-        const translateY = (1 - opacity) * 30;
-        panel.style.transform = `translateY(${translateY}px)`;
-        
+        panel.style.opacity = String(opacity);
+        const translateY = (1 - opacity) * 20;
+        panel.style.transform = `translate3d(0, ${translateY}px, 0)`;
         panel.style.pointerEvents = opacity > 0.5 ? 'auto' : 'none';
         panel.classList.add('story-panel--active');
 
         if (opacity > 0.5) {
           newActiveKey = key;
-          // Trigger card reveals
           const panelProgress = (progress - range.start) / (range.end - range.start);
           animateCards(panel, panelProgress);
         }
       } else {
-        panel.style.opacity = 0;
-        panel.style.filter = 'blur(6px)';
-        panel.style.transform = 'translateY(30px)';
+        panel.style.opacity = '0';
+        panel.style.transform = 'translate3d(0, 20px, 0)';
         panel.style.pointerEvents = 'none';
         panel.classList.remove('story-panel--active');
       }
@@ -544,7 +503,7 @@
 
   // ── PARTICLE SYSTEM ────────────────────────────────────
   function initParticles() {
-    if (prefersReducedMotion) return;
+    if (!CONFIG.enableParticles || prefersReducedMotion) return;
 
     const particleCanvas = document.createElement('canvas');
     particleCanvas.style.cssText = 'position:absolute;inset:0;z-index:4;pointer-events:none;';
@@ -564,7 +523,7 @@
     function resize() {
       width = window.innerWidth;
       height = window.innerHeight;
-      const dpr = isMobile ? Math.min(window.devicePixelRatio || 1, 1.5) : Math.min(window.devicePixelRatio || 1, 2);
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
       particleCanvas.width = width * dpr;
       particleCanvas.height = height * dpr;
       particleCanvas.style.width = width + 'px';
@@ -667,8 +626,7 @@
     // Initialize cinematic engine
     initCinematicEngine();
 
-    // Particle system
-    initParticles();
+    if (CONFIG.enableParticles) initParticles();
 
     // CTA reveal animations
     initCtaReveal();
