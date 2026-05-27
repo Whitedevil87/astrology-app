@@ -98,7 +98,7 @@ YOGA_QUALITY: List[str] = [
 # ── Karana names ─────────────────────────────────────────────────────
 
 # Fixed karanas (occur once in a lunar month)
-_FIXED_KARANAS = ["Kimstughna", "Chatushpada", "Naga", "Sakuni"]
+_FIXED_KARANAS = ["Kimstughna", "Sakuni", "Chatushpada", "Naga"]
 # Repeating karanas (cycle 8 times through the month)
 _MOVING_KARANAS = ["Bava", "Balava", "Kaulava", "Taitila", "Garija", "Vanija", "Vishti"]
 
