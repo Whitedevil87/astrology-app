@@ -1704,4 +1704,151 @@
     color: rgba(196, 181, 253, 0.65);
     line-height: 1.45;
 }
+/* ── LUCKY STRIP — visual chips ──────────────────────────────────── */
+.ca-lucky-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .55rem;
+    margin: .6rem 0 1.2rem;
+}
+
+.ca-lucky-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: .4rem;
+    padding: .35rem .75rem;
+    border-radius: 99px;
+    border: 1px solid rgba(139, 92, 246, 0.28);
+    background: rgba(139, 92, 246, 0.1);
+    font-size: .78rem;
+    line-height: 1;
+    white-space: nowrap;
+}
+
+.ca-lucky-chip-icon {
+    font-size: .85rem;
+    opacity: .9;
+}
+
+.ca-lucky-chip-label {
+    color: rgba(167, 139, 250, 0.75);
+    font-size: .68rem;
+    text-transform: uppercase;
+    letter-spacing: .08em;
+    margin-right: .15rem;
+}
+
+.ca-lucky-chip-value {
+    color: #e9d5ff;
+    font-weight: 600;
+}
+
+/* ── AT-A-GLANCE SUMMARY CARD ─────────────────────────────────────── */
+.ca-glance-card {
+    background: linear-gradient(135deg, rgba(109, 40, 217, 0.18), rgba(15, 23, 42, 0.72));
+    border: 1px solid rgba(139, 92, 246, 0.35);
+    border-radius: 18px;
+    padding: 1.4rem 1.6rem;
+    margin-top: 1.2rem;
+}
+
+.ca-glance-heading {
+    font-size: 1rem;
+    font-weight: 700;
+    color: #e9d5ff;
+    margin-bottom: .9rem;
+    letter-spacing: .01em;
+}
+
+.ca-glance-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: .75rem;
+}
+
+.ca-glance-item {
+    background: rgba(15, 10, 40, 0.5);
+    border: 1px solid rgba(139, 92, 246, 0.18);
+    border-radius: 12px;
+    padding: .75rem .9rem;
+}
+
+.ca-glance-item-label {
+    font-size: .67rem;
+    text-transform: uppercase;
+    letter-spacing: .1em;
+    color: rgba(167, 139, 250, 0.7);
+    margin-bottom: .3rem;
+}
+
+.ca-glance-item-value {
+    font-size: .92rem;
+    font-weight: 600;
+    color: #ddd6fe;
+    line-height: 1.35;
+}
+
+.ca-glance-item-sub {
+    font-size: .75rem;
+    color: rgba(196, 181, 253, 0.65);
+    margin-top: .25rem;
+    line-height: 1.4;
+}
+
+/* ── PANCHANGA cell meaning line ─────────────────────────────────── */
+.ca-panch-meaning {
+    font-size: .68rem;
+    color: rgba(110, 231, 183, 0.75);
+    margin-top: .2rem;
+    font-style: italic;
+    line-height: 1.35;
+}
+
+/* ── READING CARDS — fix clipping on desktop ─────────────────────── */
+@media (min-width: 900px) {
+    .horizontal-scroll-container {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+        overflow-x: visible;
+        scroll-snap-type: none;
+        gap: 1rem;
+        padding-bottom: .5rem;
+    }
+    .horizontal-scroll-container .report-card {
+        width: auto;
+        max-width: 100%;
+        scroll-snap-align: unset;
+        flex-shrink: unset;
+    }
+}
+
+/* ── ASHTAKAVARGA — collapsible expert grid ──────────────────────── */
+.ca-expert-toggle {
+    margin-bottom: 1rem;
+}
+
+.ca-expert-toggle > summary {
+    font-size: .75rem;
+    color: rgba(167, 139, 250, 0.7);
+    text-transform: uppercase;
+    letter-spacing: .1em;
+    cursor: pointer;
+    list-style: none;
+    display: flex;
+    align-items: center;
+    gap: .4rem;
+    padding: .4rem 0;
+    border-top: 1px solid rgba(139, 92, 246, 0.15);
+    margin-top: .5rem;
+}
+
+.ca-expert-toggle > summary::before {
+    content: "▶";
+    font-size: .6rem;
+    transition: transform .2s;
+}
+
+.ca-expert-toggle[open] > summary::before {
+    transform: rotate(90deg);
+}
 
