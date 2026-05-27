@@ -255,6 +255,9 @@
 }
 
 .neo-input {
+    display: block;
+    width: 100%;
+    box-sizing: border-box;
     background: rgba(2, 6, 23, 0.62);
     border: 1px solid rgba(148, 163, 184, 0.20);
     border-radius: 14px;
@@ -263,6 +266,24 @@
     outline: none;
     transition: border-color 0.2s, box-shadow 0.2s, transform 0.12s;
     cursor: text;
+    font-size: inherit;
+    font-family: inherit;
+}
+
+select.neo-input {
+    cursor: pointer;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='rgba(168,85,247,0.7)' stroke-width='1.8' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 0.85rem center;
+    padding-right: 2.2rem;
+}
+
+select.neo-input option {
+    background: #0a0a1a;
+    color: #e2e8f0;
 }
 
 .neo-input:focus {
@@ -1851,4 +1872,3 @@
 .ca-expert-toggle[open] > summary::before {
     transform: rotate(90deg);
 }
-
