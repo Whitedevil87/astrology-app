@@ -249,7 +249,7 @@ def compute_panchanga(
     }
 
     # ── 2. TITHI (Lunar day) ───────────────────────────────────
-    moon_sun_diff = _norm360(moon_trop - sun_trop)
+    moon_sun_diff = _norm360(moon_sid - sun_sid)
     tithi_num = int(moon_sun_diff / 12.0)   # 0-based, 0-29
     tithi_frac = (moon_sun_diff % 12.0) / 12.0
     paksha = "Shukla (Waxing)" if tithi_num < 15 else "Krishna (Waning)"
