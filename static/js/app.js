@@ -1785,7 +1785,87 @@ _renderAshtakavargaSection(data.ashtakavarga, (data.profile || {}).ascendant);
     `;
     document.head.appendChild(s);
 })();
+// ── 0. At-a-Glance Summary Card ──────────────────────────────────────
+function _renderAtAGlanceCard(data) {
+    const container = document.getElementById("results");
+    if (!container) return;
 
+    const dasha  = data.dasha  || {};
+    const cur    = dasha.current || {};
+    const panch  = data.panchanga || {};
+    const ashtak = data.ashtakavarga || {};
+    const aus    = (panch.auspiciousness_score) || {};
+    const strong = (ashtak.strongest_signs || []).slice(0, 2).map(s => s[0]).join(" & ");
+    const maha   = cur.mahadasha || "";
+    const anti   = cur.antardasha || "";
+
+    const _DASHA_KEYWORDS = {
+        "Saturn":  "discipline, endurance & hard work — shortcuts won't stick",
+        "Jupiter": "wisdom, growth & big opportunities — say yes to expansion",
+        "Venus":   "love, creativity & abundance — relationships take center stage",
+        "Mars":    "energy, ambition & bold action — courage is rewarded",
+        "Sun":     "identity, authority & confidence — step into the spotlight",
+        "Moon":    "emotions, intuition & change — trust your gut",
+        "Mercury": "communication, business & learning — ideas move fast",
+        "Rahu":    "ambition, transformation & new paths — comfort zone is the enemy",
+        "Ketu":    "spirituality, detachment & past karma — simplify to gain clarity",
+    };
+
+    const _HOUSE_SIMPLE = {
+        1: "Self & Identity", 2: "Wealth & Family", 3: "Courage & Communication",
+        4: "Home & Happiness", 5: "Children & Creativity", 6: "Health & Service",
+        7: "Marriage & Partnerships", 8: "Hidden depths & Change", 9: "Luck & Dharma",
+        10: "Career & Status", 11: "Gains & Network", 12: "Spirituality & Liberation",
+    };
+
+    const lifeAreas = ashtak.life_areas || {};
+    let bestHouseNum = 0, bestHousePts = 0;
+    for (let h = 1; h <= 12; h++) {
+        const pts = (lifeAreas[h] || {}).points || 0;
+        if (pts > bestHousePts) { bestHousePts = pts; bestHouseNum = h; }
+    }
+    const bestHouseName = _HOUSE_SIMPLE[bestHouseNum] || "";
+    const dashaKeyword  = _DASHA_KEYWORDS[maha] || "change and growth";
+    const todayLabel    = aus.label || "";
+    const todayRec      = aus.recommendation || "";
+    const lagna         = (data.profile || {}).ascendant || "";
+
+    const wrap = document.createElement("div");
+    wrap.className = "ca-glance-card";
+    wrap.id = "ca-glance-section";
+
+    wrap.innerHTML = `
+        <div class="ca-glance-heading">⭐ Your Reading at a Glance</div>
+        <div class="ca-glance-grid">
+            ${maha ? `<div class="ca-glance-item">
+                <div class="ca-glance-item-label">🪐 Current life chapter</div>
+                <div class="ca-glance-item-value">${escapeHtml(maha)} Mahadasha${anti ? " → " + escapeHtml(anti) : ""}</div>
+                <div class="ca-glance-item-sub">Theme: ${escapeHtml(dashaKeyword)}</div>
+            </div>` : ""}
+            ${bestHouseName ? `<div class="ca-glance-item">
+                <div class="ca-glance-item-label">💪 Strongest life area</div>
+                <div class="ca-glance-item-value">${escapeHtml(bestHouseName)}</div>
+                <div class="ca-glance-item-sub">${bestHousePts} pts — effort here gives above-average results</div>
+            </div>` : ""}
+            ${strong ? `<div class="ca-glance-item">
+                <div class="ca-glance-item-label">🌟 Favored energy</div>
+                <div class="ca-glance-item-value">${escapeHtml(strong)}</div>
+                <div class="ca-glance-item-sub">Natural planetary support flows through these signs</div>
+            </div>` : ""}
+            ${todayLabel ? `<div class="ca-glance-item">
+                <div class="ca-glance-item-label">📅 Birth day quality</div>
+                <div class="ca-glance-item-value">${escapeHtml(todayLabel)}</div>
+                <div class="ca-glance-item-sub">${escapeHtml(todayRec)}</div>
+            </div>` : ""}
+            ${lagna ? `<div class="ca-glance-item">
+                <div class="ca-glance-item-label">⬆ Ascendant (Lagna)</div>
+                <div class="ca-glance-item-value">${escapeHtml(lagna)}</div>
+                <div class="ca-glance-item-sub">Your outer self, body & how the world sees you</div>
+            </div>` : ""}
+        </div>`;
+
+    container.appendChild(wrap);
+}
 // ── 1. Dasha Section ────────────────────────────────────────────────
 function _renderDashaSection(dasha) {
     if (!dasha || dasha.error || !dasha.current) return;
@@ -1902,13 +1982,49 @@ function _renderPanchangaSection(panch) {
     const aus     = panch.auspiciousness_score || {};
     const score   = aus.score || 50;
 
-    function cell(lbl, val, sub) {
-        return `<div class="ca-panch-cell">
-            <div class="ca-panch-lbl">${escapeHtml(lbl)}</div>
-            <div class="ca-panch-val">${escapeHtml(val)}</div>
-            ${sub ? `<div class="ca-panch-sub">${escapeHtml(sub)}</div>` : ""}
-        </div>`;
-    }
+   const PANCH_MEANINGS = {
+    // Yoga
+    "Vishkambha":"⚠ Obstacles likely — patience needed","Preeti":"✓ Harmony energy — great for relationships",
+    "Ayushman":"✓ Vitality — good for health matters","Saubhagya":"✓ Fortune — luck is on your side",
+    "Shobhana":"✓ Brilliance — auspicious for new ventures","Atiganda":"⚠ Turbulence — avoid risky decisions",
+    "Sukarman":"✓ Good deeds — karma rewards effort","Dhriti":"✓ Steadiness — stable and resolute",
+    "Shula":"⚠ Pain energy — avoid conflict or surgery","Ganda":"⚠ Knot energy — delays are likely",
+    "Vriddhi":"✓ Growth energy — expand and initiate","Dhruva":"✓ Stability — ideal for long-term plans",
+    "Vyaghata":"⚠ Challenging — avoid major decisions","Harshana":"✓ Joy — uplifting and optimistic",
+    "Vajra":"⚠ Thunderbolt — intense, sharp energy","Siddhi":"✓ Success — excellent for new starts",
+    "Vyatipata":"⚠ Calamity — extra caution advised","Variyana":"✓ Pleasant — good for socialising",
+    "Parigha":"⚠ Obstruction — things may stall","Shiva":"✓ Auspicious — deeply positive",
+    "Siddha":"✓ Accomplished — efforts pay off","Sadhya":"✓ Achievement — goals within reach",
+    "Shubha":"✓ Auspicious — generally positive day","Shukla":"✓ Pure energy — clarity of mind",
+    "Brahma":"✓ Creative power — inspired thinking","Indra":"✓ Kingly — authority and power",
+    "Vaidhriti":"⚠ Separation energy — avoid travel or new bonds",
+    // Nakshatra brief meanings
+    "Ashwini":"⚡ Speed & healing","Bharani":"🔥 Transformation & intensity","Krittika":"🔪 Purification & focus",
+    "Rohini":"🌸 Growth & abundance","Mrigashira":"🦌 Curiosity & seeking","Ardra":"🌪 Storms & breakthroughs",
+    "Punarvasu":"🔄 Renewal & return","Pushya":"🙏 Nourishment & prosperity","Ashlesha":"🐍 Depth & mystery",
+    "Magha":"👑 Ancestry & authority","Purva Phalguni":"💫 Pleasure & creativity","Uttara Phalguni":"☀ Partnership & commitment",
+    "Hasta":"🤲 Skill & precision","Chitra":"✨ Beauty & perfection","Swati":"🌬 Independence & freedom",
+    "Vishakha":"🏹 Purpose & achievement","Anuradha":"🌸 Devotion & friendship","Jyeshtha":"🛡 Protection & leadership",
+    "Mula":"🌿 Root causes & liberation","Purva Ashadha":"💧 Invincibility & purification","Uttara Ashadha":"🐘 Victory & ethics",
+    "Shravana":"👂 Listening & learning","Dhanishta":"🥁 Rhythm & ambition","Shatabhisha":"⭕ Healing & mystery",
+    "Purva Bhadrapada":"⚡ Intensity & transformation","Uttara Bhadrapada":"🐉 Depth & compassion","Revati":"🐟 Completion & safe journeys",
+    // Karana
+    "Bava":"✓ Auspicious for all good work","Balava":"✓ Good for trade & abundance","Kaulava":"✓ Favors family & friends",
+    "Taitila":"✓ Good for stability","Garija":"✓ Favors enterprise","Vanija":"✓ Excellent for business",
+    "Vishti":"⚠ Bhadra — avoid new ventures","Chatushpada":"✓ Stable fixed energy","Naga":"✓ Serpent energy — hidden depth",
+    "Sakuni":"✓ End-of-cycle clarity","Kimstughna":"✓ Beneficial for beginnings",
+};
+
+function cell(lbl, val, sub) {
+    const cleanVal = val.split(" Pada ")[0].trim();
+    const meaning  = PANCH_MEANINGS[cleanVal] || "";
+    return `<div class="ca-panch-cell">
+        <div class="ca-panch-lbl">${escapeHtml(lbl)}</div>
+        <div class="ca-panch-val">${escapeHtml(val)}</div>
+        ${sub ? `<div class="ca-panch-sub">${escapeHtml(sub)}</div>` : ""}
+        ${meaning ? `<div class="ca-panch-meaning">${escapeHtml(meaning)}</div>` : ""}
+    </div>`;
+}
 
     wrap.innerHTML = `
         <div class="ca-feature-heading"><span class="ca-icon">📅</span> Birth Panchanga (Pancha-anga)</div>
@@ -2022,21 +2138,24 @@ function _renderAshtakavargaSection(ashtak, lagna) {
             <span style="color:#a78bfa">Weakest: <strong style="color:#fca5a5">${escapeHtml(weakStr)}</strong></span>
         </div>
 
-        <p style="font-size:.75rem;color:#a78bfa;margin-bottom:.5rem;text-transform:uppercase;letter-spacing:.1em">
-            Sarvashtakavarga — Benefic Points Per Sign (✦ = Your Lagna)
-        </p>
-        <div class="ca-sav-grid">${gridHtml}</div>
-        <div style="display:flex;gap:1rem;flex-wrap:wrap;font-size:.7rem;color:#a78bfa;margin-bottom:1rem">
-            <span><span style="color:#6ee7b7">■</span> Strong (30+)</span>
-            <span><span style="color:#c4b5fd">■</span> Good (25–29)</span>
-            <span><span style="color:#fcd34d">■</span> Average (20–24)</span>
-            <span><span style="color:#fca5a5">■</span> Weak (&lt;20)</span>
-        </div>
-
-        <p style="font-size:.75rem;color:#a78bfa;margin-bottom:.5rem;text-transform:uppercase;letter-spacing:.1em">
+       <p style="font-size:.75rem;color:#a78bfa;margin-bottom:.5rem;text-transform:uppercase;letter-spacing:.1em">
             Life Area Analysis (House-wise)
         </p>
-        <div class="ca-life-areas">${areasHtml}</div>`;
+        <div class="ca-life-areas">${areasHtml}</div>
+
+        <details class="ca-expert-toggle">
+            <summary>Show zodiac sign grid (for astrologers)</summary>
+            <p style="font-size:.75rem;color:#a78bfa;margin:.75rem 0 .5rem;text-transform:uppercase;letter-spacing:.1em">
+                Sarvashtakavarga — Benefic Points Per Sign (✦ = Your Lagna)
+            </p>
+            <div class="ca-sav-grid">${gridHtml}</div>
+            <div style="display:flex;gap:1rem;flex-wrap:wrap;font-size:.7rem;color:#a78bfa;margin-bottom:1rem">
+                <span><span style="color:#6ee7b7">■</span> Strong (30+)</span>
+                <span><span style="color:#c4b5fd">■</span> Good (25–29)</span>
+                <span><span style="color:#fcd34d">■</span> Average (20–24)</span>
+                <span><span style="color:#fca5a5">■</span> Weak (&lt;20)</span>
+            </div>
+        </details>;
 
     container.appendChild(wrap);
 }
