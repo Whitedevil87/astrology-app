@@ -700,10 +700,10 @@ document.addEventListener("DOMContentLoaded", function () {
             reportSections.innerHTML = html;
         }
 
-        try {
-            _renderDashaSection(data.dasha);
-            _renderPanchangaSection(data.panchanga);
-            _renderAshtakavargaSection(data.ashtakavarga, (data.profile || {}).ascendant);
+       _renderAtAGlanceCard(data);
+_renderDashaSection(data.dasha);
+_renderPanchangaSection(data.panchanga);
+_renderAshtakavargaSection(data.ashtakavarga, (data.profile || {}).ascendant);
         } catch (featureErr) {
             console.error("Feature section render error:", featureErr);
         }
