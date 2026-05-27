@@ -30,7 +30,7 @@
   // ── CONFIGURATION ──────────────────────────────────────
   const CONFIG = {
     totalFrames: 288,
-    frameStep: isMobile ? 2 : 1,
+    frameStep: isMobile ? 3 : 1,
     frameBasePath: '/static/images/celestial-sequence-288/frame_',
     frameExtension: '.webp',
 
