@@ -76,7 +76,21 @@ def allowed_file(filename: str) -> bool:
 
 
 # ── Routes ───────────────────────────────────────────────────────────
+@app.route("/api/debug-swisseph")
+def debug_swisseph():
+    try:
+        import swisseph as swe
 
+        return {
+            "installed": True,
+            "version": swe.version(),
+            "ephe_path": swe.get_ephe_path()
+        }
+    except Exception as e:
+        return {
+            "installed": False,
+            "error": str(e)
+        }, 500
 @app.route("/healthz", methods=["GET"])
 def healthz():
     return jsonify({"ok": True})
