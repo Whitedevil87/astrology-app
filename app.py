@@ -83,9 +83,9 @@ def debug_swisseph():
 
         return {
             "installed": True,
-            "version": swe.version(),
-            "ephe_path": swe.get_ephe_path()
+            "version": swe.version,
         }
+
     except Exception as e:
         return {
             "installed": False,
