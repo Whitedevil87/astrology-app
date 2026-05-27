@@ -235,10 +235,11 @@ document.addEventListener("DOMContentLoaded", function () {
             placeAbortCtrl = new AbortController();
             var sig = placeAbortCtrl.signal;
 
-            // Fetch more results (count=15) so sorting/filtering works well
+            // Primary: Open-Meteo geocoding API
             var directUrl = "https://geocoding-api.open-meteo.com/v1/search?name="
                 + encodeURIComponent(q) + "&count=15&language=en&format=json";
 
+            // Fallback 1: Nominatim (OpenStreetMap) - better for small Indian towns
             function tryNominatim() {
                 var nominatimUrl = "https://nominatim.openstreetmap.org/search?q="
                     + encodeURIComponent(q) + "&format=json&limit=8&addressdetails=1";
@@ -254,9 +255,12 @@ document.addEventListener("DOMContentLoaded", function () {
                                 var city = a.city || a.town || a.village || a.county || "";
                                 var state = a.state || "";
                                 var country = a.country || "";
-                                [city, state, country].forEach(function (p) { if (p && p.trim()) parts.push(p.trim()); });
+                                [city, state, country].forEach(function (p) {
+                                    if (p && p.trim()) parts.push(p.trim());
+                                });
                             }
-                            var seen = {}; var unique = parts.filter(function (p) { if (seen[p]) return false; seen[p] = true; return true; });
+                            var seen = {};
+                            var unique = parts.filter(function (p) { if (seen[p]) return false; seen[p] = true; return true; });
                             var label = unique.join(", ") || item.display_name || "";
                             return { label: label.substring(0, 140), lat: parseFloat(item.lat), lon: parseFloat(item.lon), tz: "" };
                         }).filter(function (p) { return p.label; });
@@ -277,9 +281,8 @@ document.addEventListener("DOMContentLoaded", function () {
                         _cachePlaces(q, places);
                         showPlaceDropdown(places);
                     } else {
-                        // Open-Meteo returned empty — try Nominatim
+                        // Open-Meteo found nothing - try Nominatim
                         return tryNominatim().catch(function () {
-                            // Nominatim failed too — try backend
                             return fetch("/api/places?q=" + encodeURIComponent(q), { signal: sig })
                                 .then(function (r) { return r.json(); })
                                 .then(function (d) {
@@ -293,7 +296,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 })
                 .catch(function (err) {
                     if (err && err.name === "AbortError") return;
-                    // Open-Meteo failed — try Nominatim first, then backend
+                    // Open-Meteo failed - try Nominatim, then backend
                     tryNominatim().catch(function () {
                         fetch("/api/places?q=" + encodeURIComponent(q), { signal: sig })
                             .then(function (r) { return r.json(); })
@@ -375,7 +378,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
         const nowY = new Date().getFullYear();
         birthYear.innerHTML = '<option value="">Year</option>';
-        for (let y = nowY; y >= 1920; y -= 1) {
+        for (let y = nowY; y >= 1940; y -= 1) {
             const opt = document.createElement("option");
             opt.value = String(y);
             opt.textContent = String(y);
@@ -646,71 +649,44 @@ document.addEventListener("DOMContentLoaded", function () {
             }
         }
 
-      if (blueprintChips) {
-    const LUCKY_CHIP_DEFS = [
-        { icon: "🔢", label: "Lucky number", key: "lucky_number", fmt: v => String(v) },
-        { icon: "📅", label: "Lucky day",    key: "lucky_day" },
-        { icon: "🎨", label: "Lucky colors", key: "lucky_color" },
-        { icon: "⭐", label: "Best signs",   key: "best_matches" },
-        { icon: "🌱", label: "Growth signs", key: "growth_signs" },
-    ];
+        if (blueprintChips) {
+            var luckyChipDefs = [
+                { icon: "🔢", label: "Lucky number", key: "lucky_number" },
+                { icon: "📅", label: "Lucky day",    key: "lucky_day" },
+                { icon: "🎨", label: "Lucky colors", key: "lucky_color" },
+                { icon: "⭐", label: "Best signs",   key: "best_matches" },
+                { icon: "🌱", label: "Growth signs", key: "growth_signs" }
+            ];
+            var dashaBp = data.dasha || {};
+            var curBp   = dashaBp.current || {};
+            var panchBp = data.panchanga || {};
 
-    const dasha = data.dasha || {};
-    const cur   = dasha.current || {};
-    const panch = data.panchanga || {};
-
-    function luckyChip(icon, label, value) {
-        if (!value || value === "—") return "";
-        return `<span class="ca-lucky-chip">
-            <span class="ca-lucky-chip-icon">${icon}</span>
-            <span class="ca-lucky-chip-label">${escapeHtml(label)}</span>
-            <span class="ca-lucky-chip-value">${escapeHtml(String(value))}</span>
-        </span>`;
-    }
-
-    let chipsHtml = "";
-    LUCKY_CHIP_DEFS.forEach(function(def) {
-        const raw = bp[def.key];
-        if (raw != null && raw !== "") {
-            const val = def.fmt ? def.fmt(raw) : raw;
-            chipsHtml += luckyChip(def.icon, def.label, val);
-        }
-    });
-    if (cur.mahadasha) {
-        chipsHtml += luckyChip("🪐", "Mahadasha", cur.mahadasha + " (until " + (cur.mahadasha_ends || "—") + ")");
-    }
-    if (panch.nakshatra && panch.nakshatra.name) {
-        chipsHtml += luckyChip("🌙", "Birth nakshatra", panch.nakshatra.name + " Pada " + (panch.nakshatra.pada || ""));
-    }
-    if (panch.yoga && panch.yoga.name) {
-        chipsHtml += luckyChip("✨", "Birth yoga", panch.yoga.name + " (" + (panch.yoga.quality || "") + ")");
-    }
-
-    blueprintChips.innerHTML = `<div class="ca-lucky-grid">${chipsHtml}</div>`;
-}
-            // Real Dasha from new module
-            const dasha = data.dasha || {};
-            const cur = dasha.current || {};
-            if (cur.mahadasha) {
-                pairs.push(["Mahadasha", cur.mahadasha + " (ends " + (cur.mahadasha_ends || "—") + ")"]);
-                if (cur.antardasha) pairs.push(["Antardasha", cur.antardasha + " (ends " + (cur.antardasha_ends || "—") + ")"]);
-            } else if (data.vedic && data.vedic.houses) {
-                const h = data.vedic.houses;
-                pairs.push(
-                    ["Rahu (house)", String(h.rahu)],
-                    ["Ketu (house)", String(h.ketu)],
-                    ["Mahadasha (demo)", String(data.vedic.mahadasha || "—")]
-                );
+            function luckyChip(icon, label, value) {
+                if (!value || value === "—") return "";
+                return "<span class=\"ca-lucky-chip\">" +
+                    "<span class=\"ca-lucky-chip-icon\">" + icon + "</span>" +
+                    "<span class=\"ca-lucky-chip-label\">" + escapeHtml(label) + "</span>" +
+                    "<span class=\"ca-lucky-chip-value\">" + escapeHtml(String(value)) + "</span>" +
+                    "</span>";
             }
-            // Panchanga chips
-            const panch = data.panchanga || {};
-            if (panch.tithi) pairs.push(["Birth Tithi", panch.tithi.name || "—"]);
-            if (panch.nakshatra) pairs.push(["Birth Nakshatra", (panch.nakshatra.name || "—") + " Pada " + (panch.nakshatra.pada || "")]);
-            if (panch.yoga) pairs.push(["Birth Yoga", panch.yoga.name || "—"]);
 
-            blueprintChips.innerHTML = pairs.map(function (pair) {
-                return chip(pair[0], pair[1]);
-            }).join("");
+            var chipsHtml = "";
+            luckyChipDefs.forEach(function(def) {
+                var raw = bp[def.key];
+                if (raw != null && raw !== "") {
+                    chipsHtml += luckyChip(def.icon, def.label, String(raw));
+                }
+            });
+            if (curBp.mahadasha) {
+                chipsHtml += luckyChip("🪐", "Mahadasha", curBp.mahadasha + " (until " + (curBp.mahadasha_ends || "—") + ")");
+            }
+            if (panchBp.nakshatra && panchBp.nakshatra.name) {
+                chipsHtml += luckyChip("🌙", "Birth nakshatra", panchBp.nakshatra.name + " Pada " + (panchBp.nakshatra.pada || ""));
+            }
+            if (panchBp.yoga && panchBp.yoga.name) {
+                chipsHtml += luckyChip("✨", "Birth yoga", panchBp.yoga.name + " (" + (panchBp.yoga.quality || "") + ")");
+            }
+            blueprintChips.innerHTML = "<div class=\"ca-lucky-grid\">" + chipsHtml + "</div>";
         }
 
         if (reportSections) {
@@ -743,10 +719,11 @@ document.addEventListener("DOMContentLoaded", function () {
             reportSections.innerHTML = html;
         }
 
-       _renderAtAGlanceCard(data);
-_renderDashaSection(data.dasha);
-_renderPanchangaSection(data.panchanga);
-_renderAshtakavargaSection(data.ashtakavarga, (data.profile || {}).ascendant);
+        try {
+            _renderAtAGlanceCard(data);
+            _renderDashaSection(data.dasha);
+            _renderPanchangaSection(data.panchanga);
+            _renderAshtakavargaSection(data.ashtakavarga, (data.profile || {}).ascendant);
         } catch (featureErr) {
             console.error("Feature section render error:", featureErr);
         }
@@ -2198,7 +2175,8 @@ function _renderAshtakavargaSection(ashtak, lagna) {
                 <span><span style="color:#fcd34d">■</span> Average (20–24)</span>
                 <span><span style="color:#fca5a5">■</span> Weak (&lt;20)</span>
             </div>
-        </details>;
+        </details>
+    `;
 
     container.appendChild(wrap);
 }
