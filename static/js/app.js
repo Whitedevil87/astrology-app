@@ -603,14 +603,48 @@ document.addEventListener("DOMContentLoaded", function () {
             }
         }
 
-        if (blueprintChips) {
-            const pairs = [
-                ["Lucky #", String(bp.lucky_number != null ? bp.lucky_number : "—")],
-                ["Lucky day", bp.lucky_day || "—"],
-                ["Lucky colors", bp.lucky_color || "—"],
-                ["Easy resonance", bp.best_matches || "—"],
-                ["Growth catalysts", bp.growth_signs || "—"]
-            ];
+      if (blueprintChips) {
+    const LUCKY_CHIP_DEFS = [
+        { icon: "🔢", label: "Lucky number", key: "lucky_number", fmt: v => String(v) },
+        { icon: "📅", label: "Lucky day",    key: "lucky_day" },
+        { icon: "🎨", label: "Lucky colors", key: "lucky_color" },
+        { icon: "⭐", label: "Best signs",   key: "best_matches" },
+        { icon: "🌱", label: "Growth signs", key: "growth_signs" },
+    ];
+
+    const dasha = data.dasha || {};
+    const cur   = dasha.current || {};
+    const panch = data.panchanga || {};
+
+    function luckyChip(icon, label, value) {
+        if (!value || value === "—") return "";
+        return `<span class="ca-lucky-chip">
+            <span class="ca-lucky-chip-icon">${icon}</span>
+            <span class="ca-lucky-chip-label">${escapeHtml(label)}</span>
+            <span class="ca-lucky-chip-value">${escapeHtml(String(value))}</span>
+        </span>`;
+    }
+
+    let chipsHtml = "";
+    LUCKY_CHIP_DEFS.forEach(function(def) {
+        const raw = bp[def.key];
+        if (raw != null && raw !== "") {
+            const val = def.fmt ? def.fmt(raw) : raw;
+            chipsHtml += luckyChip(def.icon, def.label, val);
+        }
+    });
+    if (cur.mahadasha) {
+        chipsHtml += luckyChip("🪐", "Mahadasha", cur.mahadasha + " (until " + (cur.mahadasha_ends || "—") + ")");
+    }
+    if (panch.nakshatra && panch.nakshatra.name) {
+        chipsHtml += luckyChip("🌙", "Birth nakshatra", panch.nakshatra.name + " Pada " + (panch.nakshatra.pada || ""));
+    }
+    if (panch.yoga && panch.yoga.name) {
+        chipsHtml += luckyChip("✨", "Birth yoga", panch.yoga.name + " (" + (panch.yoga.quality || "") + ")");
+    }
+
+    blueprintChips.innerHTML = `<div class="ca-lucky-grid">${chipsHtml}</div>`;
+}
             // Real Dasha from new module
             const dasha = data.dasha || {};
             const cur = dasha.current || {};
