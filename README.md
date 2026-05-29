@@ -2,7 +2,7 @@
 
 A highly scalable, production-grade Vedic astrology application featuring exact astronomical ephemeris calculations (Swiss Ephemeris), user authentication, AI-augmented readings, and dual-database support.
 
-## 🌟 Enterprise Features
+##  Enterprise Features
 
 - **Robust Architecture:** Modular Flask Blueprints with distinct separation of concerns (Auth, Services, Analysis, AI).
 - **Production Infrastructure:** Designed for deployment on PaaS (Render, Heroku) using `gunicorn` with dynamic thread workers.
@@ -17,7 +17,7 @@ A highly scalable, production-grade Vedic astrology application featuring exact 
   - Integrates `pyswisseph` for exact sidereal planetary positions, Vimshottari Dasha calculations, and precise Lagna matching.
   - Hybrid AI synthesis utilizing OpenAI/Groq for nuanced, personalized user readings.
 
-## 📁 Project Structure
+## Project Structure
 
 ```text
 astrology_app/
@@ -45,7 +45,7 @@ astrology_app/
 └── static/                     # Tailwind CSS and vanilla JS modules
 ```
 
-## 🚀 Run Locally
+##  Run Locally
 
 ### 1. Create a virtual environment
 ```bash
@@ -77,7 +77,7 @@ flask run
 gunicorn -c gunicorn.conf.py wsgi:app
 ```
 
-## ☁️ Production Deployment
+## Production Deployment
 
 This repository is pre-configured for instant deployment to Render or Heroku.
 1. Connect your GitHub repository to your platform.
@@ -88,5 +88,5 @@ This repository is pre-configured for instant deployment to Render or Heroku.
    - `UPSTASH_REDIS_REST_URL` & `UPSTASH_REDIS_REST_TOKEN`
    - `OPENAI_API_KEY` (or `GROQ_API_KEY`)
 
-## 📄 License
+## License
 This project is licensed under the MIT License - see the `LICENSE` file for details.
