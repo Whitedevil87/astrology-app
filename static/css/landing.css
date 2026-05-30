@@ -22,8 +22,8 @@
   /* Accents */
   --color-accent-blue: #4a7cff;
   --color-accent-blue-soft: rgba(74, 124, 255, 0.15);
-  --color-accent-gold: #c9a84c;
-  --color-accent-gold-soft: rgba(201, 168, 76, 0.12);
+  --color-accent-gold: #c9a96e;
+  --color-accent-gold-soft: rgba(201, 169, 110, 0.12);
   --color-accent-electric: #5b8cff;
   --color-accent-glow: rgba(74, 124, 255, 0.08);
 
@@ -1934,5 +1934,146 @@ button {
     backdrop-filter: none !important;
     -webkit-backdrop-filter: none !important;
     background: rgba(10, 15, 40, 0.85) !important;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════
+   ACTIVATION TESTIMONIALS — Desktop Panel 4 Social Proof
+   ═══════════════════════════════════════════════════════════ */
+.activation-testimonials {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+  max-width: 900px;
+  margin: 0 auto var(--space-lg);
+  opacity: 0;
+  transform: translateY(20px);
+  transition: all 0.7s var(--ease-out-expo) 0.15s;
+}
+
+.activation-testimonials.card-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.activation-testimonial {
+  padding: 24px 20px;
+  border-radius: 16px;
+  background: linear-gradient(145deg, rgba(30, 35, 55, 0.5), rgba(10, 15, 30, 0.6));
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  text-align: left;
+  transition: border-color var(--duration-normal), box-shadow var(--duration-normal);
+}
+
+.activation-testimonial:hover {
+  border-color: rgba(201, 168, 76, 0.25);
+  box-shadow: 0 0 24px rgba(201, 168, 76, 0.06);
+}
+
+.activation-testimonial__text {
+  font-family: var(--font-display);
+  font-size: 0.92rem;
+  font-style: italic;
+  color: var(--color-text-secondary);
+  line-height: 1.7;
+  margin-bottom: 12px;
+}
+
+.activation-testimonial__author {
+  font-size: 0.72rem;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  color: var(--color-accent-gold);
+  opacity: 0.7;
+}
+
+/* ── Micro-copy under CTAs ── */
+.activation-micro,
+.cta-micro {
+  font-size: 0.75rem;
+  color: var(--color-text-tertiary);
+  letter-spacing: 0.06em;
+  margin-top: 16px;
+}
+
+/* ── CTA Pulse Animation ── */
+.btn-pulse {
+  animation: ctaPulse 3s ease-in-out infinite;
+}
+
+@keyframes ctaPulse {
+  0%, 100% {
+    box-shadow: 0 4px 20px rgba(74, 124, 255, 0.25);
+  }
+  50% {
+    box-shadow: 0 4px 32px rgba(74, 124, 255, 0.45), 0 0 60px rgba(74, 124, 255, 0.12);
+  }
+}
+
+.btn-pulse:hover {
+  animation: none;
+  box-shadow: 0 8px 36px rgba(74, 124, 255, 0.4);
+}
+
+/* ── Card Gold Shimmer Hover ── */
+.engine-card::after,
+.intel-card::after,
+.zodiac-card::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(135deg,
+    transparent 0%,
+    rgba(201, 168, 76, 0.04) 40%,
+    rgba(201, 168, 76, 0.08) 50%,
+    rgba(201, 168, 76, 0.04) 60%,
+    transparent 100%);
+  opacity: 0;
+  transition: opacity 0.5s var(--ease-out-expo);
+  pointer-events: none;
+  z-index: 1;
+}
+
+.engine-card:hover::after,
+.intel-card:hover::after,
+.zodiac-card:hover::after {
+  opacity: 1;
+}
+
+/* ── Zodiac Card Gold Border Shimmer ── */
+.zodiac-card {
+  position: relative;
+  overflow: hidden;
+}
+
+.zodiac-card:hover {
+  border-color: rgba(201, 168, 76, 0.2) !important;
+  box-shadow: 0 0 30px rgba(201, 168, 76, 0.06), var(--shadow-glow-blue);
+}
+
+/* ── Responsive Testimonials ── */
+@media (max-width: 768px) {
+  .activation-testimonials {
+    grid-template-columns: 1fr;
+    gap: 12px;
+    max-width: 400px;
+  }
+
+  .activation-testimonial {
+    padding: 18px 16px;
+  }
+
+  .activation-testimonial__text {
+    font-size: 0.85rem;
+  }
+}
+
+@media (max-width: 1024px) and (min-width: 769px) {
+  .activation-testimonials {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 14px;
+    max-width: 720px;
   }
 }

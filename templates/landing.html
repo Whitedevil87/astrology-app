@@ -8,7 +8,7 @@
         content="Celestial Arc — Decode your cosmic blueprint with AI-powered astrology. Birth chart intelligence, planetary analysis, and personalized cosmic readings.">
     <meta name="theme-color" content="#04070e">
     <meta name="color-scheme" content="dark">
-    <title>Celestial Arc — AI-Powered Cosmic Intelligence</title>
+    <title>Celestial Arc — Your Birth Chart, Decoded by AI</title>
 
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -21,7 +21,7 @@
     <link rel="preload" href="{{ url_for('static', filename='images/celestial-sequence-288/frame_0002.webp') }}" as="image">
     <link rel="preload" href="{{ url_for('static', filename='images/celestial-sequence-288/frame_0003.webp') }}" as="image">
 
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/landing.css') }}?v=31.0">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/landing.css') }}?v=36.0">
 </head>
 
 <body>
@@ -138,21 +138,24 @@
             <div class="story-panel panel-hero story-panel--active" id="panel-hero">
                 <div class="story-panel__inner">
                     <div class="hero__text">
-                        <div class="hero__label">Free Online Kundli & AI Astrology</div>
+                        <div class="hero__label">Vedic Birth Chart Intelligence</div>
                         <h1 class="hero__title">
-                            Get Your Free<br>
-                            <span class="hero__title-accent">Detailed Kundli</span>
+                            Your Birth Encoded<br>
+                            <span class="hero__title-accent">A Cosmic Blueprint</span>
                         </h1>
                         <p class="hero__subtitle">
-                            Create your accurate Janam Kundli online. Let our AI astrologer read your chart and give you simple, personalized predictions about your life, career, and love.
+                            Every planet at the moment of your birth tells a story — about your career, your relationships, your timing. Most astrology gives you a paragraph. We give you the full picture, calculated to the arc-second and interpreted by AI.
                         </p>
                         <div class="hero__actions">
                             <button class="btn-primary" onclick="scrollToApp()" id="heroCtaBtn">
-                                <span>Generate Free Kundli</span>
+                                <span>Decode My Chart</span>
                                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                     <line x1="5" y1="12" x2="19" y2="12"></line>
                                     <polyline points="12 5 19 12 12 19"></polyline>
                                 </svg>
+                            </button>
+                            <button class="btn-secondary" onclick="window.location.href='/horoscope'" style="padding: 0 2.5rem; height: 3.5rem; border-radius: 9999px;">
+                                <span>Today's Horoscope</span>
                             </button>
                         </div>
                     </div>
@@ -176,11 +179,11 @@
             <div class="story-panel panel-engine" id="panel-engine">
                 <div class="story-panel__inner">
                     <div class="section-header">
-                        <div class="section-label">How It Works</div>
-                        <h2 class="section-title">Accurate Kundli & Predictions</h2>
+                        <div class="section-label">What Makes This Different</div>
+                        <h2 class="section-title">Not Your Typical<br>Astrology Site</h2>
                         <div class="gold-accent-line gold-accent-line--center"></div>
                         <p class="section-subtitle">
-                            We calculate your exact birth chart and our AI astrologer explains it to you in simple words.
+                            We don't copy-paste horoscopes. Your chart is calculated from your exact coordinates using Swiss Ephemeris — then our AI reads it like a trained Jyotish.
                         </p>
                     </div>
 
@@ -190,8 +193,8 @@
                                 <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4"/><line x1="12" y1="3" x2="12" y2="1"/><line x1="12" y1="23" x2="12" y2="21"/><line x1="3" y1="12" x2="1" y2="12"/><line x1="23" y1="12" x2="21" y2="12"/></svg>
                                 <span class="engine-card__number">01</span>
                             </div>
-                            <h3 class="engine-card__title">Free Janam Kundli</h3>
-                            <p class="engine-card__desc">Get a highly accurate Vedic birth chart with your exact planetary positions, dashas, and yogas.</p>
+                            <h3 class="engine-card__title">Your Real Birth Chart</h3>
+                            <p class="engine-card__desc">Not the simplified Western version. Full KP Sidereal Kundli with exact planetary degrees, Nakshatras, Dashas, and Yogas — the chart your family astrologer would draw.</p>
                         </div>
 
                         <div class="engine-card" data-card-reveal id="engineCard2">
@@ -199,8 +202,8 @@
                                 <svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
                                 <span class="engine-card__number">02</span>
                             </div>
-                            <h3 class="engine-card__title">Chat with AI Astrologer</h3>
-                            <p class="engine-card__desc">Ask any question about your life, career, or marriage. Our AI reads your chart and answers instantly.</p>
+                            <h3 class="engine-card__title">AI That Reads Your Chart</h3>
+                            <p class="engine-card__desc">Ask "Why is my career stuck?" and get an answer citing your specific 10th house ruler, Saturn position, and current Dasha period — not a generic paragraph.</p>
                         </div>
 
                         <div class="engine-card" data-card-reveal id="engineCard4">
@@ -209,7 +212,7 @@
                                 <span class="engine-card__number">03</span>
                             </div>
                             <h3 class="engine-card__title">Kundli Matching</h3>
-                            <p class="engine-card__desc">Check your marriage compatibility with traditional 36-point Guna Milan and detailed relationship analysis.</p>
+                            <p class="engine-card__desc">36-point Ashtakoota Guna Milan for marriage compatibility. See which areas score high and which need remedies — the same analysis a pandit would do.</p>
                         </div>
                     </div>
                 </div>
@@ -222,35 +225,35 @@
             <div class="story-panel panel-intelligence" id="panel-intelligence">
                 <div class="story-panel__inner">
                     <div class="intelligence-content">
-                        <div class="section-label">Detailed Life Reports</div>
-                        <h2 class="section-title">Your Complete AI<br>Life Reading</h2>
+                        <div class="section-label">Beyond Sun Signs</div>
+                        <h2 class="section-title">The Reading That<br>Changes Everything</h2>
                         <div class="gold-accent-line"></div>
                         <p class="section-subtitle">
-                            Our AI astrologer gives you a full breakdown of your life, past, present, and future.
+                            Not just predictions — explanations. Why you think the way you think. Why that relationship pattern keeps repeating. Why certain years feel harder.
                         </p>
 
                         <div class="intelligence-cards">
                             <div class="intel-card" data-card-reveal id="intelCard1">
                                 <div class="intel-card__marker">I</div>
                                 <div class="intel-card__body">
-                                    <h4>Detailed Life Predictions</h4>
-                                    <p>Get simple and accurate predictions about your personality, career, marriage, health, and wealth.</p>
+                                    <h4>Personality, Career & Love</h4>
+                                    <p>AI-generated insights about your nature, professional path, and relationships — based on your specific planetary houses, not your Sun sign alone.</p>
                                 </div>
                             </div>
 
                             <div class="intel-card" data-card-reveal id="intelCard2">
                                 <div class="intel-card__marker">II</div>
                                 <div class="intel-card__body">
-                                    <h4>Visual Birth Chart</h4>
-                                    <p>View your traditional North Indian or South Indian style Kundli chart.</p>
+                                    <h4>Visual Kundli Chart</h4>
+                                    <p>Your traditional North Indian style birth chart rendered with all planetary positions. See your Lagna, houses, and aspects at a glance.</p>
                                 </div>
                             </div>
 
                             <div class="intel-card" data-card-reveal id="intelCard3">
                                 <div class="intel-card__marker">III</div>
                                 <div class="intel-card__body">
-                                    <h4>Dasha & Remedies</h4>
-                                    <p>Find out your current planetary periods (Dasha) and get simple remedies for a better life.</p>
+                                    <h4>Dasha Timeline & Remedies</h4>
+                                    <p>Know your current Mahadasha and Antardasha. Understand why life feels the way it does right now — and when the next shift begins.</p>
                                 </div>
                             </div>
                         </div>
@@ -266,28 +269,37 @@
                 <div class="story-panel__inner">
                     <div class="activation-badge" data-card-reveal>
                         <div class="activation-badge__dot"></div>
-                        <span class="activation-badge__text">AI Core Active</span>
+                        <span class="activation-badge__text">Swiss Ephemeris · KP Sidereal · Vedic AI Engine</span>
                     </div>
 
-                    <h2 class="activation-title" data-card-reveal>Your Cosmic Dashboard</h2>
+                    <h2 class="activation-title" data-card-reveal>People Don't Just Read Their Chart.<br>They Come Back Every Week.</h2>
                     <div class="gold-accent-line gold-accent-line--center" data-card-reveal></div>
 
-                    <p class="activation-quote" data-card-reveal>
-                        &ldquo;Your entire astrological journey, saved and secured in one place.&rdquo;
-                    </p>
-
-                    <p class="activation-desc" data-card-reveal>
-                        Log in to view your past reports, continue your conversations with Guru Arya, and check your personalized daily horoscope whenever you want.
-                    </p>
+                    <!-- Testimonial Strip -->
+                    <div class="activation-testimonials" data-card-reveal>
+                        <div class="activation-testimonial">
+                            <p class="activation-testimonial__text">&ldquo;I checked my Lagna on three sites and got three answers. This one matched my family astrologer. That's when I knew.&rdquo;</p>
+                            <span class="activation-testimonial__author">— Verified User · Gemini Sun</span>
+                        </div>
+                        <div class="activation-testimonial">
+                            <p class="activation-testimonial__text">&ldquo;The AI told me Saturn in my 10th house is why promotions stalled — and that the block ends in 4 months. Chills.&rdquo;</p>
+                            <span class="activation-testimonial__author">— Verified User · Scorpio Moon</span>
+                        </div>
+                        <div class="activation-testimonial">
+                            <p class="activation-testimonial__text">&ldquo;Dasha timeline described my last 3 years perfectly. I check it every week now.&rdquo;</p>
+                            <span class="activation-testimonial__author">— Verified User · Leo Lagna</span>
+                        </div>
+                    </div>
 
                     <div class="activation-cta" data-card-reveal>
-                        <button class="btn-primary btn-primary--large" onclick="scrollToApp()" id="activationCtaBtn">
-                            <span>Begin Your Reading</span>
+                        <button class="btn-primary btn-primary--large btn-pulse" onclick="scrollToApp()" id="activationCtaBtn">
+                            <span>See What Your Stars Say</span>
                             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <line x1="5" y1="12" x2="19" y2="12"></line>
                                 <polyline points="12 5 19 12 12 19"></polyline>
                             </svg>
                         </button>
+                        <p class="activation-micro">Free · No sign-up required · Takes 30 seconds</p>
                     </div>
                 </div>
             </div>
@@ -302,31 +314,31 @@
     <section class="cta-section" id="ctaSection">
         <div class="cta-container">
             <div class="cta-divider reveal"></div>
-            <div class="section-label reveal reveal--delay-1">Your Cosmic Journey</div>
-            <h2 class="cta-headline reveal reveal--delay-2">Begin Your Reading</h2>
+            <div class="section-label reveal reveal--delay-1">One Birth Chart. A Lifetime of Answers.</div>
+            <h2 class="cta-headline reveal reveal--delay-2">Your Stars Are Already Speaking.<br>Are You Listening?</h2>
             <p class="cta-sub reveal reveal--delay-3">
-                Unlock your personalized cosmic analysis — birth chart precision,
-                planetary wisdom, and AI-powered interpretation.
+                Free Vedic birth chart with AI interpretation. No sign-up required. Most people are surprised by the first line.
             </p>
             <div class="cta-btn-wrap reveal reveal--delay-4">
-                <button class="btn-primary btn-primary--large" onclick="scrollToApp()" id="finalCtaBtn">
-                    <span>Start Reading</span>
+                <button class="btn-primary btn-primary--large btn-pulse" onclick="scrollToApp()" id="finalCtaBtn">
+                    <span>Decode My Birth Chart</span>
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <line x1="5" y1="12" x2="19" y2="12"></line>
                         <polyline points="12 5 19 12 12 19"></polyline>
                     </svg>
                 </button>
                 <button class="btn-secondary" onclick="window.location.href='/horoscope'" style="padding: 0 2.5rem; height: 3.5rem; border-radius: 9999px;">
-                    <span>Daily Horoscope</span>
+                    <span>Today's Horoscope</span>
                 </button>
             </div>
+            <p class="cta-micro reveal reveal--delay-4">Takes 30 seconds · KP Sidereal · Swiss Ephemeris Precision</p>
         </div>
     </section>
 
     <!-- ═══ FOOTER ═══ -->
     <footer class="footer">
         <div class="footer__inner">
-            <p class="footer__copy">&copy; 2026 Celestial Arc. Built for cosmic intelligence.</p>
+            <p class="footer__copy">&copy; 2026 Celestial Arc. Vedic · KP Sidereal · AI-Powered.</p>
             <p class="footer__disclaimer">For guidance and self-reflection. Consult professionals for health, legal, or financial decisions.</p>
         </div>
     </footer>
@@ -415,7 +427,7 @@
         }
     </script>
 
-    <script src="{{ url_for('static', filename='js/landing.js') }}?v=31.0"></script>
+    <script src="{{ url_for('static', filename='js/landing.js') }}?v=36.0"></script>
 </body>
 
 </html>

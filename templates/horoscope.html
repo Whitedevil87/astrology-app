@@ -4,11 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="theme-color" content="#04070e">
-    <title>Daily Horoscope | Celestial Arc</title>
+    <title>Today's Vedic Horoscope — Celestial Arc</title>
+    <meta name="description" content="Your daily Vedic horoscope based on Moon sign astrology. Not generic Sun sign predictions — real Jyotish guidance for all 12 rashis.">
     
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,700;0,900;1,400;1,700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/landing.css') }}?v=34.0">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/landing.css') }}?v=36.0">
     
     <style>
         /* Specific CSS for horoscope grid adapting the landing.css tokens */
@@ -56,9 +57,9 @@
         }
 
         .zodiac-card:hover {
-            border-color: var(--border-hover);
+            border-color: rgba(201, 169, 110, 0.25);
             transform: translateY(-4px);
-            box-shadow: var(--shadow-glow-blue);
+            box-shadow: 0 0 30px rgba(201, 169, 110, 0.06), var(--shadow-glow-blue);
         }
 
         .zodiac-header {
@@ -137,6 +138,54 @@
             from { opacity: 0; transform: translateY(20px); }
             to { opacity: 1; transform: translateY(0); }
         }
+
+        .vedic-callout {
+            max-width: 680px;
+            margin: 0 auto var(--space-lg);
+            padding: 24px 28px;
+            border-radius: 16px;
+            background: linear-gradient(145deg, rgba(201, 169, 110, 0.06), rgba(10, 15, 30, 0.5));
+            border: 1px solid rgba(201, 169, 110, 0.12);
+            text-align: left;
+            animation: fadeUp 1s var(--ease-out-expo) 0.3s forwards;
+            opacity: 0;
+        }
+
+        .vedic-callout__title {
+            font-family: var(--font-display);
+            font-size: 1.05rem;
+            color: var(--color-accent-gold);
+            margin-bottom: 8px;
+        }
+
+        .vedic-callout__text {
+            font-size: 0.88rem;
+            color: var(--color-text-secondary);
+            line-height: 1.7;
+        }
+
+        .vedic-callout__link {
+            color: var(--color-accent-electric);
+            text-decoration: underline;
+            text-underline-offset: 3px;
+        }
+
+        .vedic-callout__link:hover {
+            color: var(--color-text-primary);
+        }
+
+        .cta-block {
+            max-width: 600px;
+            margin: 0 auto;
+            text-align: center;
+        }
+
+        .cta-block__micro {
+            font-size: 0.75rem;
+            color: var(--color-text-tertiary);
+            letter-spacing: 0.06em;
+            margin-top: 14px;
+        }
         
         @media (max-width: 768px) {
             .horoscope-wrapper { padding-top: 100px; }
@@ -169,20 +218,37 @@
     <!-- Content -->
     <div class="horoscope-wrapper">
         <div class="horoscope-header">
-            <div class="section-label" style="display:inline-block; margin-bottom:12px;">Daily Cosmic Guidance</div>
-            <h1 class="section-title">Today's Horoscope</h1>
+            <div class="section-label" style="display:inline-block; margin-bottom:12px;">Vedic Daily Guidance</div>
+            <h1 class="section-title">Your Stars Today</h1>
             <div class="gold-accent-line gold-accent-line--center"></div>
-            <p class="section-subtitle">Find your zodiac sign and discover the energy unfolding for you today.</p>
+            <p class="section-subtitle">Select your Vedic Moon sign for today's cosmic weather. Not sure which is yours? <a href="/app" style="color: var(--color-accent-electric); text-decoration: underline;">Generate your free Kundli</a> to find out.</p>
+        </div>
+
+        <!-- Educational Callout -->
+        <div class="vedic-callout">
+            <h3 class="vedic-callout__title">☽ Why Moon Sign, Not Sun Sign?</h3>
+            <p class="vedic-callout__text">
+                Western astrology uses your Sun sign. Vedic astrology uses your <strong style="color: var(--color-text-primary);">Moon sign (Rashi)</strong> — the zodiac where the Moon was at your exact birth moment. Your Moon sign reveals your emotional nature, instincts, and daily mental state. It's far more accurate for daily predictions.<br>
+                <a href="/app" class="vedic-callout__link">→ Find your real Moon sign in 30 seconds</a>
+            </p>
         </div>
 
         <div id="horoscopeGrid" class="horoscope-grid">
             <!-- JS will inject cards here -->
         </div>
 
-        <div style="text-align: center; margin-top: 50px;">
-            <button class="btn-primary btn-primary--large" onclick="window.location.href='/app'">
-                <span>✦ Unlock Full Kundli Reading</span>
+        <div class="cta-block" style="margin-top: 60px;">
+            <div class="gold-accent-line gold-accent-line--center" style="margin-bottom: 20px;"></div>
+            <p style="font-family: var(--font-display); font-size: 1.3rem; color: var(--color-text-hero); margin-bottom: 8px;">Your daily horoscope is just the surface.</p>
+            <p style="font-size: 0.95rem; color: var(--color-text-secondary); margin-bottom: 28px; line-height: 1.7;">Your birth chart reveals everything — career timing, relationship patterns, and the planetary forces shaping your life right now.</p>
+            <button class="btn-primary btn-primary--large" onclick="window.location.href='/app'" style="animation: ctaPulse 3s ease-in-out infinite;">
+                <span>✦ Decode My Full Birth Chart</span>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                    <polyline points="12 5 19 12 12 19"></polyline>
+                </svg>
             </button>
+            <p class="cta-block__micro">Free · No sign-up required · Takes 30 seconds</p>
         </div>
     </div>
 
