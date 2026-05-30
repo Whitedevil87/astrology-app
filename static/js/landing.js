@@ -48,13 +48,13 @@
     preloadInterval: isMobile ? 50 : 20,
 
     navScrollThreshold: 40,
-    particleCount: isMobile ? 0 : 18,
+    particleCount: 0,
     particleMaxSize: 1.2,
     particleMinSize: 0.3,
 
-    maxDpr: isMobile ? 1.25 : 2,
-    enableParticles: !isLowPower,
-    smoothingQuality: isMobile ? 'medium' : 'high',
+    maxDpr: isMobile ? 1.0 : 1.25,
+    enableParticles: false,
+    smoothingQuality: isMobile ? 'medium' : 'low',
   };
 
   // ── UTILITIES ──────────────────────────────────────────
@@ -370,17 +370,33 @@
 
     const img = imageCache.get(idx);
     if (img) {
-      drawImage(img);
+      if (force || canvas._lastDrawnIdx !== idx) {
+        drawImage(img);
+        canvas._lastDrawnIdx = idx;
+      }
       currentFrame = idx;
       return;
     }
 
     // Fallback: find nearest loaded frame
+    let foundImg = null;
+    let foundIdx = -1;
     for (let delta = 1; delta <= 15; delta++) {
-      const lo = imageCache.get(idx - delta);
-      if (lo) { drawImage(lo); currentFrame = idx; return; }
-      const hi = imageCache.get(idx + delta);
-      if (hi) { drawImage(hi); currentFrame = idx; return; }
+      if (imageCache.has(idx - delta)) {
+        foundImg = imageCache.get(idx - delta);
+        foundIdx = idx - delta;
+        break;
+      }
+      if (imageCache.has(idx + delta)) {
+        foundImg = imageCache.get(idx + delta);
+        foundIdx = idx + delta;
+        break;
+      }
+    }
+    
+    if (foundImg && (force || canvas._lastDrawnIdx !== foundIdx)) {
+      drawImage(foundImg);
+      canvas._lastDrawnIdx = foundIdx;
     }
     currentFrame = idx;
   }
@@ -391,10 +407,7 @@
     const cw = canvas._logicalW;
     const ch = canvas._logicalH;
 
-    // Clear full canvas
-    ctx.clearRect(0, 0, cw, ch);
-
-    // Fill black background to prevent flash
+    // Fill black background to prevent flash (clearRect is redundant on opaque canvas)
     ctx.fillStyle = '#04070e';
     ctx.fillRect(0, 0, cw, ch);
 
@@ -457,12 +470,32 @@
 
       opacity = clamp(opacity, 0, 1);
 
+      const lastOp = panel._lastOpacity !== undefined ? panel._lastOpacity : -1;
+      if (Math.abs(opacity - lastOp) < 0.015 && opacity > 0 && opacity < 1) {
+        if (opacity > 0.5) {
+          newActiveKey = key;
+          const panelProgress = (progress - range.start) / (range.end - range.start);
+          animateCards(panel, panelProgress);
+        }
+        return; 
+      }
+      panel._lastOpacity = opacity;
+
       if (opacity > 0.01) {
         panel.style.opacity = String(opacity);
         const translateY = (1 - opacity) * 20;
         panel.style.transform = `translate3d(0, ${translateY}px, 0)`;
-        panel.style.pointerEvents = opacity > 0.5 ? 'auto' : 'none';
-        panel.classList.add('story-panel--active');
+        
+        const pointer = opacity > 0.5 ? 'auto' : 'none';
+        if (panel._lastPointer !== pointer) {
+          panel.style.pointerEvents = pointer;
+          panel._lastPointer = pointer;
+        }
+        
+        if (!panel._isActive) {
+          panel.classList.add('story-panel--active');
+          panel._isActive = true;
+        }
 
         if (opacity > 0.5) {
           newActiveKey = key;
@@ -470,10 +503,14 @@
           animateCards(panel, panelProgress);
         }
       } else {
-        panel.style.opacity = '0';
-        panel.style.transform = 'translate3d(0, 20px, 0)';
-        panel.style.pointerEvents = 'none';
-        panel.classList.remove('story-panel--active');
+        if (panel._isActive !== false) {
+          panel.style.opacity = '0';
+          panel.style.transform = 'translate3d(0, 20px, 0)';
+          panel.style.pointerEvents = 'none';
+          panel._lastPointer = 'none';
+          panel.classList.remove('story-panel--active');
+          panel._isActive = false;
+        }
       }
     });
 
