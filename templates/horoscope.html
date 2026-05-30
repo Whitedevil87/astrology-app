@@ -2,37 +2,199 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#04070e">
     <title>Daily Horoscope | Celestial Arc</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
-    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,700;0,900;1,400;1,700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/landing.css') }}?v=34.0">
+    
+    <style>
+        /* Specific CSS for horoscope grid adapting the landing.css tokens */
+        .horoscope-wrapper {
+            position: relative;
+            z-index: 10;
+            padding: 120px var(--content-padding) 80px;
+            max-width: var(--max-width);
+            margin: 0 auto;
+            min-height: 100vh;
+        }
+
+        .horoscope-header {
+            text-align: center;
+            margin-bottom: var(--space-xl);
+            animation: fadeUp 1s var(--ease-out-expo) forwards;
+        }
+
+        .horoscope-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            gap: var(--space-md);
+            margin-bottom: var(--space-xl);
+        }
+
+        .zodiac-card {
+            background: var(--color-bg-card);
+            border: 1px solid var(--border-subtle);
+            border-radius: 16px;
+            padding: var(--space-lg);
+            transition: transform var(--duration-normal) var(--ease-out-expo),
+                        border-color var(--duration-normal),
+                        box-shadow var(--duration-normal);
+            backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+            -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+            opacity: 0;
+            transform: translateY(20px);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .zodiac-card.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .zodiac-card:hover {
+            border-color: var(--border-hover);
+            transform: translateY(-4px);
+            box-shadow: var(--shadow-glow-blue);
+        }
+
+        .zodiac-header {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            margin-bottom: 20px;
+            border-bottom: 1px solid var(--border-subtle);
+            padding-bottom: 16px;
+        }
+
+        .zodiac-icon {
+            font-size: 2.2rem;
+            color: var(--color-accent-gold);
+            text-shadow: 0 0 15px rgba(201, 168, 76, 0.4);
+            line-height: 1;
+        }
+
+        .zodiac-name {
+            font-family: var(--font-display);
+            font-size: 1.6rem;
+            color: var(--color-text-hero);
+            letter-spacing: 0.02em;
+            margin: 0;
+        }
+
+        .zodiac-text {
+            font-size: 0.95rem;
+            color: var(--color-text-secondary);
+            line-height: 1.8;
+            flex-grow: 1;
+        }
+
+        /* Loading Skeleton */
+        .skeleton-card {
+            height: 220px;
+            background: rgba(12, 20, 48, 0.3);
+            border: 1px solid rgba(74, 124, 255, 0.05);
+            border-radius: 16px;
+            padding: var(--space-lg);
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .skeleton-header-box {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            margin-bottom: 20px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.02);
+            padding-bottom: 16px;
+        }
+
+        .skeleton-icon-box {
+            width: 36px;
+            height: 36px;
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .skeleton-title-box {
+            width: 120px;
+            height: 24px;
+            border-radius: 6px;
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .skeleton-line {
+            height: 12px;
+            border-radius: 4px;
+            background: rgba(255, 255, 255, 0.03);
+            margin-bottom: 12px;
+        }
+
+        @keyframes fadeUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        @media (max-width: 768px) {
+            .horoscope-wrapper { padding-top: 100px; }
+            .horoscope-grid { grid-template-columns: 1fr; }
+        }
+    </style>
 </head>
-<body class="mystic-body text-white min-h-screen font-sans">
-    <div class="stars" aria-hidden="true"></div>
-    <div class="container mx-auto px-4 py-10 max-w-6xl relative z-10">
-        <header class="text-center mb-12">
-            <p class="text-xs uppercase tracking-[0.35em] text-purple-300/90 mb-3">Daily Guidance</p>
-            <h1 class="text-4xl md:text-5xl font-display font-semibold glow-title">Horoscope</h1>
-            <p class="text-purple-200/90 mt-4 max-w-2xl mx-auto leading-relaxed">
-                Daily cosmic guidance for each zodiac sign. Find your sign and discover today's energy.
-            </p>
-        </header>
+<body>
 
-        <section class="mystic-panel p-6 md:p-9 relative overflow-hidden">
-            <div class="panel-glow" aria-hidden="true"></div>
+    <!-- Ambient Background from landing.css -->
+    <div class="ambient-bg" aria-hidden="true">
+        <div class="ambient-orb ambient-orb--1"></div>
+        <div class="ambient-orb ambient-orb--2"></div>
+        <div class="ambient-orb ambient-orb--3"></div>
+    </div>
 
-            <div id="horoscopeGrid" class="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                <!-- Horoscope cards will be inserted here -->
+    <!-- Navigation -->
+    <nav class="nav" id="mainNav" role="navigation">
+        <div class="nav__inner">
+            <a href="/" class="nav__logo">
+                <div class="nav__logo-mark"></div>
+                <span class="nav__logo-text">Celestial Arc</span>
+            </a>
+            <div class="nav__actions">
+                <button class="nav__cta" onclick="window.location.href='/app'">Generate Reading</button>
             </div>
+        </div>
+    </nav>
 
-            <div class="mt-8 text-center">
-                <a href="/app" class="btn-primary">Get Full Reading ✦</a>
-            </div>
-        </section>
+    <!-- Content -->
+    <div class="horoscope-wrapper">
+        <div class="horoscope-header">
+            <div class="section-label" style="display:inline-block; margin-bottom:12px;">Daily Cosmic Guidance</div>
+            <h1 class="section-title">Today's Horoscope</h1>
+            <div class="gold-accent-line gold-accent-line--center"></div>
+            <p class="section-subtitle">Find your zodiac sign and discover the energy unfolding for you today.</p>
+        </div>
+
+        <div id="horoscopeGrid" class="horoscope-grid">
+            <!-- JS will inject cards here -->
+        </div>
+
+        <div style="text-align: center; margin-top: 50px;">
+            <button class="btn-primary btn-primary--large" onclick="window.location.href='/app'">
+                <span>✦ Unlock Full Kundli Reading</span>
+            </button>
+        </div>
     </div>
 
     <script>
         document.addEventListener("DOMContentLoaded", function () {
+            // Apply nav styling on scroll
+            const nav = document.getElementById('mainNav');
+            window.addEventListener('scroll', () => {
+                if(window.scrollY > 40) nav.classList.add('nav--scrolled');
+                else nav.classList.remove('nav--scrolled');
+            }, {passive:true});
+
             const zodiacSigns = [
                 "Aries", "Taurus", "Gemini", "Cancer", "Leo", "Virgo",
                 "Libra", "Scorpio", "Sagittarius", "Capricorn", "Aquarius", "Pisces"
@@ -46,21 +208,65 @@
 
             const grid = document.getElementById("horoscopeGrid");
 
-            zodiacSigns.forEach(function (sign) {
+            // Initial Skeleton State
+            zodiacSigns.forEach(sign => {
+                const skeleton = document.createElement('div');
+                skeleton.className = 'skeleton-card pulse';
+                skeleton.id = 'skel-' + sign;
+                skeleton.innerHTML = `
+                    <div class="skeleton-header-box">
+                        <div class="skeleton-icon-box"></div>
+                        <div class="skeleton-title-box"></div>
+                    </div>
+                    <div class="skeleton-line" style="width: 90%;"></div>
+                    <div class="skeleton-line" style="width: 80%;"></div>
+                    <div class="skeleton-line" style="width: 85%;"></div>
+                    <div class="skeleton-line" style="width: 60%;"></div>
+                `;
+                grid.appendChild(skeleton);
+            });
+
+            // Fetch and replace
+            zodiacSigns.forEach(function (sign, index) {
                 fetch("/api/horoscope?sign=" + encodeURIComponent(sign))
                     .then(function (r) { return r.json(); })
                     .then(function (data) {
+                        const skel = document.getElementById('skel-' + sign);
+                        if (skel) skel.remove();
+
                         if (data.success) {
                             const card = document.createElement("div");
-                            card.className = "horoscope-card mystic-card p-6 rounded-lg border border-purple-500/30 bg-purple-950/20 hover:border-fuchsia-400/50 transition-all cursor-pointer";
+                            card.className = "zodiac-card";
                             card.innerHTML = `
-                                <div class="flex items-center gap-3 mb-3">
-                                    <span class="text-3xl">${zodiacGlyphs[sign]}</span>
-                                    <h3 class="text-xl font-display font-semibold">${sign}</h3>
+                                <div class="zodiac-header">
+                                    <span class="zodiac-icon">${zodiacGlyphs[sign]}</span>
+                                    <h3 class="zodiac-name">${sign}</h3>
                                 </div>
-                                <p class="text-sm text-purple-200/80 leading-relaxed">${data.horoscope}</p>
+                                <p class="zodiac-text">${data.horoscope}</p>
                             `;
-                            grid.appendChild(card);
+                            
+                            // Insert in correct order
+                            let inserted = false;
+                            const children = Array.from(grid.children);
+                            for (let child of children) {
+                                const childSign = child.getAttribute('data-sign');
+                                if (childSign && zodiacSigns.indexOf(childSign) > index) {
+                                    grid.insertBefore(card, child);
+                                    inserted = true;
+                                    break;
+                                } else if (!childSign && child.id && zodiacSigns.indexOf(child.id.replace('skel-','')) > index) {
+                                     grid.insertBefore(card, child);
+                                     inserted = true;
+                                     break;
+                                }
+                            }
+                            if(!inserted) grid.appendChild(card);
+                            card.setAttribute('data-sign', sign);
+
+                            // Trigger animation
+                            requestAnimationFrame(() => {
+                                setTimeout(() => card.classList.add('visible'), 50);
+                            });
                         }
                     })
                     .catch(function (err) {

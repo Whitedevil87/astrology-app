@@ -84,20 +84,12 @@ def healthz():
 def api_csrf():
     return jsonify({"success": True, "csrf_token": ensure_csrf()})
 
-def is_mobile():
-    user_agent = request.headers.get("User-Agent", "").lower()
-    return any(keyword in user_agent for keyword in ["mobi", "android", "iphone", "ipad", "ipod", "windows phone"])
-
 @app.route("/landing")
 def landing():
-    if is_mobile():
-        return render_template("landing1.html")
     return render_template("landing.html")
 
 @app.route("/")
 def index():
-    if is_mobile():
-        return render_template("landing1.html")
     return render_template("landing.html")
 
 @app.route("/app")
