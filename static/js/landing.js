@@ -25,36 +25,48 @@
 
   const isMobile = window.matchMedia('(max-width: 768px)').matches;
   const isReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  const isLowPower = isMobile || isReducedMotion;
+
+  // ── NETWORK AWARENESS ─────────────────────────────────
+  // Use Network Information API to serve lighter experience on slow connections
+  const conn = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+  const effectiveType = conn ? conn.effectiveType : '4g';
+  const isSlowNet = effectiveType === '2g' || effectiveType === 'slow-2g';
+  const isMediumNet = effectiveType === '3g';
 
   // ── CONFIGURATION ──────────────────────────────────────
   const CONFIG = {
     totalFrames: 288,
-    frameStep: isMobile ? 3 : 1,
+    // Skip frames on mobile/slow connections to reduce download volume
+    frameStep: isSlowNet ? 6 : (isMediumNet ? 3 : (isMobile ? 3 : 1)),
     frameBasePath: '/static/images/celestial-sequence-288/frame_',
     frameExtension: '.webp',
 
-    // Story panel scroll ranges — wide overlap, long hold in the middle
+    // Story panel scroll ranges — Strict gaps to prevent ghosting/overlap
     panels: {
-      hero:         { start: -0.05, end: 0.34, overlay: 'overlay-hero' },
-      engine:       { start: 0.26, end: 0.58, overlay: 'overlay-engine' },
-      intelligence: { start: 0.50, end: 0.82, overlay: 'overlay-intelligence' },
-      activation:   { start: 0.74, end: 1.06, overlay: 'overlay-activation' },
+      hero:         { start: -0.05, end: 0.28, overlay: 'overlay-hero' },
+      engine:       { start: 0.32, end: 0.58, overlay: 'overlay-engine' },
+      intelligence: { start: 0.62, end: 0.88, overlay: 'overlay-intelligence' },
+      activation:   { start: 0.92, end: 1.15, overlay: 'overlay-activation' },
     },
 
-    panelFadeZone: 0.09,
+    panelFadeZone: 0.05,
 
-    preloadBatchSize: isMobile ? 6 : 12,
-    preloadInterval: isMobile ? 50 : 20,
+    // Phase 2 background loading — batches & intervals
+    preloadBatchSize: isSlowNet ? 4 : (isMobile ? 6 : 16),
+    preloadInterval: isSlowNet ? 200 : (isMobile ? 80 : 30),
 
     navScrollThreshold: 40,
-    particleCount: 0,
+    particleCount: isMobile ? 30 : 80,
     particleMaxSize: 1.2,
     particleMinSize: 0.3,
 
-    maxDpr: isMobile ? 1.0 : 1.25,
-    enableParticles: false,
+    maxDpr: isMobile ? 1.0 : 1.5,
+    enableParticles: true,
     smoothingQuality: isMobile ? 'medium' : 'low',
+
+    // CRITICAL: how many frames before we hide the loader and show the page
+    // OLD: ~43 frames (~3 MB) — FIXED: 5 frames (~350 KB)
+    criticalFrameCount: isSlowNet ? 3 : 5,
   };
 
   // ── UTILITIES ──────────────────────────────────────────
@@ -98,6 +110,34 @@
   let loadedCount = 0;
   let preloadComplete = false;
 
+  // Phase text cycling for the cinematic loader
+  const LOADER_PHASES = [
+    'Mapping planetary positions',
+    'Calculating Dashas & Antardashas',
+    'Reading your Nakshatra',
+    'Activating Vedic AI engine',
+    'Aligning cosmic blueprint',
+  ];
+  let phaseIdx = 0;
+  let phaseTimer = null;
+
+  function startPhaseTimer() {
+    const el = document.getElementById('loaderPhase');
+    if (!el) return;
+    phaseTimer = setInterval(() => {
+      phaseIdx = (phaseIdx + 1) % LOADER_PHASES.length;
+      el.style.opacity = '0';
+      setTimeout(() => {
+        el.textContent = LOADER_PHASES[phaseIdx];
+        el.style.opacity = '1';
+      }, 300);
+    }, 1800);
+  }
+
+  function stopPhaseTimer() {
+    if (phaseTimer) { clearInterval(phaseTimer); phaseTimer = null; }
+  }
+
   function preloadImage(idx) {
     return new Promise((resolve) => {
       if (imageCache.has(idx)) {
@@ -121,33 +161,46 @@
   }
 
   function updatePreloadProgress() {
-    const bar = $('#preloadBar');
+    // Update top preload bar
+    const bar = document.getElementById('preloadBar');
     if (bar) {
       const pct = (loadedCount / CONFIG.totalFrames) * 100;
       bar.style.width = pct + '%';
     }
+    // Update cinematic loader inner bar
+    const inner = document.getElementById('loaderBarInner');
+    if (inner) {
+      // Show progress relative to critical frames for the loader bar
+      const pct = Math.min((loadedCount / CONFIG.criticalFrameCount) * 100, 100);
+      inner.style.width = pct + '%';
+    }
+    // Update SVG arc (stroke-dashoffset from 553 → 0)
+    const arc = document.getElementById('loaderArc');
+    if (arc) {
+      const progress = Math.min(loadedCount / CONFIG.criticalFrameCount, 1);
+      arc.style.strokeDashoffset = String(553 * (1 - progress));
+    }
   }
 
   async function preloadAllFrames() {
-    // Phase 1: Critical frames — first 15 + evenly spaced keyframes
+    // ── PHASE 1: CRITICAL (just 5 frames) ────────────────
+    // Only load enough to show the first frame and start interacting.
+    // OLD approach loaded ~43 frames (~3 MB) — we now load 5 (~350 KB).
     const critical = new Set();
-    for (let i = 1; i <= 15; i++) critical.add(i);
-    // Keyframes at every 10th frame
-    for (let i = 20; i <= CONFIG.totalFrames; i += 10) critical.add(i);
-    critical.add(CONFIG.totalFrames);
+    for (let i = 1; i <= CONFIG.criticalFrameCount; i++) critical.add(i);
 
-    const criticalArr = [...critical].sort((a, b) => a - b);
-    await Promise.all(criticalArr.map(preloadImage));
+    await Promise.all([...critical].map(preloadImage));
 
-    // Reveal the page once critical frames are ready
+    // Page is now ready — hide loader, show content
+    stopPhaseTimer();
     hideLoader();
 
-    // Immediately draw the first frame so the user doesn't see a black screen
+    // Draw the first frame immediately
     if (typeof renderFrame === 'function') {
       renderFrame(1, true);
     }
 
-    // Show indicator if no scroll after 1 second
+    // Show scroll indicator after 1 second if user hasn't scrolled
     setTimeout(() => {
       if (window.scrollY === 0) {
         const indicator = document.querySelector('.scroll-indicator');
@@ -155,7 +208,6 @@
       }
     }, 1000);
 
-    // Hide indicator immediately upon scrolling
     window.addEventListener('scroll', function hideScrollIndicator() {
       if (window.scrollY > 0) {
         const indicator = document.querySelector('.scroll-indicator');
@@ -164,28 +216,50 @@
       }
     }, { passive: true });
 
-    // Phase 2: Remaining frames in batches
+    // ── PHASE 2: SCROLL-PRIORITY BACKGROUND LOADING ───────
+    // Load in scroll order: hero frames first, then rest.
+    // Use requestIdleCallback so we don't compete with scroll/render.
     const remaining = [];
-    for (let i = 1; i <= CONFIG.totalFrames; i++) {
+
+    // Priority A: hero scroll range (frames 1-80) — fill gaps
+    for (let i = 1; i <= 80; i++) {
       if (critical.has(i)) continue;
       if (CONFIG.frameStep > 1 && (i - 1) % CONFIG.frameStep !== 0 && i !== CONFIG.totalFrames) continue;
       remaining.push(i);
     }
-
-    let idx = 0;
-    while (idx < remaining.length) {
-      const batch = remaining.slice(idx, idx + CONFIG.preloadBatchSize);
-      await Promise.all(batch.map(preloadImage));
-      idx += CONFIG.preloadBatchSize;
-      // Yield to main thread
-      if (idx < remaining.length) {
-        await new Promise(r => setTimeout(r, CONFIG.preloadInterval));
-      }
+    // Priority B: engine panel range (frames 80-160)
+    for (let i = 81; i <= 160; i++) {
+      if (CONFIG.frameStep > 1 && (i - 1) % CONFIG.frameStep !== 0 && i !== CONFIG.totalFrames) continue;
+      remaining.push(i);
+    }
+    // Priority C: remaining frames
+    for (let i = 161; i <= CONFIG.totalFrames; i++) {
+      if (CONFIG.frameStep > 1 && (i - 1) % CONFIG.frameStep !== 0 && i !== CONFIG.totalFrames) continue;
+      remaining.push(i);
     }
 
-    preloadComplete = true;
-    const progressWrap = $('#preloadProgress');
-    if (progressWrap) progressWrap.classList.add('preload-progress--hidden');
+    // Load remaining in batches, yielding to idle time between batches
+    const loadBatch = async (startIdx) => {
+      if (startIdx >= remaining.length) {
+        preloadComplete = true;
+        const progressWrap = document.getElementById('preloadProgress');
+        if (progressWrap) progressWrap.classList.add('preload-progress--hidden');
+        return;
+      }
+      const batch = remaining.slice(startIdx, startIdx + CONFIG.preloadBatchSize);
+      await Promise.all(batch.map(preloadImage));
+
+      const nextIdx = startIdx + CONFIG.preloadBatchSize;
+      // Use requestIdleCallback if available, else setTimeout
+      if (window.requestIdleCallback) {
+        requestIdleCallback(() => loadBatch(nextIdx), { timeout: 2000 });
+      } else {
+        setTimeout(() => loadBatch(nextIdx), CONFIG.preloadInterval);
+      }
+    };
+
+    // Small delay before starting background load so first paint is fully settled
+    setTimeout(() => loadBatch(0), 400);
   }
 
   // ── PAGE LOADER ────────────────────────────────────────
@@ -450,28 +524,26 @@
 
       // Calculate opacity with smooth fade zones at boundaries
       let opacity;
-      if (progress < range.start - fade || progress > range.end + fade) {
+      
+      // Fast scroll safety: completely zero out if outside bounds
+      if (progress < range.start || progress > range.end) {
         opacity = 0;
-      } else if (progress >= range.start && progress <= range.end) {
-        // Fade in at start
-        const fadeIn = smoothstep(range.start, range.start + fade, progress);
-        // Fade out at end
-        const fadeOut = 1 - smoothstep(range.end - fade, range.end, progress);
-        opacity = Math.min(fadeIn, fadeOut);
-        // Keep full opacity in the middle
-        if (progress > range.start + fade && progress < range.end - fade) {
-          opacity = 1;
-        }
-      } else if (progress < range.start) {
-        opacity = smoothstep(range.start - fade, range.start, progress);
       } else {
-        opacity = 1 - smoothstep(range.end, range.end + fade, progress);
+        // Fade in from range.start -> range.start + fade
+        const fadeIn = smoothstep(range.start, range.start + fade, progress);
+        // Fade out from range.end - fade -> range.end
+        const fadeOut = 1 - smoothstep(range.end - fade, range.end, progress);
+        
+        opacity = Math.min(fadeIn, fadeOut);
       }
 
       opacity = clamp(opacity, 0, 1);
 
       const lastOp = panel._lastOpacity !== undefined ? panel._lastOpacity : -1;
-      if (Math.abs(opacity - lastOp) < 0.015 && opacity > 0 && opacity < 1) {
+      
+      // Skip redundant DOM updates if opacity hasn't changed significantly, 
+      // but force updates when it approaches 0 to ensure elements fully hide
+      if (Math.abs(opacity - lastOp) < 0.015 && opacity > 0.01 && opacity < 1) {
         if (opacity > 0.5) {
           newActiveKey = key;
           const panelProgress = (progress - range.start) / (range.end - range.start);
@@ -483,7 +555,8 @@
 
       if (opacity > 0.01) {
         panel.style.opacity = String(opacity);
-        const translateY = (1 - opacity) * 20;
+        // Add subtle translate to the entry, creating a cinematic glide
+        const translateY = (1 - opacity) * 40; 
         panel.style.transform = `translate3d(0, ${translateY}px, 0)`;
         
         const pointer = opacity > 0.5 ? 'auto' : 'none';
@@ -505,7 +578,7 @@
       } else {
         if (panel._isActive !== false) {
           panel.style.opacity = '0';
-          panel.style.transform = 'translate3d(0, 20px, 0)';
+          panel.style.transform = 'translate3d(0, 40px, 0)';
           panel.style.pointerEvents = 'none';
           panel._lastPointer = 'none';
           panel.classList.remove('story-panel--active');
@@ -529,11 +602,16 @@
   }
 
   function animateCards(panel, progress) {
-    const cards = $$('[data-card-reveal]', panel);
-    cards.forEach((card, idx) => {
-      const threshold = 0.12 + (idx * 0.1);
+    // Select all text blocks and cards to animate them line-by-line
+    const elements = $$('.section-label, .section-title, .section-subtitle, .gold-accent-line, .engine-card, .intel-card, [data-card-reveal]', panel);
+    
+    elements.forEach((el, idx) => {
+      // Calculate a staggered threshold for each line (starts at 5% of panel, adds 6% per element)
+      const threshold = 0.05 + (idx * 0.06); 
       if (progress >= threshold) {
-        card.classList.add('card-visible');
+        el.classList.add('card-visible');
+      } else {
+        el.classList.remove('card-visible'); // Reverse animation when scrolling up
       }
     });
   }
@@ -656,6 +734,9 @@
   async function init() {
     initNavigation();
     initScrollProgress();
+
+    // Start phase timer animation in the cinematic loader
+    startPhaseTimer();
 
     // Start preloading (hides loader once critical frames ready)
     preloadAllFrames();
