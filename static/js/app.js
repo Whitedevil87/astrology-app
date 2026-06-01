@@ -1935,13 +1935,14 @@ document.addEventListener("DOMContentLoaded", function () {
         .ca-sav-weak { background: rgba(239,68,68,0.1); border-color: rgba(239,68,68,0.25); }
         .ca-sav-weak .ca-sav-pts { color: #fca5a5; }
         .ca-life-areas {
-            display: grid; grid-template-columns: repeat(auto-fill, minmax(200px,1fr));
-            gap: .6rem; margin-top: .8rem;
+            display: grid; grid-template-columns: repeat(auto-fill, minmax(260px,1fr));
+            gap: .75rem; margin-top: .8rem;
         }
         .ca-la-cell {
             background: rgba(139,92,246,0.08);
             border: 1px solid rgba(139,92,246,0.18);
-            border-radius: .6rem; padding: .6rem .8rem;
+            border-radius: .6rem; padding: .75rem .9rem;
+            min-height: 0; height: auto;
         }
         .ca-la-header { display: flex; justify-content: space-between; align-items: center; }
         .ca-la-name { font-size: .8rem; color: #e8d5ff; font-weight: 600; }
@@ -1952,7 +1953,11 @@ document.addEventListener("DOMContentLoaded", function () {
         .ca-la-pts.weak { color: #fca5a5; }
         .ca-la-bar-track { height: 4px; background: rgba(139,92,246,0.15); border-radius:99px; margin:.35rem 0; }
         .ca-la-bar-fill { height: 100%; border-radius:99px; background: linear-gradient(90deg,#7c3aed,#c084fc); }
-        .ca-la-pred { font-size: .72rem; color: #a78bfa; line-height: 1.45; }
+        .ca-la-pred {
+            font-size: .78rem; color: #c4b5fd; line-height: 1.55;
+            overflow: visible; white-space: normal; word-wrap: break-word;
+            margin-top: .25rem;
+        }
     `;
     document.head.appendChild(s);
 })();
@@ -2292,7 +2297,7 @@ function _renderAshtakavargaSection(ashtak, lagna) {
                 <span class="ca-la-pts ${ptsClass}">${pts}</span>
             </div>
             <div class="ca-la-bar-track"><div class="ca-la-bar-fill" style="width:${barW}%"></div></div>
-            <div class="ca-la-pred">${escapeHtml((la.prediction || "").slice(0, 90))}${(la.prediction||"").length > 90 ? "…" : ""}</div>
+            <div class="ca-la-pred">${escapeHtml(la.prediction || "")}</div>
         </div>`;
     }
 
