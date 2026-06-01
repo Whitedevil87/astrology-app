@@ -1167,7 +1167,7 @@ select.neo-input option {
 
 /* Planet glyphs in chart */
 .kundli-planet-glyph {
-    font-size: 13px; fill: rgba(232,121,249,0); text-anchor: middle;
+    font-size: 28px; fill: rgba(232,121,249,0); text-anchor: middle;
     dominant-baseline: middle; pointer-events: none; transition: fill 0.7s ease;
 }
 .kundli-planet-glyph.visible {
@@ -1176,18 +1176,18 @@ select.neo-input option {
 
 /* Sign labels & house numbers */
 .kundli-sign-label {
-    font-size: 9px; fill: rgba(196,181,253,0); text-anchor: middle;
+    font-size: 16px; fill: rgba(196,181,253,0); text-anchor: middle;
     dominant-baseline: middle; font-family: ui-sans-serif, system-ui, sans-serif;
     transition: fill 0.5s ease;
 }
-.kundli-sign-label.visible { fill: rgba(196,181,253,0.6); }
+.kundli-sign-label.visible { fill: rgba(196,181,253,0.8); }
 .kundli-house-num-text {
-    font-size: 10px; font-weight: 700; fill: rgba(148,163,184,0); text-anchor: middle;
+    font-size: 18px; font-weight: 700; fill: rgba(148,163,184,0); text-anchor: middle;
     dominant-baseline: middle; font-family: ui-sans-serif, system-ui, sans-serif;
     transition: fill 0.4s ease, font-size 0.3s ease;
 }
 .kundli-house-num-text.visible { fill: rgba(148,163,184,0.45); }
-.kundli-house-num-text.active { fill: rgba(34,211,238,0.9); font-size: 12px; }
+.kundli-house-num-text.active { fill: rgba(34,211,238,0.9); font-size: 22px; }
 
 /* Info panel */
 .kundli-info-panel {
@@ -1317,9 +1317,9 @@ select.neo-input option {
 .mini-kundli-svg .chart-diamond { stroke: rgba(168,85,247,0.3); }
 .mini-kundli-svg .chart-diag { stroke: rgba(148,163,184,0.12); }
 .mini-kundli-svg .kundli-house-poly { fill: rgba(168,85,247,0.03); stroke: rgba(148,163,184,0.1); }
-.mini-kundli-svg .kundli-planet-glyph { font-size: 10px; }
-.mini-kundli-svg .kundli-sign-label { font-size: 7px; }
-.mini-kundli-svg .kundli-house-num-text { font-size: 8px; }
+.mini-kundli-svg .kundli-planet-glyph { font-size: 18px; }
+.mini-kundli-svg .kundli-sign-label { font-size: 12px; }
+.mini-kundli-svg .kundli-house-num-text { font-size: 14px; }
 
 /* Responsive kundli */
 @media (max-width: 600px) {
