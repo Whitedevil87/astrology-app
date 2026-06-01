@@ -57,13 +57,17 @@ def _upload_to_bucket(bucket: str, subfolder: str, file_bytes: bytes, original_f
         except Exception as e:
             logger.error("Supabase upload to bucket '%s' failed: %s", bucket, e)
     # Local filesystem fallback (dev / Supabase unavailable)
-    from config import BASE_DIR
-    upload_dir = os.path.join(BASE_DIR, "uploads", subfolder)
-    os.makedirs(upload_dir, exist_ok=True)
-    local_path = os.path.join(upload_dir, filename)
-    with open(local_path, "wb") as f:
-        f.write(file_bytes)
-    return f"uploads/{subfolder}/{filename}"
+    try:
+        from config import BASE_DIR
+        upload_dir = os.path.join(BASE_DIR, "uploads", subfolder)
+        os.makedirs(upload_dir, exist_ok=True)
+        local_path = os.path.join(upload_dir, filename)
+        with open(local_path, "wb") as f:
+            f.write(file_bytes)
+        return f"uploads/{subfolder}/{filename}"
+    except Exception as e:
+        logger.error("Local filesystem fallback failed: %s", e)
+        return None
 
 
 def upload_palm_image(file_bytes: bytes, original_filename: str) -> Optional[str]:
