@@ -10,7 +10,7 @@ def sign(lon):
     return ZODIAC_ORDER[int(lon // 30) % 12]
 
 print("=" * 60)
-print("VEDIC ENGINE VERIFICATION (KP Sidereal)")
+print("VEDIC ENGINE VERIFICATION (Lahiri Sidereal)")
 print("=" * 60)
 
 tests = [

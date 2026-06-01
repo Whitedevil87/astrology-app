@@ -45,8 +45,9 @@ except ImportError:
 from utils.astrology_constants import (
     PERSONALITY_RULES, CAREER_RULES, ZODIAC_ORDER, ZODIAC_META,
     STRENGTH_BLURBS, WEAKNESS_BLURBS, LUCKY_DAYS, ELEMENT_COLORS,
-    NAKSHATRA_DATA, VIMSHOTTARI_ORDER, VIMSHOTTARI_PERIODS,
+    NAKSHATRA_DATA, VIMSHOTTARI_ORDER, VIMSHOTTARI_PERIODS, HOUSE_MEANINGS,
 )
+from vedic.strength import SIGN_RULERS
 from utils.astrology_math import (
     julian_day, sun_ecliptic_longitude_deg, moon_ecliptic_longitude_deg,
     ascendant_longitude_deg, _norm360,
@@ -308,7 +309,289 @@ def simulate_palm_analysis(hand_choice: str) -> str:
     )
 
 
-# ── Predictions (Simple English + light Hinglish) ────────────────────
+# ── Chart-accurate predictions (AstroSage-style, unique per Kundli) ───
+
+_PLANET_LABELS = {
+    "sun": "Sun", "moon": "Moon", "mars": "Mars", "mercury": "Mercury",
+    "venus": "Venus", "jupiter": "Jupiter", "saturn": "Saturn",
+    "rahu": "Rahu", "ketu": "Ketu",
+}
+
+_DASHA_THEMES = {
+    "Sun": "authority, visibility, and father/mentor themes",
+    "Moon": "emotions, home, mother, and public mood",
+    "Mars": "courage, property disputes, siblings, and decisive action",
+    "Mercury": "business, communication, studies, and skill-building",
+    "Jupiter": "wisdom, children, dharma, and expansion",
+    "Venus": "marriage, luxury, arts, and partnership income",
+    "Saturn": "discipline, delays that mature you, service, and karma",
+    "Rahu": "ambition, foreign links, technology, and unconventional paths",
+    "Ketu": "spirituality, detachment, research, and letting go",
+}
+
+
+def _zodiac_index(sign: str) -> int:
+    try:
+        return ZODIAC_ORDER.index(sign)
+    except ValueError:
+        return 0
+
+
+def _sign_on_house(lagna: str, house_num: int) -> str:
+    if not lagna or lagna.startswith("Unknown") or house_num < 1 or house_num > 12:
+        return "—"
+    return ZODIAC_ORDER[(_zodiac_index(lagna) + house_num - 1) % 12]
+
+
+def _lord_of_house(lagna: str, house_num: int) -> str:
+    sign = _sign_on_house(lagna, house_num)
+    return SIGN_RULERS.get(sign, "—") if sign != "—" else "—"
+
+
+def _planets_in_house(houses: Dict[str, int], house_num: int) -> List[str]:
+    hits = []
+    for key, hn in (houses or {}).items():
+        if hn == house_num:
+            hits.append(_PLANET_LABELS.get(key, key.title()))
+    return hits
+
+
+def _house_phrase(house_num: int) -> str:
+    return HOUSE_MEANINGS.get(house_num, f"House {house_num} themes")
+
+
+def _nakshatra_meta(name: str) -> Dict[str, str]:
+    for n in NAKSHATRA_DATA:
+        if n["name"].lower() == (name or "").lower():
+            return n
+    return {}
+
+
+def _dignity_label(strength: Dict[str, Any], planet: str) -> str:
+    info = (strength or {}).get(planet) or {}
+    dignity = info.get("dignity") or "neutral"
+    strong = info.get("is_strong", False)
+    if dignity == "Exalted":
+        return f"{planet} is exalted (very strong)"
+    if dignity == "Debilitated":
+        return f"{planet} is debilitated (needs conscious effort)"
+    if dignity in ("Own Sign", "Moolatrikona"):
+        return f"{planet} is in {dignity.lower()} (strong)"
+    if strong:
+        return f"{planet} is well-placed"
+    return f"{planet} is in {dignity.lower()} strength"
+
+
+def _join_planets(names: List[str]) -> str:
+    if not names:
+        return "no major graha"
+    if len(names) == 1:
+        return names[0]
+    return ", ".join(names[:-1]) + " and " + names[-1]
+
+
+def build_vedic_prediction(
+    full_name: str,
+    birth_place: str,
+    profile: Dict[str, str],
+    palm_text: Optional[str],
+    birth_date: date,
+    now: datetime,
+    blueprint: Dict[str, Any],
+    vedic: Dict[str, Any],
+) -> Dict[str, str]:
+    """
+    Build unique life-area readings from the user's actual Kundli:
+    whole-sign houses, planetary signs, nakshatra, dasha, yogas, dignity, vargas.
+    """
+    lagna = profile.get("ascendant") or vedic.get("lagna_sign") or "—"
+    sun_sign = profile.get("zodiac") or "—"
+    moon_sign = profile.get("moon_sign") or "—"
+    houses = vedic.get("houses") or {}
+    signs = vedic.get("planet_signs") or {}
+    strength = vedic.get("strength") or {}
+    yogas = vedic.get("yogas") or {}
+    vargas = vedic.get("vargas") or {}
+
+    sun_h = houses.get("sun")
+    moon_h = houses.get("moon")
+    mars_h = houses.get("mars")
+    merc_h = houses.get("mercury")
+    venus_h = houses.get("venus")
+    jup_h = houses.get("jupiter")
+    sat_h = houses.get("saturn")
+    rahu_h = houses.get("rahu")
+    ketu_h = houses.get("ketu")
+
+    nak = vedic.get("nakshatra") or ""
+    nak_lord = vedic.get("nakshatra_lord") or ""
+    nak_pada = vedic.get("nakshatra_pada") or ""
+    nak_meta = _nakshatra_meta(nak)
+    nak_meaning = nak_meta.get("meaning", "a distinct karmic rhythm")
+
+    maha = vedic.get("mahadasha") or ""
+    antar = vedic.get("antardasha_demo") or ""
+    praty = vedic.get("pratyantardasha") or ""
+    doshas = vedic.get("dosha_flags") or []
+
+    h10_planets = _planets_in_house(houses, 10)
+    h7_planets = _planets_in_house(houses, 7)
+    h5_planets = _planets_in_house(houses, 5)
+    h6_planets = _planets_in_house(houses, 6)
+    h4_planets = _planets_in_house(houses, 4)
+    h11_planets = _planets_in_house(houses, 11)
+    h1_planets = _planets_in_house(houses, 1)
+
+    sign_10 = _sign_on_house(lagna, 10)
+    lord_10 = _lord_of_house(lagna, 10)
+    sign_7 = _sign_on_house(lagna, 7)
+    lord_7 = _lord_of_house(lagna, 7)
+
+    d9_venus = (vargas.get("Venus") or {}).get("navamsa", "")
+    d9_moon = (vargas.get("Moon") or {}).get("navamsa", "")
+    d10_saturn = (vargas.get("Saturn") or {}).get("dashamsha", "")
+    d10_sun = (vargas.get("Sun") or {}).get("dashamsha", "")
+
+    yoga_names = [y.get("name", "") for y in (yogas.get("yogas") or [])[:4] if y.get("name")]
+
+    ashtak = {}
+    if signs and lagna and not str(lagna).startswith("Unknown"):
+        try:
+            ashtak = compute_ashtakavarga(signs, lagna, moon_sign)
+        except Exception:
+            ashtak = {}
+
+    strongest_area = ""
+    if ashtak.get("strongest_signs"):
+        top = ashtak["strongest_signs"][0]
+        strongest_area = f"{top[0]} ({top[1]} bindus in Sarvashtakavarga)"
+
+    transit = vedic.get("transits") or {}
+    conf = (transit.get("prediction_confidence") or {}).get("score")
+    conf_desc = (transit.get("prediction_confidence") or {}).get("description", "")
+    transit_score = transit.get("transit_score")
+
+    personality = (
+        f"{full_name}, your chart is calculated in Lahiri sidereal (same ayanamsa default as AstroSage). "
+        f"Lagna (Ascendant) is {lagna} — {_house_phrase(1)}. "
+        f"Sun in {sun_sign} occupies the {sun_h}th house ({_house_phrase(sun_h or 1)}); "
+        f"Moon in {moon_sign} sits in the {moon_h}th house ({_house_phrase(moon_h or 4)}). "
+    )
+    if h1_planets and h1_planets != ["Sun"]:
+        personality += f"Grahas influencing the 1st house: {_join_planets(h1_planets)}. "
+    if nak:
+        personality += (
+            f"Birth Nakshatra {nak} (lord {nak_lord}, pada {nak_pada}) emphasizes {nak_meaning}. "
+        )
+    if yoga_names:
+        personality += f"Active yogas include {', '.join(yoga_names)} — these sharpen your natural gifts. "
+
+    career = (
+        f"Career (10th house / Karma Bhava) falls in {sign_10}, ruled by {lord_10}. "
+        f"Planets in the 10th: {_join_planets(h10_planets)} — {_house_phrase(10)}. "
+        f"{_dignity_label(strength, 'Saturn')} in house {sat_h} ({signs.get('Saturn', '—')}); "
+        f"Mercury in house {merc_h} ({signs.get('Mercury', '—')}) shapes skills and negotiation. "
+    )
+    if d10_saturn or d10_sun:
+        career += (
+            f"Dashamsha (D10): Sun in {d10_sun or '—'}, Saturn in {d10_saturn or '—'} "
+            f"— use D10 for profession sub-themes alongside the 10th lord {lord_10}. "
+        )
+    if h11_planets:
+        career += f"11th-house gains supported by {_join_planets(h11_planets)} ({_house_phrase(11)}). "
+
+    love = (
+        f"Marriage & partnerships (7th house) are in {sign_7}, ruled by {lord_7}. "
+        f"7th-house occupants: {_join_planets(h7_planets)}. "
+        f"Venus in {signs.get('Venus', '—')} (house {venus_h}) and Moon in {moon_sign} (house {moon_h}) "
+        f"set emotional needs in relationships. "
+    )
+    if d9_venus or d9_moon:
+        love += f"Navamsa (D9): Venus in {d9_venus or '—'}, Moon in {d9_moon or '—'} — key for spouse temperament. "
+    love += (
+        f"Synastry hints from Moon sign: harmonious with {blueprint.get('best_matches', '—')}; "
+        f"growth lessons with {blueprint.get('growth_signs', '—')}."
+    )
+
+    dasha_theme = _DASHA_THEMES.get(maha, "life lessons aligned with your Moon nakshatra")
+    future = (
+        f"Vimshottari timing: {maha} Mahadasha → {antar} Antardasha → {praty} Pratyantardasha. "
+        f"This period highlights {dasha_theme}. "
+    )
+    if conf is not None:
+        future += f"Current transit confidence: {conf}% — {conf_desc} "
+    elif transit_score is not None:
+        future += f"Gochara favorability score: {transit_score}%. "
+    if strongest_area:
+        future += f"Strongest collective support flows through {strongest_area}. "
+    if palm_text:
+        future += "Palm symbolism is layered on top of this chart timing."
+
+    strong_list = [p for p, d in strength.items() if isinstance(d, dict) and d.get("is_strong") and p not in ("Rahu", "Ketu")]
+    strengths = (
+        f"Chart strengths: {_join_planets(strong_list) if strong_list else 'balanced dignity across grahas'}. "
+    )
+    if yoga_names:
+        strengths += f"Yogas {', '.join(yoga_names)} raise confidence and opportunity when you act ethically. "
+    if h5_planets:
+        strengths += f"5th house (Purva Punya) activated by {_join_planets(h5_planets)} — creativity and merit. "
+    strengths += f"Sun–Moon–Lagna blend ({sun_sign} / {moon_sign} / {lagna}) is your signature; lean into it."
+
+    weak_parts = []
+    for p in ("Saturn", "Mars", "Mercury", "Venus", "Jupiter"):
+        if ((strength.get(p) or {}).get("dignity")) == "Debilitated":
+            weak_parts.append(_dignity_label(strength, p))
+    if doshas:
+        weak_parts.append("; ".join(doshas))
+    if h6_planets:
+        weak_parts.append(f"6th-house pressure from {_join_planets(h6_planets)} — manage health and conflict proactively")
+    weaknesses = (
+        weak_parts[0] if len(weak_parts) == 1 else
+        (" ".join(weak_parts) if weak_parts else
+         f"Watch overthinking when Moon occupies house {moon_h}; channel {moon_sign} emotions through routine and rest.")
+    )
+
+    wellness = (
+        f"6th house (Ari Bhava): {_join_planets(h6_planets)} — {_house_phrase(6)}. "
+        f"Moon in house {moon_h} ({moon_sign}) shows where stress lodges in the body; "
+        f"Mars in house {mars_h} ({signs.get('Mars', '—')}) affects energy and inflammation. "
+        f"Honor {ZODIAC_META.get(sun_sign, {}).get('element', 'your')} element; "
+        f"lucky day {blueprint.get('lucky_day', '—')} for restorative habits."
+    )
+
+    compatibility = (
+        f"7th lord {lord_7} in {sign_7} with Venus in {signs.get('Venus', '—')} (house {venus_h}) "
+        f"defines partner type you attract. Moon in {moon_sign} needs emotional safety; "
+        f"best elemental match signs: {blueprint.get('best_matches', '—')}. "
+        f"Ketu in house {ketu_h} and Rahu in house {rahu_h} add karmic relationship lessons — "
+        f"choose partners who respect your {lagna} lagna pace."
+    )
+
+    seasonal_energy = (
+        f"Active dasha {maha}/{antar} colors this season: {_DASHA_THEMES.get(maha, 'steady growth')}. "
+    )
+    if transit.get("jupiter_transit"):
+        jt = transit["jupiter_transit"]
+        seasonal_energy += f"Jupiter transit: {jt.get('description', jt.get('quality', ''))}. "
+    if transit.get("sade_sati", {}).get("active"):
+        seasonal_energy += f"Sade Sati phase: {transit['sade_sati'].get('phase_name', 'active')} — patience and discipline. "
+    else:
+        seasonal_energy += seasonal_transit_note(now, sun_sign)
+
+    return {
+        "personality": personality.strip(),
+        "career": career.strip(),
+        "love": love.strip(),
+        "future": future.strip(),
+        "strengths": strengths.strip(),
+        "weaknesses": weaknesses.strip(),
+        "wellness": wellness.strip(),
+        "compatibility": compatibility.strip(),
+        "seasonal_energy": seasonal_energy.strip(),
+    }
+
+
+# ── Predictions (legacy sun-sign templates — fallback only) ───────────
 
 def build_prediction(
     full_name: str, birth_place: str, profile: Dict[str, str],

@@ -12,6 +12,11 @@ import sys
 
 def setup_logging():
     """Configure structured logging for the application."""
+    if hasattr(sys.stdout, "reconfigure"):
+        try:
+            sys.stdout.reconfigure(encoding="utf-8")
+        except Exception:
+            pass
     is_production = os.environ.get("FLASK_ENV") == "production"
     log_level = logging.INFO if is_production else logging.DEBUG
 

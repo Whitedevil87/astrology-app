@@ -133,12 +133,20 @@ _RATE_MESSAGES = {
 
 # Map of (path, method) → action name
 _RATE_MAP = {
-    ("/api/analyze", "POST"):      "analyze",
-    ("/api/chat", "POST"):         "chat",
-    ("/api/places", "GET"):        "places",
-    ("/api/horoscope", "GET"):     "horoscope",
-    ("/api/kundli-chart", "POST"): "kundli",
+    ("/api/analyze", "POST"):           "analyze",
+    ("/api/chat", "POST"):              "chat",
+    ("/api/places", "GET"):             "places",
+    ("/api/horoscope", "GET"):          "horoscope",
+    ("/api/kundli-chart", "POST"):      "kundli",
+    ("/api/compatibility", "POST"):     "kundli",
+    ("/api/dasha", "POST"):             "horoscope",
+    ("/api/panchanga", "POST"):         "horoscope",
+    ("/api/ashtakavarga", "POST"):      "horoscope",
+    ("/api/guna-milan", "POST"):        "kundli",
 }
+
+# POST /api/* routes that use Bearer tokens instead of session cookies
+_CSRF_EXEMPT_PREFIXES = ("/api/auth/",)
 
 
 def client_ip() -> str:
@@ -237,10 +245,13 @@ def register_security(app: Flask) -> Flask:
                 logger.warning(f"⛔ Rate limited: {ip} on {action}")
                 return blocked
 
-        # ── CSRF protection for browser-origin POSTs ────────────
-        # MAJOR-02: Expanded to cover all mutating browser-origin POST endpoints
-        csrf_protected = {"/api/analyze", "/api/chat", "/api/compatibility"}
-        if request.method == "POST" and request.path in csrf_protected:
+        # ── CSRF: all session-backed POST /api/* (opt-out list for Bearer auth) ──
+        needs_csrf = (
+            request.method == "POST"
+            and request.path.startswith("/api/")
+            and not any(request.path.startswith(p) for p in _CSRF_EXEMPT_PREFIXES)
+        )
+        if needs_csrf:
             expected = session.get("csrf_token")
             provided = (request.headers.get("X-CSRF-Token") or "").strip()
             if not expected:

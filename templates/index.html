@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Celestial Arc | Astrology Reading Form</title>
+    <title>Celestial Arc | Your Cosmic Brief</title>
     <link rel="dns-prefetch" href="https://geocoding-api.open-meteo.com">
     <link rel="preconnect" href="https://geocoding-api.open-meteo.com" crossorigin>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
@@ -206,21 +206,44 @@
                 <p id="progressText" class="text-sm text-purple-200/90 mt-3">0%</p>
             </div>
 
-            <div id="results" class="hidden mt-4">
-                <div class="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
-                    <div>
-                        <p class="text-xs uppercase tracking-[0.28em] text-fuchsia-300/90">Your cosmic brief</p>
-                        <h2 id="resultTitle" class="text-3xl md:text-4xl font-display font-semibold mt-2 text-white">
-                            Personalized report</h2>
-                        <p id="resultMeta" class="text-purple-200/85 mt-2 text-sm"></p>
+            <div id="results" class="readings-dashboard hidden mt-4">
+                <header class="readings-hero">
+                    <nav class="readings-nav" aria-label="Reading sections">
+                        <a href="/horoscope" class="readings-nav-link">Horoscopes</a>
+                        <a href="/app" class="readings-nav-link readings-nav-link--active">Birth Chart</a>
+                        <a href="#readingsGrid" class="readings-nav-link">Daily Readings</a>
+                        <a href="/dashboard" class="readings-nav-link">Dashboard</a>
+                    </nav>
+                    <div class="readings-hero-main">
+                        <div>
+                            <p class="readings-eyebrow">Your cosmic brief</p>
+                            <h2 id="resultTitle" class="readings-title">Personalized report</h2>
+                            <p id="resultMeta" class="readings-subtitle"></p>
+                        </div>
+                        <button type="button" id="tryAgain" class="btn-ghost readings-try-again">New reading</button>
                     </div>
-                    <div class="flex flex-wrap gap-2">
+                    <div id="readingsNotice" class="readings-notice hidden" role="status"></div>
+                    <div id="readingsLuckBar" class="readings-luck hidden" aria-label="Daily cosmic energy">
+                        <div class="readings-luck-label">
+                            <span>Daily cosmic energy</span>
+                            <span id="readingsLuckPct" class="readings-luck-pct">—</span>
+                        </div>
+                        <div class="readings-luck-track">
+                            <div id="readingsLuckFill" class="readings-luck-fill"></div>
+                        </div>
+                    </div>
+                </header>
 
-                        <button type="button" id="tryAgain" class="btn-ghost">Try again</button>
-                    </div>
+                <div id="readingsBigThree" class="readings-big-three" aria-label="Big three"></div>
+
+                <div id="kundliChartContainer" class="readings-chart-wrap hidden">
+                    <h3 class="readings-section-label">Birth chart (Kundli)</h3>
+                    <div id="kundliChart" class="readings-chart-canvas"></div>
                 </div>
 
-                <div id="guruChat" class="guru-chat mt-6 mb-8 relative ring-1 ring-cyan-400/20">
+                <div id="readingsTransits" class="readings-transits hidden" aria-label="Planetary positions"></div>
+
+                <div id="guruChat" class="guru-chat readings-ask relative ring-1 ring-cyan-400/20">
                     <div class="absolute top-3 right-3 z-10 animate-pulse pointer-events-none" aria-hidden="true">
                         <span class="relative flex h-6 w-6">
                             <span
@@ -242,29 +265,28 @@
                     <div id="chatLog" class="chat-log mt-2" aria-live="polite"></div>
                     <div class="mt-4 flex flex-col sm:flex-row gap-3">
                         <input type="text" id="chatInput" class="neo-input flex-1 py-3 px-4 text-base min-w-0"
-                            placeholder="e.g. Am I likely to be employed this year? When is a better window to job-hunt?"
+                            placeholder="Ask Guru anything about your day, career, or relationships…"
                             autocomplete="off">
                         <button type="button" id="chatSend" class="btn-primary shrink-0 px-6 cursor-pointer">Predict
                             Now</button>
                     </div>
                 </div>
 
-                <div id="blueprintChips" class="mt-6 flex flex-wrap gap-2"></div>
+                <div id="readingsCategoryTags" class="readings-tags hidden" aria-label="Ask about"></div>
 
-                <div id="profileCards" class="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 mt-6"></div>
+                <div id="blueprintChips" class="readings-lucky-row"></div>
 
-                <div id="kundliChartContainer" class="mt-8 text-center hidden">
-                    <h3 class="text-xl font-display font-semibold text-white mb-4">Your Birth Chart (Kundli)</h3>
-                    <div id="kundliChart" class="inline-block"></div>
+                <div id="profileCards" class="hidden" aria-hidden="true"></div>
+
+                <div id="horoscopeContainer" class="readings-horoscope hidden">
+                    <h3 class="readings-section-label">Today's horoscope</h3>
+                    <div id="horoscopeContent" class="readings-horoscope-body"></div>
                 </div>
 
-                <div id="horoscopeContainer" class="mt-8 hidden">
-                    <h3 class="text-xl font-display font-semibold text-white mb-4">Today's Horoscope</h3>
-                    <div id="horoscopeContent" class="bg-purple-950/30 rounded-lg p-6 border border-purple-500/30">
-                    </div>
-                </div>
+                <h3 id="readingsGrid" class="readings-section-label readings-grid-heading">Your life-area readings</h3>
+                <div id="reportSections" class="readings-grid"></div>
 
-                <div id="reportSections" class="horizontal-scroll-container"></div>
+                <div id="readingsPlanetsTable" class="readings-planets-wrap hidden"></div>
 
 
 

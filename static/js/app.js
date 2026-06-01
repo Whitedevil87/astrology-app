@@ -531,32 +531,134 @@ document.addEventListener("DOMContentLoaded", function () {
 
     function sectionCard(title, body, icon) {
         var intensity = 50 + ((title.length * 7 + (body || "").length) % 42);
-
-        var cleanBody = (body || "").replace(/\n/g, ' ').replace(/\*/g, '');
-        var sentences = cleanBody.match(/[^.!?]+[.!?]+/g) || [cleanBody];
-        var bulletsHtml = '<ul class="mt-4 space-y-2 text-sm text-purple-200/80 leading-relaxed list-disc pl-5" style="list-style-position:outside">';
-        for (var i = 0; i < Math.min(sentences.length, 4); i++) {
-            var s = sentences[i].trim();
-            if (s.length > 5) {
-                bulletsHtml += '<li>' + escapeHtml(s) + '</li>';
-            }
-        }
-        bulletsHtml += '</ul>';
+        var cleanBody = (body || "").replace(/\n/g, " ").replace(/\*/g, "").trim();
+        var excerpt = cleanBody.length > 220 ? cleanBody.slice(0, 217) + "…" : cleanBody;
+        var fullHidden = cleanBody.length > 220
+            ? '<p class="report-card-full hidden text-sm text-purple-200/85 leading-relaxed mt-2">' + escapeHtml(cleanBody) + "</p>"
+            : "";
 
         return (
-            '<div class="report-card reveal-hidden flex flex-col h-full bg-purple-950/20 border border-purple-500/30 p-6 rounded-2xl">' +
-            '<div class="flex items-center gap-3 mb-2">' +
-            '<span class="text-2xl pt-1">' + (icon || "✦") + "</span>" +
-            '<h3 class="font-display font-bold text-lg m-0">' + escapeHtml(title) + "</h3>" +
+            '<article class="report-card reveal-hidden flex flex-col h-full">' +
+            '<div class="flex items-start gap-2.5">' +
+            '<span class="text-xl leading-none opacity-90">' + (icon || "✦") + "</span>" +
+            '<h3 class="font-display font-bold text-base m-0 text-fuchsia-100">' + escapeHtml(title) + "</h3>" +
             "</div>" +
-            bulletsHtml +
-            '<div class="mt-auto pt-6">' +
-            '<div class="reading-intensity mb-3"><span class="text-xs uppercase tracking-widest text-purple-300/75 font-semibold">Cosmic Intensity</span>' +
-            '<div class="h-1 bg-purple-950/40 rounded-full mt-1 overflow-hidden"><div class="h-full bg-gradient-to-r from-purple-500 to-cyan-500 transition-all duration-1000 reading-intensity-fill" data-target="' + intensity + '%"></div></div></div>' +
-            '<button type="button" class="reading-ask-cta text-xs px-4 py-1.5 rounded-full border border-purple-500/30 bg-purple-500/10 text-purple-200/90 hover:bg-purple-500/20 hover:text-white transition-colors" data-topic="' + escapeHtml(title) + '">✨ Ask Guru</button>' +
+            '<p class="report-card-excerpt">' + escapeHtml(excerpt) + "</p>" +
+            fullHidden +
+            '<div class="report-card-footer">' +
+            (cleanBody.length > 220
+                ? '<button type="button" class="reading-read-more" data-expanded="0">Read more</button>'
+                : '<span></span>') +
+            '<button type="button" class="reading-ask-cta text-xs px-3 py-1 rounded-full border border-purple-500/30 bg-purple-500/10 text-purple-200/90 hover:bg-purple-500/20 hover:text-white transition-colors" data-topic="' + escapeHtml(title) + '">Ask Guru</button>' +
             "</div>" +
-            "</div>"
+            '<div class="reading-intensity mt-3">' +
+            '<span class="text-xs uppercase tracking-widest text-purple-300/75 font-semibold">Cosmic intensity</span>' +
+            '<div class="h-1 bg-purple-950/40 rounded-full mt-1 overflow-hidden">' +
+            '<div class="h-full bg-gradient-to-r from-purple-500 to-cyan-500 transition-all duration-1000 reading-intensity-fill" data-target="' + intensity + '%"></div>' +
+            "</div></div>" +
+            "</article>"
         );
+    }
+
+    function _renderReadingsShell(data, fullName) {
+        var profile = data.profile || {};
+        var sign = profile.zodiac || "Cosmic";
+        var titleEl = document.getElementById("resultTitle");
+        if (titleEl) {
+            titleEl.textContent = sign + " — Your Cosmic Brief";
+        }
+        var notice = document.getElementById("readingsNotice");
+        if (notice) {
+            notice.classList.remove("hidden");
+            notice.innerHTML =
+                "<span>Your personalized reading is ready — scroll for life-area insights and chart data.</span>" +
+                '<a href="#readingsGrid" class="readings-nav-link" style="white-space:nowrap">View readings ↓</a>';
+        }
+        var luckWrap = document.getElementById("readingsLuckBar");
+        var luckFill = document.getElementById("readingsLuckFill");
+        var luckPct = document.getElementById("readingsLuckPct");
+        var aus = ((data.panchanga || {}).auspiciousness_score || {});
+        var pct = Math.min(100, Math.max(12, Number(aus.score) || 58));
+        if (luckWrap && luckFill) {
+            luckWrap.classList.remove("hidden");
+            setTimeout(function () { luckFill.style.width = pct + "%"; }, 80);
+            if (luckPct) luckPct.textContent = pct + "%";
+        }
+        var b3 = document.getElementById("readingsBigThree");
+        if (b3) {
+            b3.innerHTML = [
+                { l: "Sun", v: profile.zodiac },
+                { l: "Moon", v: profile.moon_sign },
+                { l: "Rising", v: profile.ascendant }
+            ].map(function (row) {
+                return '<div class="readings-b3-card"><div class="readings-b3-label">' + escapeHtml(row.l) +
+                    '</div><div class="readings-b3-value">' + escapeHtml(row.v || "—") + "</div></div>";
+            }).join("");
+        }
+        var tagsEl = document.getElementById("readingsCategoryTags");
+        if (tagsEl && chatInput) {
+            tagsEl.classList.remove("hidden");
+            var tags = ["Love & relationships", "Career & finance", "Health & wellness", "Personal growth", "Timing & dasha"];
+            tagsEl.innerHTML = tags.map(function (t) {
+                return '<button type="button" class="readings-tag" data-tag="' + escapeHtml(t) + '">' + escapeHtml(t) + "</button>";
+            }).join("");
+            tagsEl.querySelectorAll(".readings-tag").forEach(function (btn) {
+                btn.addEventListener("click", function () {
+                    chatInput.value = "Tell me about my " + btn.getAttribute("data-tag").toLowerCase();
+                    chatInput.focus();
+                    var gc = document.getElementById("guruChat");
+                    if (gc) gc.scrollIntoView({ behavior: "smooth", block: "center" });
+                });
+            });
+        }
+        _renderTransitChips(data.vedic);
+        _renderPlanetsTable(data.vedic, data.transits);
+    }
+
+    function _renderTransitChips(vedic) {
+        var el = document.getElementById("readingsTransits");
+        if (!el || !vedic) return;
+        var signs = vedic.planet_signs || {};
+        var order = ["Sun", "Moon", "Mars", "Mercury", "Venus", "Jupiter", "Saturn"];
+        var chips = order.filter(function (p) { return signs[p]; }).map(function (p) {
+            return '<span class="readings-transit-chip">' + escapeHtml(p) + " in " + escapeHtml(signs[p]) + "</span>";
+        });
+        if (signs.Rahu) chips.push('<span class="readings-transit-chip">Rahu in ' + escapeHtml(signs.Rahu) + "</span>");
+        if (signs.Ketu) chips.push('<span class="readings-transit-chip">Ketu in ' + escapeHtml(signs.Ketu) + "</span>");
+        if (!chips.length) return;
+        el.classList.remove("hidden");
+        el.innerHTML = chips.join("");
+    }
+
+    function _renderPlanetsTable(vedic, transits) {
+        var wrap = document.getElementById("readingsPlanetsTable");
+        if (!wrap || !vedic) return;
+        var signs = vedic.planet_signs || {};
+        var houses = vedic.houses || {};
+        var rows = Object.keys(signs).map(function (p) {
+            var hKey = p.toLowerCase();
+            var house = houses[hKey] != null ? "House " + houses[hKey] : "—";
+            var impact = "neu";
+            var impactLabel = "Neutral";
+            if (transits && transits.confidence) {
+                var c = Number(transits.confidence);
+                if (c >= 0.65) { impact = "pos"; impactLabel = "Supportive"; }
+                else if (c < 0.4) { impact = "chal"; impactLabel = "Challenging"; }
+            }
+            return "<tr><td>" + escapeHtml(p) + "</td><td>" + escapeHtml(signs[p]) +
+                "</td><td>" + escapeHtml(house) + '</td><td><span class="readings-impact readings-impact--' +
+                impact + '">' + impactLabel + "</span></td></tr>";
+        }).join("");
+        if (!rows) return;
+        wrap.classList.remove("hidden");
+        wrap.innerHTML =
+            '<h3 class="readings-section-label" style="text-align:left">Planetary positions</h3>' +
+            '<div class="readings-planets-tabs" role="tablist">' +
+            '<button type="button" class="readings-planets-tab readings-planets-tab--active">Natal chart</button>' +
+            "</div>" +
+            '<div style="overflow-x:auto"><table class="readings-planets-table"><thead><tr>' +
+            "<th>Planet</th><th>Sign</th><th>House</th><th>Energy</th></tr></thead><tbody>" +
+            rows + "</tbody></table></div>";
     }
 
     function renderResults(data) {
@@ -570,16 +672,18 @@ document.addEventListener("DOMContentLoaded", function () {
         const bp = data.blueprint || {};
         var westernSign = profile.western_zodiac || "";
 
-        if (resultTitle) resultTitle.textContent = (profile.zodiac || "") + " · Your Cosmic Brief";
         if (resultMeta) {
-            var metaText = "Vedic Sun " + (profile.zodiac || "—") +
-                " · Moon " + (profile.moon_sign || "—") +
-                " · Asc " + (profile.ascendant || "—");
+            var metaText = "A personalized guide from your birth chart";
+            if (profile.zodiac) {
+                metaText += " — Vedic Sun " + profile.zodiac + ", Moon " + (profile.moon_sign || "—") +
+                    ", Rising " + (profile.ascendant || "—");
+            }
             if (westernSign && westernSign !== profile.zodiac) {
-                metaText += "  ·  Western Sun " + westernSign;
+                metaText += " (Western Sun: " + westernSign + ")";
             }
             resultMeta.textContent = metaText;
         }
+        _renderReadingsShell(data, "");
 
         // Vedic system info banner — injected after resultMeta
         var existingBanner = document.getElementById("vedicInfoBanner");
@@ -692,20 +796,20 @@ document.addEventListener("DOMContentLoaded", function () {
         if (reportSections) {
             const sections = data.sections || {};
             const order = [
-                ["Personality Analysis", sections.personality || "", "✦"],
-                ["Career Path", sections.career || "", "✦"],
-                ["Love & Relationships", sections.love || "", "✦"],
-                ["Future Outlook", sections.future || "", "✦"],
-                ["Core Strengths", sections.strengths || "", "☀"],
-                ["Growth Edges", sections.weaknesses || "", "☽"],
+                ["Personal Destiny", sections.personality || "", "✦"],
+                ["Social Path & Love", sections.love || "", "♥"],
+                ["Career & Ambition", sections.career || "", "◎"],
+                ["Future Outlook", sections.future || "", "☽"],
+                ["Your Strengths", sections.strengths || "", "☀"],
+                ["Areas to Grow", sections.weaknesses || "", "🌱"],
                 ["Wellness & Rhythm", sections.wellness || "", "✧"],
-                ["Compatibility Notes", sections.compatibility || "", "♥"],
-                ["Seasonal Energy & Timing", sections.seasonal_energy || "", "◎"],
-                ["Kundli & chart layer", sections.kundli_layer || "", "✦"],
-                ["Houses (whole-sign demo)", sections.vedic_houses || "", "✦"],
-                ["Rahu & Ketu", sections.rahu_ketu || "", "✦"],
-                ["Dasha / dosha snapshot", sections.vimshottari_timing || "", "✦"],
-                ["Remedies & ethical lifestyle", sections.remedies_lifestyle || "", "✦"]
+                ["Compatibility Notes", sections.compatibility || "", "♡"],
+                ["Seasonal Energy", sections.seasonal_energy || "", "◇"],
+                ["Emotional Depth", sections.rahu_ketu || "", "☾"],
+                ["Dasha & Timing", sections.vimshottari_timing || "", "⏱"],
+                ["Home & Foundations", sections.vedic_houses || "", "⌂"],
+                ["Spirituality & Remedies", sections.remedies_lifestyle || "", "✹"],
+                ["Chart Notes", sections.kundli_layer || "", "◈"]
             ];
             let html = "";
             order.forEach(function (row) {
@@ -1137,17 +1241,38 @@ document.addEventListener("DOMContentLoaded", function () {
         }
     }
 
-    // Ask Guru CTA delegation
+    // Reading card actions: Ask Guru + Read more
     if (reportSections) {
         reportSections.addEventListener("click", function (e) {
-            var btn = e.target.closest(".reading-ask-cta");
-            if (!btn) return;
-            var topic = btn.getAttribute("data-topic") || "";
-            if (chatInput) {
-                chatInput.value = "Tell me more about my " + topic;
-                var gc = document.getElementById("guruChat");
-                if (gc) gc.scrollIntoView({ behavior: "smooth" });
-                chatInput.focus();
+            var askBtn = e.target.closest(".reading-ask-cta");
+            if (askBtn) {
+                var topic = askBtn.getAttribute("data-topic") || "";
+                if (chatInput) {
+                    chatInput.value = "Tell me more about my " + topic;
+                    var gc = document.getElementById("guruChat");
+                    if (gc) gc.scrollIntoView({ behavior: "smooth", block: "center" });
+                    chatInput.focus();
+                }
+                return;
+            }
+            var moreBtn = e.target.closest(".reading-read-more");
+            if (moreBtn) {
+                var card = moreBtn.closest(".report-card");
+                var full = card && card.querySelector(".report-card-full");
+                var excerpt = card && card.querySelector(".report-card-excerpt");
+                if (!full) return;
+                var expanded = moreBtn.getAttribute("data-expanded") === "1";
+                if (expanded) {
+                    full.classList.add("hidden");
+                    if (excerpt) excerpt.classList.remove("hidden");
+                    moreBtn.textContent = "Read more";
+                    moreBtn.setAttribute("data-expanded", "0");
+                } else {
+                    full.classList.remove("hidden");
+                    if (excerpt) excerpt.classList.add("hidden");
+                    moreBtn.textContent = "Show less";
+                    moreBtn.setAttribute("data-expanded", "1");
+                }
             }
         });
     }

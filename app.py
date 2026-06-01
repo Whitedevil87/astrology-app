@@ -17,7 +17,7 @@ from database import init_db, migrate_db, save_report, fetch_report_by_public_id
 from utils.geo import photon_search, timeapi_timezone_name
 from security import register_security, ensure_csrf, client_ip
 from services.analysis_service import (
-    compute_hybrid_big_three, build_blueprint, build_prediction,
+    compute_hybrid_big_three, build_blueprint, build_prediction, build_vedic_prediction,
     simulate_palm_analysis, zodiac_sign, moon_sign, ascendant_sign,
     western_zodiac_sign,
     build_report_html, build_report_html_v2,
@@ -84,21 +84,13 @@ def healthz():
 def api_csrf():
     return jsonify({"success": True, "csrf_token": ensure_csrf()})
 
-def is_mobile():
-    user_agent = request.headers.get("User-Agent", "").lower()
-    return any(keyword in user_agent for keyword in ["mobi", "android", "iphone", "ipad", "ipod", "windows phone"])
-
 @app.route("/landing")
 def landing():
-    if is_mobile():
-        return render_template("landing1.html")
-    return render_template("landing.html")
+    return render_template("landing1.html")
 
 @app.route("/")
 def index():
-    if is_mobile():
-        return render_template("landing1.html")
-    return render_template("landing.html")
+    return render_template("landing1.html")
 
 @app.route("/app")
 def app_view():
@@ -149,13 +141,26 @@ def generate_dynamic_report_cards(full_name, profile, vedic_structured, vedic_se
         "- Address them directly by name if appropriate.\n"
         "- The JSON must be valid and parseable by Python's json.loads()."
     )
+    h = vedic_structured.get("houses") or {}
+    signs = vedic_structured.get("planet_signs") or {}
     chart_data = (
         f"USER: {full_name}\n"
-        f"BIG THREE: Sun in {profile.get('zodiac')}, Moon in {profile.get('moon_sign')}, Ascendant in {profile.get('ascendant')}\n"
-        f"DASHAS: {vedic_structured.get('mahadasha')} Mahadasha, {vedic_structured.get('antardasha_demo')} Antardasha\n"
-        f"NAKSHATRA: {vedic_structured.get('nakshatra')} (Lord: {vedic_structured.get('nakshatra_lord')})\n"
+        f"LAGNA: {profile.get('ascendant')} | Sun {profile.get('zodiac')} (house {h.get('sun')}) | "
+        f"Moon {profile.get('moon_sign')} (house {h.get('moon')})\n"
+        f"PLANET SIGNS: {signs}\n"
+        f"HOUSES: Sun→{h.get('sun')} Moon→{h.get('moon')} Mars→{h.get('mars')} Mercury→{h.get('mercury')} "
+        f"Venus→{h.get('venus')} Jupiter→{h.get('jupiter')} Saturn→{h.get('saturn')} "
+        f"Rahu→{h.get('rahu')} Ketu→{h.get('ketu')}\n"
+        f"DASHAS: {vedic_structured.get('mahadasha')} / {vedic_structured.get('antardasha_demo')} / "
+        f"{vedic_structured.get('pratyantardasha')}\n"
+        f"NAKSHATRA: {vedic_structured.get('nakshatra')} (Lord: {vedic_structured.get('nakshatra_lord')}, "
+        f"Pada {vedic_structured.get('nakshatra_pada')})\n"
         f"DOSHAS: {', '.join(vedic_structured.get('dosha_flags', []))}\n"
-        f"HOUSES:\n{vedic_sections.get('vedic_houses')}\n\nGenerate the JSON report for this person."
+        f"YOGAS: {vedic_sections.get('yogas', '')}\n"
+        f"STRENGTH: {vedic_sections.get('planet_strength', '')}\n"
+        f"VARGAS D9/D10: {vedic_structured.get('vargas', {})}\n"
+        f"DETAIL:\n{vedic_sections.get('vedic_houses')}\n\n"
+        "Generate the JSON report. Every sentence MUST cite specific house numbers, planets, or dasha lords from this data."
     )
     def _call():
         return openai_guru_reply(system_prompt, chart_data, max_tokens=1500)
@@ -331,13 +336,22 @@ def analyze():
             bool(kundli_image_path), hybrid_details,
         )
 
+        # Chart-accurate readings (unique per Kundli — houses, dasha, nakshatra, yogas)
+        sections = build_vedic_prediction(
+            full_name, birth_place, profile, palm_text, parsed_date, now, blueprint, vedic_structured,
+        )
         dynamic_cards = generate_dynamic_report_cards(full_name, profile, vedic_structured, vedic_sections)
         if dynamic_cards:
-            sections = dynamic_cards
-            logger.info("Successfully generated dynamic AI report cards")
+            for key in (
+                "personality", "career", "love", "future", "strengths",
+                "weaknesses", "wellness", "compatibility", "seasonal_energy",
+            ):
+                ai_text = (dynamic_cards.get(key) or "").strip()
+                if ai_text and len(ai_text) > 40:
+                    sections[key] = ai_text
+            logger.info("AI-enhanced chart-based report cards")
         else:
-            sections = build_prediction(full_name, birth_place, profile, palm_text, parsed_date, now, blueprint)
-            logger.warning("Dynamic cards failed, falling back to static predictions")
+            logger.info("Chart-based report cards (Lahiri Kundli); AI enhancement skipped")
         sections.update(vedic_sections)
 
         # ── New Features: Dasha, Panchanga, Ashtakavarga ─────────────────
@@ -521,10 +535,11 @@ def api_ashtakavarga():
         return jsonify({"success": False, "error": str(e)}), 500
 
 
-@app.route("/api/compatibility", methods=["POST"])
-def api_compatibility():
+@app.route("/api/guna-milan", methods=["POST"])
+def api_guna_milan():
     """
-    Compute Kundli Matching (36-point Guna Milan) for two people.
+    Compute 36-point Guna Milan from sidereal moon longitudes (low-level API).
+    Full birth-chart matching: POST /api/compatibility (blueprint).
     Body: {
         "person1_moon_lon": float,  (sidereal)
         "person2_moon_lon": float,  (sidereal)

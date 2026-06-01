@@ -71,11 +71,12 @@ def configure_app(app):
     secret_key = os.environ.get("SECRET_KEY", "").strip()
     if not secret_key:
         if IS_PRODUCTION:
-            logger.critical("❌ CRITICAL: SECRET_KEY environment variable is not set in production!")
-            logger.critical("   This is a security vulnerability. Set SECRET_KEY env var before deploying.")
-        else:
-            logger.warning("⚠️ Using development SECRET_KEY fallback")
-            secret_key = "dev-key-change-in-production-UNSAFE"
+            raise RuntimeError(
+                "SECRET_KEY must be set in production (FLASK_ENV=production). "
+                "Generate one with: python -c \"import secrets; print(secrets.token_hex(32))\""
+            )
+        logger.warning("⚠️ Using development SECRET_KEY fallback")
+        secret_key = "dev-key-change-in-production-UNSAFE"
 
     app.config["SECRET_KEY"] = secret_key
     app.config["DEBUG"] = os.environ.get("FLASK_DEBUG", "false").lower() in ("1", "true", "yes")
