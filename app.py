@@ -13,7 +13,7 @@ from dotenv import load_dotenv
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from utils.ai_client import openai_guru_reply
-from database import init_db, migrate_db, save_report, fetch_report_by_public_id, save_chat_message, get_chat_history
+from database import init_db, migrate_db, save_report, fetch_report_by_public_id, fetch_report_row, save_chat_message, get_chat_history
 from utils.geo import photon_search, timeapi_timezone_name
 from security import register_security, ensure_csrf, client_ip
 from services.analysis_service import (
@@ -221,186 +221,219 @@ def analyze():
         except ValueError as e:
             logger.warning("Date/time parsing error for user %s: %s", full_name, e)
             return jsonify({"success": False, "error": "Date or time format is invalid."}), 400
-    except ValueError:
-        return jsonify({"success": False, "error": "Date or time format is invalid."}), 400
 
-    # ── Palm image handling (via Supabase Storage) ───────────────
-    palm_image_path = None
-    palm_text = None
-    if palm_enabled:
-        if hand_choice not in {"left", "right"}:
-            return jsonify({"success": False, "error": "Please choose left or right hand for palm reading."}), 400
-        if palm_image and palm_image.filename:
-            if not allowed_file(palm_image.filename):
-                return jsonify({"success": False, "error": "Palm image must be png, jpg, jpeg, or webp."}), 400
-            file_bytes = palm_image.read()
-            palm_image_path = upload_palm_image(file_bytes, palm_image.filename)
-            palm_text = simulate_palm_analysis(hand_choice)
+        # ── Palm image handling (via Supabase Storage) ───────────────
+        palm_image_path = None
+        palm_text = None
+        if palm_enabled:
+            if hand_choice not in {"left", "right"}:
+                return jsonify({"success": False, "error": "Please choose left or right hand for palm reading."}), 400
+            if palm_image and palm_image.filename:
+                if not allowed_file(palm_image.filename):
+                    return jsonify({"success": False, "error": "Palm image must be png, jpg, jpeg, or webp."}), 400
 
-    # ── Kundli image ─────────────────────────────────────────────
-    kundli_image_path = None
-    if kundli_file and kundli_file.filename:
-        if not allowed_file(kundli_file.filename):
-            return jsonify({"success": False, "error": "Kundli image must be png, jpg, jpeg, or webp."}), 400
-        file_bytes = kundli_file.read()
-        # MAJOR-03: Use dedicated kundli-images bucket, not palm-images
-        kundli_image_path = upload_kundli_image(file_bytes, kundli_file.filename)
+                # ── Validate palm image content ──────────────────────
+                file_bytes = palm_image.read()
 
-    # ── Geocoding + timezone ─────────────────────────────────────
-    chart_debug: Dict[str, Any] = {"place_autocomplete_used": bool(place_lat_raw and place_lon_raw)}
-    lat, lon = None, None
-    if place_lat_raw and place_lon_raw:
-        try:
-            lat, lon = float(place_lat_raw), float(place_lon_raw)
-        except ValueError:
-            lat, lon = None, None
+                # Check minimum file size (likely not a real photo if < 10KB)
+                if len(file_bytes) < 10 * 1024:
+                    return jsonify({"success": False, "error": "Palm image is too small. Please upload a clear photo of your palm."}), 400
 
-    if lat is None or lon is None:
-        places = photon_search(place_label or birth_place, limit=1)
-        if places:
-            lat, lon = float(places[0]["lat"]), float(places[0]["lon"])
-            chart_debug["geocoded_label"] = places[0].get("label")
+                # Check max file size (5MB for palm image specifically)
+                if len(file_bytes) > 5 * 1024 * 1024:
+                    return jsonify({"success": False, "error": "Palm image is too large. Please upload an image under 5MB."}), 400
+
+                # Validate image magic bytes (JPEG, PNG, WebP headers)
+                _valid_image = False
+                if file_bytes[:2] == b'\xff\xd8':  # JPEG
+                    _valid_image = True
+                elif file_bytes[:8] == b'\x89PNG\r\n\x1a\n':  # PNG
+                    _valid_image = True
+                elif file_bytes[:4] == b'RIFF' and file_bytes[8:12] == b'WEBP':  # WebP
+                    _valid_image = True
+
+                if not _valid_image:
+                    return jsonify({"success": False, "error": "The uploaded file is not a valid image. Please upload a real photo of your palm (JPG, PNG, or WebP)."}), 400
+
+                try:
+                    palm_image_path = upload_palm_image(file_bytes, palm_image.filename)
+                except Exception as e:
+                    logger.error("Palm image upload failed: %s", e)
+                    return jsonify({"success": False, "error": "Failed to upload palm image. Please try again."}), 500
+
+                palm_text = simulate_palm_analysis(hand_choice)
+            else:
+                # Palm enabled but no image uploaded — still allow, just simulate
+                palm_text = simulate_palm_analysis(hand_choice)
+
+        # ── Kundli image ─────────────────────────────────────────────
+        kundli_image_path = None
+        if kundli_file and kundli_file.filename:
+            if not allowed_file(kundli_file.filename):
+                return jsonify({"success": False, "error": "Kundli image must be png, jpg, jpeg, or webp."}), 400
+            file_bytes = kundli_file.read()
+            # MAJOR-03: Use dedicated kundli-images bucket, not palm-images
+            kundli_image_path = upload_kundli_image(file_bytes, kundli_file.filename)
+
+        # ── Geocoding + timezone ─────────────────────────────────────
+        chart_debug: Dict[str, Any] = {"place_autocomplete_used": bool(place_lat_raw and place_lon_raw)}
+        lat, lon = None, None
+        if place_lat_raw and place_lon_raw:
+            try:
+                lat, lon = float(place_lat_raw), float(place_lon_raw)
+            except ValueError:
+                lat, lon = None, None
+
+        if lat is None or lon is None:
+            places = photon_search(place_label or birth_place, limit=1)
+            if places:
+                lat, lon = float(places[0]["lat"]), float(places[0]["lon"])
+                chart_debug["geocoded_label"] = places[0].get("label")
+            else:
+                chart_debug["geocode_failed"] = True
+
+        tz_name = place_tz or None
+        if tz_name is None and lat is not None and lon is not None:
+            tz_name = timeapi_timezone_name(lat, lon)
+            if tz_name:
+                chart_debug["tz_resolved_by"] = "timeapi"
+
+        # ── Compute chart ────────────────────────────────────────────
+        profile = None
+        hybrid_details: Dict[str, Any] = {}
+        if lat is not None and lon is not None and tz_name:
+            try:
+                profile, hybrid_details = compute_hybrid_big_three(parsed_date, parsed_time, birth_place, lat, lon, tz_name)
+            except ZoneInfoNotFoundError:
+                chart_debug["tz_invalid"] = tz_name
+            except Exception as e:
+                chart_debug["hybrid_error"] = str(e)
+
+        if profile is None:
+            # NOTE: ascendant cannot be calculated without lat/lon/timezone
+            # Sun & Moon signs use date-based fallback, ascendant shows Unknown
+            profile = {
+                "zodiac": zodiac_sign(parsed_date),
+                "moon_sign": moon_sign(parsed_date),
+                "ascendant": "Unknown (location required)",
+            }
+            chart_debug["fallback"] = "legacy_approx — ascendant unavailable without geocoding"
+
+        # Always add the Western/tropical sign for comparison
+        profile["western_zodiac"] = western_zodiac_sign(parsed_date)
+
+        now = datetime.now(timezone.utc)
+        blueprint = build_blueprint(profile["zodiac"], profile["moon_sign"], profile["ascendant"], parsed_date)
+
+        vedic_sections, vedic_structured = build_vedic_bundle(
+            profile["ascendant"], profile["zodiac"], profile["moon_sign"],
+            parsed_date, parsed_time, birth_place, kundli_notes,
+            bool(kundli_image_path), hybrid_details,
+        )
+
+        dynamic_cards = generate_dynamic_report_cards(full_name, profile, vedic_structured, vedic_sections)
+        if dynamic_cards:
+            sections = dynamic_cards
+            logger.info("Successfully generated dynamic AI report cards")
         else:
-            chart_debug["geocode_failed"] = True
+            sections = build_prediction(full_name, birth_place, profile, palm_text, parsed_date, now, blueprint)
+            logger.warning("Dynamic cards failed, falling back to static predictions")
+        sections.update(vedic_sections)
 
-    tz_name = place_tz or None
-    if tz_name is None and lat is not None and lon is not None:
-        tz_name = timeapi_timezone_name(lat, lon)
-        if tz_name:
-            chart_debug["tz_resolved_by"] = "timeapi"
+        # ── New Features: Dasha, Panchanga, Ashtakavarga ─────────────────
+        birth_jd    = hybrid_details.get("jd")
+        moon_lon    = hybrid_details.get("moon_lon_deg")
+        tz_offset   = hybrid_details.get("tz_offset_hours", 5.5)
 
-    # ── Compute chart ────────────────────────────────────────────
-    profile = None
-    hybrid_details: Dict[str, Any] = {}
-    if lat is not None and lon is not None and tz_name:
-        try:
-            profile, hybrid_details = compute_hybrid_big_three(parsed_date, parsed_time, birth_place, lat, lon, tz_name)
-        except ZoneInfoNotFoundError:
-            chart_debug["tz_invalid"] = tz_name
-        except Exception as e:
-            chart_debug["hybrid_error"] = str(e)
+        # Use birth-date offset (handles DST correctly; do not use datetime.now())
+        if tz_name and tz_offset == 5.5:
+            try:
+                _tz = ZoneInfo(tz_name)
+                _dt_local = datetime.combine(parsed_date, parsed_time, tzinfo=_tz)
+                tz_offset = _dt_local.utcoffset().total_seconds() / 3600.0
+            except Exception:
+                tz_offset = 5.5
 
-    if profile is None:
-        # NOTE: ascendant cannot be calculated without lat/lon/timezone
-        # Sun & Moon signs use date-based fallback, ascendant shows Unknown
-        profile = {
-            "zodiac": zodiac_sign(parsed_date),
-            "moon_sign": moon_sign(parsed_date),
-            "ascendant": "Unknown (location required)",
-        }
-        chart_debug["fallback"] = "legacy_approx — ascendant unavailable without geocoding"
+        dasha_data         = {}
+        panchanga_data     = {}
+        ashtakavarga_data  = {}
 
-    # Always add the Western/tropical sign for comparison
-    profile["western_zodiac"] = western_zodiac_sign(parsed_date)
+        if birth_jd and moon_lon is not None:
+            try:
+                dasha_data = compute_full_dasha(moon_lon, birth_jd)
+            except Exception as e:
+                logger.warning("Dasha computation failed: %s", e)
+                dasha_data = {"error": str(e)}
 
-    now = datetime.now(timezone.utc)
-    blueprint = build_blueprint(profile["zodiac"], profile["moon_sign"], profile["ascendant"], parsed_date)
+            try:
+                _lat = lat or 20.0
+                _lon = lon or 78.0
+                panchanga_data = compute_birth_panchanga(birth_jd, _lat, _lon, tz_offset)
+            except Exception as e:
+                logger.warning("Panchanga computation failed: %s", e)
+                panchanga_data = {"error": str(e)}
 
-    vedic_sections, vedic_structured = build_vedic_bundle(
-        profile["ascendant"], profile["zodiac"], profile["moon_sign"],
-        parsed_date, parsed_time, birth_place, kundli_notes,
-        bool(kundli_image_path), hybrid_details,
-    )
+            # Ashtakavarga needs all planet signs from vedic_structured
+            try:
+                _planet_signs = vedic_structured.get("planet_signs", {})
+                if _planet_signs:
+                    ashtakavarga_data = compute_ashtakavarga(
+                        _planet_signs,
+                        profile.get("ascendant", "Aries"),
+                        profile.get("moon_sign", "Aries"),
+                    )
+            except Exception as e:
+                logger.warning("Ashtakavarga computation failed: %s", e)
+                ashtakavarga_data = {"error": str(e)}
 
-    dynamic_cards = generate_dynamic_report_cards(full_name, profile, vedic_structured, vedic_sections)
-    if dynamic_cards:
-        sections = dynamic_cards
-        logger.info("Successfully generated dynamic AI report cards")
-    else:
-        sections = build_prediction(full_name, birth_place, profile, palm_text, parsed_date, now, blueprint)
-        logger.warning("Dynamic cards failed, falling back to static predictions")
-    sections.update(vedic_sections)
+        report_html = build_report_html_v2(
+            full_name, profile, sections, palm_text,
+            dasha_data or None,
+            panchanga_data or None,
+            ashtakavarga_data or None,
+        )
+        created_at = now.strftime("%Y-%m-%d %H:%M:%S UTC")
+        logger.debug("Chart debug info: %s", chart_debug)  # Internal only — never sent to client
+        report_extras = json.dumps({
+            "blueprint": blueprint,
+            "vedic": vedic_structured,
+            "vedic_sections": vedic_sections,
+            "kundli_image_path": kundli_image_path,
+            "hybrid_chart": hybrid_details,
+            "gender": gender,
+            "dasha": dasha_data,
+            "panchanga": panchanga_data,
+            "ashtakavarga": ashtakavarga_data,
+        }, ensure_ascii=True)
 
-    # ── New Features: Dasha, Panchanga, Ashtakavarga ─────────────────
-    birth_jd    = hybrid_details.get("jd")
-    moon_lon    = hybrid_details.get("moon_lon_deg")
-    tz_offset   = hybrid_details.get("tz_offset_hours", 5.5)
+        user_id = getattr(request, "current_user", {}).get("id") if hasattr(request, "current_user") and request.current_user else None
 
-    # Use birth-date offset (handles DST correctly; do not use datetime.now())
-    if tz_name and tz_offset == 5.5:
-        try:
-            _tz = ZoneInfo(tz_name)
-            _dt_local = datetime.combine(parsed_date, parsed_time, tzinfo=_tz)
-            tz_offset = _dt_local.utcoffset().total_seconds() / 3600.0
-        except Exception:
-            tz_offset = 5.5
+        public_id = save_report({
+            "full_name": full_name, "birth_date": birth_date_raw, "birth_time": birth_time_raw,
+            "birth_place": birth_place, "palm_enabled": 1 if palm_enabled else 0,
+            "hand_choice": hand_choice if palm_enabled else None,
+            "palm_image_path": palm_image_path, "profile": profile, "sections": sections,
+            "palm_analysis": palm_text, "report_html": report_html,
+            "report_extras": report_extras, "created_at": created_at,
+        }, user_id=user_id)
 
-    dasha_data         = {}
-    panchanga_data     = {}
-    ashtakavarga_data  = {}
+        return jsonify({
+            "success": True, "report_id": public_id, "profile": profile,
+            "blueprint": blueprint, "vedic": vedic_structured, "sections": sections,
+            "palm_analysis": palm_text, "report_html": report_html, "created_at": created_at,
+            "yogas": vedic_structured.get("yogas", {}),
+            "transits": vedic_structured.get("transits", {}),
+            "strength": vedic_structured.get("strength", {}),
+            "dasha": dasha_data,
+            "panchanga": panchanga_data,
+            "ashtakavarga": ashtakavarga_data,
+            "palm_disclaimer": "AI-simulated palm reading — for entertainment purposes only" if palm_text else None,
+            "ai_chat_available": bool(os.environ.get("GROQ_API_KEY", "").strip() or os.environ.get("OPENAI_API_KEY", "").strip()),
+        })
 
-    if birth_jd and moon_lon is not None:
-        try:
-            dasha_data = compute_full_dasha(moon_lon, birth_jd)
-        except Exception as e:
-            logger.warning("Dasha computation failed: %s", e)
-            dasha_data = {"error": str(e)}
-
-        try:
-            _lat = lat or 20.0
-            _lon = lon or 78.0
-            panchanga_data = compute_birth_panchanga(birth_jd, _lat, _lon, tz_offset)
-        except Exception as e:
-            logger.warning("Panchanga computation failed: %s", e)
-            panchanga_data = {"error": str(e)}
-
-        # Ashtakavarga needs all planet signs from vedic_structured
-        try:
-            _planet_signs = vedic_structured.get("planet_signs", {})
-            if _planet_signs:
-                ashtakavarga_data = compute_ashtakavarga(
-                    _planet_signs,
-                    profile.get("ascendant", "Aries"),
-                    profile.get("moon_sign", "Aries"),
-                )
-        except Exception as e:
-            logger.warning("Ashtakavarga computation failed: %s", e)
-            ashtakavarga_data = {"error": str(e)}
-
-    report_html = build_report_html_v2(
-        full_name, profile, sections, palm_text,
-        dasha_data or None,
-        panchanga_data or None,
-        ashtakavarga_data or None,
-    )
-    created_at = now.strftime("%Y-%m-%d %H:%M:%S UTC")
-    logger.debug("Chart debug info: %s", chart_debug)  # Internal only — never sent to client
-    report_extras = json.dumps({
-        "blueprint": blueprint,
-        "vedic": vedic_structured,
-        "vedic_sections": vedic_sections,
-        "kundli_image_path": kundli_image_path,
-        "hybrid_chart": hybrid_details,
-        "gender": gender,
-        "dasha": dasha_data,
-        "panchanga": panchanga_data,
-        "ashtakavarga": ashtakavarga_data,
-    }, ensure_ascii=True)
-
-    user_id = getattr(request, "current_user", {}).get("id") if hasattr(request, "current_user") and request.current_user else None
-
-    public_id = save_report({
-        "full_name": full_name, "birth_date": birth_date_raw, "birth_time": birth_time_raw,
-        "birth_place": birth_place, "palm_enabled": 1 if palm_enabled else 0,
-        "hand_choice": hand_choice if palm_enabled else None,
-        "palm_image_path": palm_image_path, "profile": profile, "sections": sections,
-        "palm_analysis": palm_text, "report_html": report_html,
-        "report_extras": report_extras, "created_at": created_at,
-    }, user_id=user_id)
-
-    return jsonify({
-        "success": True, "report_id": public_id, "profile": profile,
-        "blueprint": blueprint, "vedic": vedic_structured, "sections": sections,
-        "palm_analysis": palm_text, "report_html": report_html, "created_at": created_at,
-        "yogas": vedic_structured.get("yogas", {}),
-        "transits": vedic_structured.get("transits", {}),
-        "strength": vedic_structured.get("strength", {}),
-        "dasha": dasha_data,
-        "panchanga": panchanga_data,
-        "ashtakavarga": ashtakavarga_data,
-        "palm_disclaimer": "AI-simulated palm reading — for entertainment purposes only" if palm_text else None,
-        "ai_chat_available": bool(os.environ.get("GROQ_API_KEY", "").strip() or os.environ.get("OPENAI_API_KEY", "").strip()),
-    })
+    except Exception as e:
+        logger.exception("Analyze endpoint error for user '%s': %s", request.form.get('full_name', 'unknown'), e)
+        return jsonify({"success": False, "error": "Something went wrong while generating your reading. Please try again."}), 500
 
 
 @app.route("/api/config", methods=["GET"])

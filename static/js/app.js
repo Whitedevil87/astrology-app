@@ -1292,10 +1292,36 @@ document.addEventListener("DOMContentLoaded", function () {
             onlyStep(step1, 1);
             return;
         }
-        if (palmEnabled && palmEnabled.value === "yes" && handChoice && !handChoice.value) {
-            showError("Please choose left or right hand for palm reading.");
-            onlyStep(step3, 3);
-            return;
+        if (palmEnabled && palmEnabled.value === "yes") {
+            if (handChoice && !handChoice.value) {
+                showError("Please choose left or right hand for palm reading.");
+                onlyStep(step3, 3);
+                return;
+            }
+            
+            const palmInput = document.getElementById("palmImage");
+            if (palmInput && palmInput.files && palmInput.files.length > 0) {
+                const file = palmInput.files[0];
+                const validTypes = ["image/jpeg", "image/png", "image/webp"];
+                
+                if (!validTypes.includes(file.type)) {
+                    showError("Palm image must be png, jpg, jpeg, or webp.");
+                    onlyStep(step3, 3);
+                    return;
+                }
+                
+                if (file.size > 5 * 1024 * 1024) {
+                    showError("Palm image is too large. Please upload an image under 5MB.");
+                    onlyStep(step3, 3);
+                    return;
+                }
+                
+                if (file.size < 10 * 1024) {
+                    showError("Palm image is too small. Please upload a clear photo of your palm.");
+                    onlyStep(step3, 3);
+                    return;
+                }
+            }
         }
 
         busy = true;
