@@ -1,449 +1,1173 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description"
-        content="Celestial Arc — Decode your cosmic blueprint with AI-powered astrology. Birth chart intelligence, planetary analysis, and personalized cosmic readings.">
-    <meta name="theme-color" content="#04070e">
-    <meta name="color-scheme" content="dark">
-    <title>Celestial Arc — Your Birth Chart, Decoded by AI</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#000000">
+<title>Celestial Arc — Your Birth Chart, Decoded by AI</title>
+<meta name="description" content="Decode your cosmic blueprint with Celestial Arc. Free Vedic Kundli, AI astrologer, Dasha predictions — calculated to the arc-second. Not newspaper astrology.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,700;0,900;1,400;1,700&family=Space+Grotesk:wght@300;400;500&family=Space+Mono:ital@0;1&display=swap" rel="stylesheet">
 
-    <!-- Fonts: preconnect first, then load with display=swap to avoid FOIT -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link rel="dns-prefetch" href="https://fonts.gstatic.com">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@0,400;0,500;0,600;1,400&display=swap"
-        rel="stylesheet">
+<!-- Desktop: preload frames -->
+<link rel="preload" href="{{ url_for('static', filename='images/celestial-sequence-288/frame_0001.webp') }}" as="image" media="(min-width:769px)">
+<link rel="preload" href="{{ url_for('static', filename='images/celestial-sequence-288/frame_0002.webp') }}" as="image" media="(min-width:769px)">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/landing.css') }}?v=33.0">
 
-    <!-- Preload ONLY the very first frame — loader hides after 5 frames now -->
-    <link rel="preload" href="{{ url_for('static', filename='images/celestial-sequence-288/frame_0001.webp') }}" as="image">
+<style>
+/* ══════════════════════════════════════════════
+   DESKTOP: hide mobile, show existing layout
+══════════════════════════════════════════════ */
+@media (min-width: 769px) {
+  .m-root { display: none !important; }
+}
 
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/landing.css') }}?v=37.0">
+/* ══════════════════════════════════════════════
+   MOBILE ONLY (≤768px)
+══════════════════════════════════════════════ */
+@media (max-width: 768px) {
+
+  /* Hide ALL desktop elements */
+  .page-loader, .preload-progress, .ambient-bg,
+  .section-progress, .nav, .cinematic-scroll,
+  .cta-section, .mobile-menu, .chat-widget,
+  #chatToggle, .footer { display: none !important; }
+
+  /* ── RESET ── */
+  *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+
+  :root {
+    --black: #000;
+    --white: #f5f3ef;
+    --gold: #c9a96e;
+    --gold2: #e8c98a;
+    --dim: rgba(245,243,239,0.62);
+    --dimmer: rgba(245,243,239,0.42);
+    --serif: 'Playfair Display', Georgia, serif;
+    --mono: 'Space Mono', monospace;
+    --sans: 'Space Grotesk', sans-serif;
+  }
+
+  html, body { background:#000; color:var(--white); overflow-x:hidden; }
+  body { -webkit-font-smoothing:antialiased; }
+
+  /* ── GRAIN ── */
+  .m-grain {
+    position:fixed; inset:0; z-index:999; pointer-events:none;
+    background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    background-size:160px; opacity:0.032;
+  }
+
+  /* ══════════════════════
+     NAV — minimal, sticky
+  ══════════════════════ */
+  .m-nav {
+    position:fixed; top:0; left:0; right:0; z-index:100;
+    padding:20px 24px 16px;
+    display:flex; justify-content:space-between; align-items:center;
+    transition:background 0.5s, border-color 0.5s;
+  }
+  .m-nav.dark {
+    background:rgba(0,0,0,0.92);
+    backdrop-filter:blur(20px); -webkit-backdrop-filter:blur(20px);
+    border-bottom:1px solid rgba(201,169,110,0.1);
+  }
+  .m-logo {
+    font-family:var(--serif); font-size:0.88rem; font-weight:400;
+    letter-spacing:0.28em; text-transform:uppercase; color:var(--white);
+    text-decoration:none;
+  }
+  .m-logo em { font-style:italic; color:var(--gold); }
+  .m-nav-link {
+    font-family:var(--mono); font-size:0.55rem; letter-spacing:0.16em;
+    text-transform:uppercase; color:var(--gold);
+    background:rgba(201,169,110,0.08); border:1px solid rgba(201,169,110,0.25);
+    padding:8px 16px; border-radius:2px; text-decoration:none;
+    transition:background 0.2s;
+  }
+  .m-nav-link:active { background:rgba(201,169,110,0.18); }
+
+  /* ══════════════════════════════════════════
+     FULLSCREEN SECTIONS — one per viewport
+  ══════════════════════════════════════════ */
+  .m-screen {
+    position:relative;
+    min-height:100svh;
+    display:flex; flex-direction:column;
+    overflow:hidden;
+  }
+
+  /* ══════════════════
+     SCREEN 1: HERO
+  ══════════════════ */
+  .m-s1 {
+    background:#000;
+    justify-content:flex-end;
+  }
+
+  /* Canvas starfield */
+  #mStar { position:absolute; inset:0; z-index:0; pointer-events:none; }
+
+  /* Big editorial headline */
+  .m-s1-inner {
+    position:relative; z-index:2;
+    padding:0 24px 52px;
+  }
+
+  .m-tag {
+    display:inline-flex; align-items:center; gap:10px;
+    font-family:var(--mono); font-size:0.55rem; letter-spacing:0.25em;
+    text-transform:uppercase; color:var(--gold);
+    margin-bottom:24px;
+    opacity:0; animation:mUp 0.7s 0.4s cubic-bezier(0.16,1,0.3,1) forwards;
+  }
+  .m-tag-line { width:28px; height:1px; background:var(--gold); opacity:0.6; }
+
+  .m-s1-h1 {
+    font-family:var(--serif);
+    font-size:clamp(3.8rem, 17vw, 6rem);
+    font-weight:900;
+    line-height:0.88;
+    letter-spacing:-0.02em;
+    color:var(--white);
+    margin-bottom:8px;
+    opacity:0; animation:mUp 0.85s 0.6s cubic-bezier(0.16,1,0.3,1) forwards;
+  }
+  .m-s1-h1 .ital { font-style:italic; color:var(--gold); }
+  .m-s1-h1 .stroke {
+    -webkit-text-stroke:1.5px rgba(245,243,239,0.3);
+    color:transparent; display:block;
+    font-weight:700; letter-spacing:0.01em;
+  }
+
+  .m-s1-sub {
+    font-family:var(--sans); font-size:0.82rem; font-weight:300;
+    line-height:1.7; color:var(--dim);
+    max-width:280px; margin:20px 0 32px;
+    opacity:0; animation:mUp 0.8s 0.85s cubic-bezier(0.16,1,0.3,1) forwards;
+  }
+
+  .m-s1-cta {
+    display:flex; flex-direction:column; gap:10px;
+    opacity:0; animation:mUp 0.8s 1.05s cubic-bezier(0.16,1,0.3,1) forwards;
+  }
+
+  .m-btn-gold {
+    background:var(--gold); color:#000;
+    font-family:var(--sans); font-size:0.72rem; font-weight:500;
+    letter-spacing:0.16em; text-transform:uppercase;
+    padding:18px 28px; border:none; border-radius:2px;
+    cursor:pointer; text-decoration:none;
+    display:flex; align-items:center; justify-content:center; gap:10px;
+    transition:transform 0.12s, background 0.2s;
+  }
+  .m-btn-gold:active { transform:scale(0.97); background:var(--gold2); }
+
+  .m-btn-line {
+    color:var(--dim); font-family:var(--sans); font-size:0.68rem;
+    font-weight:400; letter-spacing:0.14em; text-transform:uppercase;
+    padding:14px; border:1px solid rgba(245,243,239,0.12);
+    border-radius:2px; background:none; cursor:pointer;
+    text-decoration:none; display:flex; align-items:center; justify-content:center;
+    transition:border-color 0.2s, color 0.2s;
+  }
+  .m-btn-line:active { color:var(--white); border-color:rgba(245,243,239,0.3); }
+
+  /* Bottom scroll prompt */
+  .m-scroll-prompt {
+    position:absolute; bottom:20px; left:50%; transform:translateX(-50%);
+    z-index:2; display:flex; flex-direction:column; align-items:center; gap:6px;
+    opacity:0; animation:mFade 1s 2.2s forwards;
+  }
+  .m-sp-text { font-family:var(--mono); font-size:0.5rem; letter-spacing:0.3em; color:var(--dimmer); text-transform:uppercase; }
+  .m-sp-bar {
+    width:1px; height:36px;
+    background:linear-gradient(to bottom, var(--gold), transparent);
+    animation:mBar 2s ease-in-out 2.2s infinite;
+  }
+  @keyframes mBar {
+    0%,100% { transform:scaleY(1); opacity:0.5; }
+    50% { transform:scaleY(0.5); opacity:1; }
+  }
+
+  /* ═════════════════════════════
+     SCREEN 2: THE STATEMENT
+     Full black, one bold line
+  ═════════════════════════════ */
+  .m-s2 {
+    background:#000;
+    justify-content:center; align-items:center;
+    padding:80px 28px;
+    text-align:center;
+  }
+  .m-s2-inner { max-width:340px; }
+
+  .m-s2-pre {
+    font-family:var(--mono); font-size:0.52rem; letter-spacing:0.3em;
+    text-transform:uppercase; color:var(--gold); margin-bottom:28px;
+    display:block;
+  }
+
+  .m-s2-quote {
+    font-family:var(--serif); font-size:clamp(2rem, 9vw, 3rem);
+    font-weight:400; font-style:italic; line-height:1.2;
+    color:var(--white); margin-bottom:20px;
+    /* Split text animation via spans */
+  }
+  .m-s2-quote .word {
+    display:inline-block;
+    opacity:0; transform:translateY(20px);
+    transition:opacity 0.5s, transform 0.5s;
+  }
+  .m-s2-quote.vis .word { opacity:1; transform:translateY(0); }
+
+  .m-s2-rule {
+    width:40px; height:1px; margin:0 auto 20px;
+    background:linear-gradient(to right, transparent, var(--gold), transparent);
+  }
+  .m-s2-body {
+    font-family:var(--sans); font-size:0.78rem; font-weight:300;
+    line-height:1.75; color:var(--dim);
+  }
+
+  /* ═══════════════════════════════════════
+     SCREEN 3: WHAT IS KP? — Horizontal cards
+  ═══════════════════════════════════════ */
+  .m-s3 {
+    background:#000;
+    padding:80px 0 60px;
+    flex-direction:column; justify-content:center;
+  }
+
+  .m-s3-head { padding:0 24px 40px; }
+  .m-s3-kicker {
+    font-family:var(--mono); font-size:0.52rem; letter-spacing:0.28em;
+    text-transform:uppercase; color:var(--gold); margin-bottom:16px;
+    display:flex; align-items:center; gap:12px;
+  }
+  .m-s3-kicker::after { content:''; flex:1; height:1px; background:rgba(201,169,110,0.2); }
+  .m-s3-h { font-family:var(--serif); font-size:clamp(2.2rem, 10vw, 3.2rem); font-weight:700; line-height:1.0; color:var(--white); }
+  .m-s3-h em { font-style:italic; color:var(--gold); }
+
+  /* Swipeable feature cards */
+  .m-cards-track {
+    display:flex; gap:16px;
+    padding:4px 24px 4px;
+    overflow-x:auto; scroll-snap-type:x mandatory;
+    -webkit-overflow-scrolling:touch; scrollbar-width:none;
+  }
+  .m-cards-track::-webkit-scrollbar { display:none; }
+
+  .m-feat {
+    flex:0 0 76vw; max-width:290px;
+    scroll-snap-align:center;
+    background:rgba(255,255,255,0.035);
+    border:1px solid rgba(255,255,255,0.08);
+    border-radius:4px; padding:32px 24px;
+    position:relative; overflow:hidden;
+    opacity:0; transform:translateY(20px);
+    transition:opacity 0.6s, transform 0.6s;
+  }
+  .m-feat.on { opacity:1; transform:translateY(0); }
+  .m-feat:nth-child(2) { transition-delay:0.12s; }
+  .m-feat:nth-child(3) { transition-delay:0.24s; }
+  .m-feat:nth-child(4) { transition-delay:0.36s; }
+
+  /* Gold top line */
+  .m-feat::before {
+    content:''; position:absolute; top:0; left:0; right:0; height:1px;
+    background:linear-gradient(to right, transparent, var(--gold) 40%, transparent);
+  }
+  /* Big bg number */
+  .m-feat::after {
+    content:attr(data-n); position:absolute; bottom:-8px; right:14px;
+    font-family:var(--serif); font-size:5rem; font-weight:900;
+    color:rgba(201,169,110,0.04); line-height:1; pointer-events:none;
+  }
+
+  .m-feat-n {
+    font-family:var(--mono); font-size:0.5rem; letter-spacing:0.2em;
+    color:var(--gold); margin-bottom:18px; display:block;
+  }
+  .m-feat-h { font-family:var(--serif); font-size:1.25rem; font-weight:500; color:var(--white); margin-bottom:10px; line-height:1.2; }
+  .m-feat-p { font-family:var(--sans); font-size:0.75rem; font-weight:300; line-height:1.75; color:var(--dim); }
+
+  /* Scroll dots */
+  .m-dots {
+    display:flex; justify-content:center; gap:6px; margin-top:20px;
+  }
+  .m-dot {
+    width:4px; height:4px; border-radius:50%;
+    background:rgba(201,169,110,0.3); transition:background 0.3s, width 0.3s;
+  }
+  .m-dot.active { background:var(--gold); width:16px; border-radius:2px; }
+
+  /* ═══════════════════════════════════════
+     SCREEN 4: THE NUMBERS — editorial layout
+  ═══════════════════════════════════════ */
+  .m-s4 {
+    background:#000;
+    border-top:1px solid rgba(255,255,255,0.06);
+    padding:72px 24px;
+    flex-direction:column; justify-content:center;
+  }
+
+  .m-stats-grid {
+    display:grid; grid-template-columns:1fr 1fr;
+    gap:1px; background:rgba(255,255,255,0.06);
+    border:1px solid rgba(255,255,255,0.06); margin-bottom:40px;
+  }
+  .m-stat {
+    background:#000; padding:28px 20px;
+    opacity:0; transform:translateY(16px);
+    transition:opacity 0.5s, transform 0.5s;
+  }
+  .m-stat.on { opacity:1; transform:translateY(0); }
+  .m-stat:nth-child(2) { transition-delay:0.1s; }
+  .m-stat:nth-child(3) { transition-delay:0.2s; }
+  .m-stat:nth-child(4) { transition-delay:0.3s; }
+
+  .m-stat-n {
+    font-family:var(--serif); font-size:2.6rem; font-weight:700;
+    line-height:1; letter-spacing:-0.03em; color:var(--gold);
+    display:block; margin-bottom:6px;
+  }
+  .m-stat-l {
+    font-family:var(--mono); font-size:0.5rem; letter-spacing:0.2em;
+    text-transform:uppercase; color:var(--dimmer);
+  }
+
+  .m-s4-copy {
+    font-family:var(--serif); font-size:1.15rem; font-style:italic;
+    font-weight:400; line-height:1.55; color:var(--dim);
+    border-left:1px solid rgba(201,169,110,0.4); padding-left:18px;
+  }
+  .m-s4-copy em { color:var(--white); font-style:normal; }
+
+  /* ═══════════════════════════════════════
+     SCREEN 5: APP PHONE MOCKUP
+  ═══════════════════════════════════════ */
+  .m-s5 {
+    background:#000;
+    border-top:1px solid rgba(255,255,255,0.06);
+    padding:72px 24px 80px;
+    flex-direction:column; justify-content:center; align-items:center;
+  }
+
+  .m-s5-head { text-align:center; margin-bottom:40px; width:100%; }
+
+  /* Phone shell */
+  .m-phone-shell {
+    position:relative;
+    width:230px; height:460px;
+    margin:0 auto;
+    opacity:0; transform:translateY(40px) scale(0.94);
+    transition:opacity 0.9s cubic-bezier(0.16,1,0.3,1), transform 0.9s cubic-bezier(0.16,1,0.3,1);
+  }
+  .m-phone-shell.on { opacity:1; transform:translateY(0) scale(1); }
+
+  /* Glow behind phone */
+  .m-phone-shell::before {
+    content:'';
+    position:absolute; bottom:-30px; left:50%; transform:translateX(-50%);
+    width:180px; height:40px;
+    background:radial-gradient(ellipse, rgba(201,169,110,0.22), transparent 70%);
+    filter:blur(12px); pointer-events:none;
+  }
+
+  .m-phone-body {
+    width:100%; height:100%;
+    background:linear-gradient(170deg, #141420 0%, #0a0910 100%);
+    border-radius:36px;
+    border:1px solid rgba(255,255,255,0.1);
+    box-shadow:
+      0 0 0 6px rgba(255,255,255,0.025),
+      0 32px 80px rgba(0,0,0,0.7),
+      inset 0 1px 0 rgba(255,255,255,0.08);
+    overflow:hidden;
+    position:relative;
+  }
+
+  /* Notch */
+  .m-phone-notch {
+    position:absolute; top:14px; left:50%; transform:translateX(-50%);
+    width:72px; height:7px;
+    background:rgba(255,255,255,0.08); border-radius:100px; z-index:10;
+  }
+
+  /* Screen content */
+  .m-phone-screen {
+    position:absolute; inset:30px 8px 8px;
+    border-radius:28px;
+    background:#09080f;
+    overflow:hidden;
+    display:flex; flex-direction:column;
+  }
+
+  /* Phone app header */
+  .m-app-header {
+    padding:12px 14px 8px;
+    border-bottom:1px solid rgba(201,169,110,0.1);
+    display:flex; align-items:center; justify-content:space-between;
+    flex-shrink:0;
+  }
+  .m-app-logo {
+    font-family:var(--serif); font-size:0.7rem; font-weight:400;
+    letter-spacing:0.2em; text-transform:uppercase; color:var(--gold);
+  }
+  .m-app-dot {
+    width:6px; height:6px; border-radius:50%;
+    background:var(--gold);
+    animation:mDotPulse 2s ease-in-out infinite;
+  }
+  @keyframes mDotPulse {
+    0%,100% { box-shadow:0 0 0 0 rgba(201,169,110,0.4); }
+    50% { box-shadow:0 0 0 4px rgba(201,169,110,0); }
+  }
+
+  /* Reading card inside phone */
+  .m-app-reading {
+    padding:10px 12px;
+    border-bottom:1px solid rgba(255,255,255,0.05);
+    flex-shrink:0;
+  }
+  .m-app-reading-label {
+    font-family:var(--mono); font-size:0.42rem; letter-spacing:0.2em;
+    text-transform:uppercase; color:var(--dimmer); margin-bottom:6px;
+  }
+  .m-app-big3 {
+    display:flex; gap:6px;
+  }
+  .m-app-b3 {
+    flex:1; background:rgba(201,169,110,0.06);
+    border:1px solid rgba(201,169,110,0.12);
+    border-radius:4px; padding:6px 5px; text-align:center;
+  }
+  .m-app-b3-val {
+    font-family:var(--serif); font-size:0.72rem; color:var(--gold);
+    display:block; line-height:1;
+  }
+  .m-app-b3-lbl {
+    font-family:var(--mono); font-size:0.38rem; letter-spacing:0.12em;
+    text-transform:uppercase; color:var(--dimmer); display:block; margin-top:3px;
+  }
+
+  /* Dasha strip */
+  .m-app-dasha {
+    display:flex; align-items:center; gap:6px;
+    padding:6px 12px; border-bottom:1px solid rgba(255,255,255,0.04);
+    flex-shrink:0;
+  }
+  .m-app-dasha-dot {
+    width:5px; height:5px; border-radius:50%; background:var(--gold); flex-shrink:0;
+    animation:mDotPulse 2.5s ease-in-out infinite;
+  }
+  .m-app-dasha-text {
+    font-family:var(--mono); font-size:0.42rem; letter-spacing:0.1em;
+    text-transform:uppercase; color:var(--dimmer); flex:1;
+  }
+  .m-app-dasha-badge {
+    font-family:var(--mono); font-size:0.38rem; letter-spacing:0.12em;
+    text-transform:uppercase; color:var(--gold);
+    background:rgba(201,169,110,0.1); border:1px solid rgba(201,169,110,0.2);
+    padding:2px 6px; border-radius:100px; flex-shrink:0;
+  }
+
+  /* Chat section */
+  .m-app-chat {
+    flex:1; overflow:hidden;
+    display:flex; flex-direction:column;
+    padding:8px 10px; gap:7px;
+  }
+
+  .m-chat-msg {
+    max-width:85%; padding:7px 10px;
+    border-radius:12px; font-family:var(--sans);
+    font-size:0.58rem; line-height:1.5; font-weight:300;
+    opacity:0; transform:translateY(8px);
+    transition:opacity 0.5s, transform 0.5s;
+  }
+  .m-chat-msg.on { opacity:1; transform:translateY(0); }
+
+  .m-chat-guru {
+    background:rgba(201,169,110,0.1);
+    border:1px solid rgba(201,169,110,0.15);
+    color:var(--white); align-self:flex-start; border-radius:12px 12px 12px 3px;
+  }
+  .m-chat-user {
+    background:rgba(255,255,255,0.07);
+    border:1px solid rgba(255,255,255,0.08);
+    color:var(--dim); align-self:flex-end; border-radius:12px 12px 3px 12px;
+  }
+  .m-chat-guru-name {
+    font-family:var(--mono); font-size:0.38rem; letter-spacing:0.15em;
+    text-transform:uppercase; color:var(--gold); margin-bottom:3px; display:block;
+  }
+
+  /* Typing indicator */
+  .m-typing {
+    display:flex; align-items:center; gap:3px;
+    background:rgba(201,169,110,0.08);
+    border:1px solid rgba(201,169,110,0.12);
+    padding:8px 12px; border-radius:12px 12px 12px 3px;
+    align-self:flex-start; width:44px;
+    opacity:0; transition:opacity 0.4s;
+  }
+  .m-typing.on { opacity:1; }
+  .m-typing span {
+    width:4px; height:4px; border-radius:50%;
+    background:var(--gold); opacity:0.6;
+    animation:mTyping 1.2s ease-in-out infinite;
+  }
+  .m-typing span:nth-child(2) { animation-delay:0.2s; }
+  .m-typing span:nth-child(3) { animation-delay:0.4s; }
+  @keyframes mTyping {
+    0%,100% { transform:translateY(0); opacity:0.4; }
+    50% { transform:translateY(-3px); opacity:1; }
+  }
+
+  /* Input bar at bottom */
+  .m-app-input {
+    padding:8px 10px;
+    border-top:1px solid rgba(255,255,255,0.06);
+    display:flex; align-items:center; gap:6px;
+    flex-shrink:0;
+    background:rgba(0,0,0,0.4);
+  }
+  .m-app-input-field {
+    flex:1; background:rgba(255,255,255,0.05);
+    border:1px solid rgba(255,255,255,0.08);
+    border-radius:100px; padding:5px 10px;
+    font-family:var(--sans); font-size:0.5rem; color:var(--dimmer);
+  }
+  .m-app-send {
+    width:22px; height:22px; border-radius:50%;
+    background:var(--gold); border:none;
+    display:flex; align-items:center; justify-content:center;
+    font-size:0.5rem; color:#000; flex-shrink:0;
+    cursor:pointer;
+  }
+
+  /* Ticker below phone */
+  .m-ticker {
+    width:100%; overflow:hidden;
+    padding:16px 0; margin-top:36px;
+    border-top:1px solid rgba(255,255,255,0.05);
+    border-bottom:1px solid rgba(255,255,255,0.05);
+  }
+  .m-ticker-t { display:flex; width:max-content; animation:mTick 28s linear infinite; }
+  @keyframes mTick { to { transform:translateX(-50%); } }
+  .m-tick-item {
+    display:flex; align-items:center; gap:10px;
+    padding:0 24px; white-space:nowrap;
+    font-family:var(--serif); font-size:0.82rem; font-style:italic;
+    color:rgba(245,243,239,0.2);
+  }
+  .m-tick-sep { width:3px; height:3px; border-radius:50%; background:var(--gold); opacity:0.4; }
+
+  /* ═══════════════════════════════════════
+     SCREEN 6: SOCIAL PROOF — editorial
+  ═══════════════════════════════════════ */
+  .m-s6 {
+    background:#000;
+    border-top:1px solid rgba(255,255,255,0.06);
+    padding:72px 24px;
+    flex-direction:column; justify-content:center;
+  }
+
+  .m-reviews-stack { display:flex; flex-direction:column; gap:1px; background:rgba(255,255,255,0.06); }
+  .m-rev {
+    background:#000; padding:28px 22px;
+    opacity:0; transform:translateX(-20px);
+    transition:opacity 0.6s, transform 0.6s;
+  }
+  .m-rev.on { opacity:1; transform:translateX(0); }
+  .m-rev:nth-child(2) { transition-delay:0.15s; }
+  .m-rev:nth-child(3) { transition-delay:0.3s; }
+
+  .m-rev-stars { font-size:0.65rem; color:var(--gold); letter-spacing:2px; margin-bottom:12px; }
+  .m-rev-text {
+    font-family:var(--serif); font-size:1rem; font-style:italic;
+    font-weight:400; line-height:1.55; color:var(--white);
+    margin-bottom:16px;
+  }
+  .m-rev-author {
+    font-family:var(--mono); font-size:0.52rem; letter-spacing:0.16em;
+    text-transform:uppercase; color:var(--dimmer);
+  }
+
+  /* ═══════════════════════════════════════
+     SCREEN 7: FINAL CTA — editorial
+  ═══════════════════════════════════════ */
+  .m-s7 {
+    background:#000;
+    border-top:1px solid rgba(255,255,255,0.06);
+    padding:80px 24px 96px;
+    flex-direction:column; justify-content:center;
+    overflow:hidden;
+  }
+
+  /* Enormous background type */
+  .m-s7-bg {
+    position:absolute; inset:0;
+    display:flex; align-items:center; justify-content:center;
+    pointer-events:none; overflow:hidden;
+  }
+  .m-s7-bg-text {
+    font-family:var(--serif); font-size:38vw; font-weight:900;
+    color:rgba(201,169,110,0.04); line-height:1;
+    white-space:nowrap; letter-spacing:-0.05em;
+  }
+
+  .m-s7-inner { position:relative; z-index:1; }
+
+  .m-s7-h {
+    font-family:var(--serif);
+    font-size:clamp(3rem, 15vw, 5rem);
+    font-weight:900; line-height:0.9;
+    letter-spacing:-0.02em; color:var(--white);
+    margin-bottom:6px;
+  }
+  .m-s7-h .ital { font-style:italic; color:var(--gold); display:block; }
+  .m-s7-h .sm { font-size:0.55em; font-weight:400; font-style:normal; color:var(--dim); display:block; letter-spacing:0.02em; margin-top:8px; font-family:var(--sans); }
+
+  .m-s7-fine {
+    font-family:var(--mono); font-size:0.52rem; letter-spacing:0.2em;
+    text-transform:uppercase; color:var(--dimmer); margin:24px 0 32px;
+    display:flex; align-items:center; gap:10px;
+  }
+  .m-s7-fine::before { content:''; width:20px; height:1px; background:var(--gold); opacity:0.4; }
+
+  .m-cta-big {
+    display:block; width:100%;
+    background:var(--gold); color:#000;
+    font-family:var(--sans); font-size:0.76rem; font-weight:500;
+    letter-spacing:0.18em; text-transform:uppercase;
+    padding:20px 28px; border:none; border-radius:2px;
+    cursor:pointer; text-decoration:none; margin-bottom:12px;
+    transition:transform 0.12s, background 0.2s;
+  }
+  .m-cta-big:active { transform:scale(0.97); background:var(--gold2); }
+  .m-cta-ghost {
+    display:block; width:100%;
+    color:var(--dim); font-family:var(--sans); font-size:0.68rem;
+    font-weight:400; letter-spacing:0.14em; text-transform:uppercase;
+    padding:15px; border:1px solid rgba(245,243,239,0.1);
+    border-radius:2px; background:none; cursor:pointer;
+    text-decoration:none; transition:color 0.2s, border-color 0.2s;
+  }
+  .m-cta-ghost:active { color:var(--white); }
+  .m-s7-micro {
+    margin-top:20px; font-family:var(--mono); font-size:0.48rem;
+    letter-spacing:0.16em; text-transform:uppercase; color:var(--dimmer);
+  }
+
+  /* ══════════════════════════
+     SHARED REVEAL ANIMATION
+  ══════════════════════════ */
+  @keyframes mUp {
+    from { opacity:0; transform:translateY(28px); }
+    to { opacity:1; transform:translateY(0); }
+  }
+  @keyframes mFade { to { opacity:1; } }
+
+  } /* END @media (max-width: 768px) */
+</style>
 </head>
-
 <body>
-    <!-- Cinematic Zodiac Loader -->
-    <div class="page-loader" id="pageLoader" aria-label="Loading Celestial Arc" role="status">
-        <!-- Starfield grain -->
-        <div class="cl-grain"></div>
 
-        <!-- Central zodiac ring -->
-        <div class="cl-ring-wrap">
-            <svg class="cl-ring" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-                <!-- Outer static ring -->
-                <circle class="cl-ring-track" cx="100" cy="100" r="88"/>
-                <!-- Animated progress arc -->
-                <circle class="cl-ring-arc" id="loaderArc" cx="100" cy="100" r="88"
-                    stroke-dasharray="553" stroke-dashoffset="553"/>
-                <!-- Tick marks at each zodiac house (30° intervals) -->
-                <g class="cl-ticks">
-                    <line x1="100" y1="12" x2="100" y2="20"/>
-                    <line x1="144" y1="24.3" x2="139.2" y2="30.6" transform="rotate(30 100 100)"/>
-                    <line x1="144" y1="24.3" x2="139.2" y2="30.6" transform="rotate(60 100 100)"/>
-                    <line x1="100" y1="12" x2="100" y2="20" transform="rotate(90 100 100)"/>
-                    <line x1="100" y1="12" x2="100" y2="20" transform="rotate(120 100 100)"/>
-                    <line x1="100" y1="12" x2="100" y2="20" transform="rotate(150 100 100)"/>
-                    <line x1="100" y1="12" x2="100" y2="20" transform="rotate(180 100 100)"/>
-                    <line x1="100" y1="12" x2="100" y2="20" transform="rotate(210 100 100)"/>
-                    <line x1="100" y1="12" x2="100" y2="20" transform="rotate(240 100 100)"/>
-                    <line x1="100" y1="12" x2="100" y2="20" transform="rotate(270 100 100)"/>
-                    <line x1="100" y1="12" x2="100" y2="20" transform="rotate(300 100 100)"/>
-                    <line x1="100" y1="12" x2="100" y2="20" transform="rotate(330 100 100)"/>
-                </g>
-                <!-- Orbiting dot -->
-                <circle class="cl-orbit-dot" cx="100" cy="12" r="3"/>
-                <!-- Centre glyph -->
-                <text class="cl-glyph" x="100" y="107" text-anchor="middle">☽</text>
-            </svg>
-        </div>
+<!-- ════════════════════════════════════
+     MOBILE EXPERIENCE
+════════════════════════════════════ -->
+<div class="m-root">
+  <div class="m-grain"></div>
 
-        <!-- Logo -->
-        <div class="cl-logo">Celestial <em>Arc</em></div>
+  <!-- FIXED NAV -->
+  <nav class="m-nav" id="mNav">
+    <a href="/" class="m-logo">Celestial <em>Arc</em></a>
+    <a href="/app" class="m-nav-link" id="mNavCta">Free Kundli</a>
+  </nav>
 
-        <!-- Cycling phase text -->
-        <div class="cl-phase" id="loaderPhase">Mapping planetary positions</div>
+  <script>
+    (function(){
+      const t = localStorage.getItem('celestial_token');
+      if(t){ const el=document.getElementById('mNavCta'); if(el){ el.href='/dashboard'; el.textContent='Dashboard'; } }
+    })();
+  </script>
 
-        <!-- Progress bar -->
-        <div class="cl-bar-wrap">
-            <div class="cl-bar" id="loaderBarInner"></div>
-        </div>
+  <!-- ░░ SCREEN 1 — HERO ░░ -->
+  <section class="m-screen m-s1">
+    <canvas id="mStar"></canvas>
+    <div class="m-s1-inner">
+      <div class="m-tag"><span class="m-tag-line"></span>Ancient Wisdom · AI Precision · Your Chart</div>
+      <h1 class="m-s1-h1">
+        Your Stars<br>Are <span class="ital">Already</span><br>
+        <span class="stroke">Speaking</span>
+      </h1>
+      <p class="m-s1-sub">Your exact birth moment encoded a celestial blueprint. Most people never decode it. You're about to.</p>
+      <div class="m-s1-cta">
+        <button class="m-btn-gold" onclick="location.href='/app'">✦ &nbsp;Decode My Birth Chart</button>
+        <button class="m-btn-line" onclick="location.href='/horoscope'">What Do My Stars Say Today? →</button>
+      </div>
+    </div>
+    <div class="m-scroll-prompt">
+      <span class="m-sp-text">Scroll</span>
+      <div class="m-sp-bar"></div>
+    </div>
+  </section>
 
-        <!-- Micro label -->
-        <div class="cl-label">Swiss Ephemeris &middot; KP Sidereal &middot; Vedic AI</div>
+  <!-- ░░ SCREEN 2 — THE STATEMENT ░░ -->
+  <section class="m-screen m-s2">
+    <div class="m-s2-inner">
+      <span class="m-s2-pre">— The Ancient Science, Reimagined</span>
+      <p class="m-s2-quote" id="mQuote">
+        <span class="word">The</span> <span class="word">stars</span>
+        <span class="word">don't</span> <span class="word">predict</span>
+        <span class="word">you.</span><br>
+        <span class="word">They</span> <span class="word">explain</span>
+        <span class="word">you.</span>
+      </p>
+      <div class="m-s2-rule"></div>
+      <p class="m-s2-body">248 sub-divisions of the zodiac. Your chart calculated to degrees, minutes, and arc-seconds using Swiss Ephemeris precision. This isn't newspaper astrology — it's the system the ancient Rishis designed, powered by modern AI.</p>
+    </div>
+  </section>
+
+  <!-- ░░ SCREEN 3 — FEATURES ░░ -->
+  <section class="m-screen m-s3">
+    <div class="m-s3-head">
+      <p class="m-s3-kicker">What You'll Discover</p>
+      <h2 class="m-s3-h">Not Just a Chart.<br><em>A Mirror.</em></h2>
+    </div>
+    <div class="m-cards-track" id="mCardsTrack">
+      <div class="m-feat" data-n="01">
+        <span class="m-feat-n">01 — Your Blueprint</span>
+        <h3 class="m-feat-h">Janam Kundli</h3>
+        <p class="m-feat-p">See exactly which planet rules your career, your love life, and your wealth. Full KP Sidereal chart with 9 Grahas, 12 houses, Nakshatras, and Yogas — calculated to the arc-second.</p>
+      </div>
+      <div class="m-feat" data-n="02">
+        <span class="m-feat-n">02 — Ask Anything</span>
+        <h3 class="m-feat-h">Guru AI Oracle</h3>
+        <p class="m-feat-p">Ask "When will I get married?" and get an answer based on YOUR 7th house, Venus position, and Dasha timing — not a generic paragraph copied from the internet.</p>
+      </div>
+      <div class="m-feat" data-n="03">
+        <span class="m-feat-n">03 — Your Timeline</span>
+        <h3 class="m-feat-h">Dasha Periods</h3>
+        <p class="m-feat-p">Understand why the last 2 years felt the way they did. Mahadasha, Antardasha, Pratyantardasha — three layers of planetary timing that explain your past and reveal what's coming next.</p>
+      </div>
+      <div class="m-feat" data-n="04">
+        <span class="m-feat-n">04 — Coming Soon</span>
+        <h3 class="m-feat-h">Kundli Milan</h3>
+        <p class="m-feat-p">Compare two birth charts for marriage compatibility. 36-point Ashtakoota Guna Milan with Dosha detection — launching soon.</p>
+      </div>
+    </div>
+    <div class="m-dots" id="mDots">
+      <div class="m-dot active"></div>
+      <div class="m-dot"></div>
+      <div class="m-dot"></div>
+      <div class="m-dot"></div>
+    </div>
+  </section>
+
+  <!-- ░░ SCREEN 4 — NUMBERS ░░ -->
+  <section class="m-screen m-s4">
+    <div class="m-stats-grid">
+      <div class="m-stat">
+        <span class="m-stat-n">248</span>
+        <span class="m-stat-l">Sub-Divisions</span>
+      </div>
+      <div class="m-stat">
+        <span class="m-stat-n">KP</span>
+        <span class="m-stat-l">Sidereal System</span>
+      </div>
+      <div class="m-stat">
+        <span class="m-stat-n">12</span>
+        <span class="m-stat-l">Houses Analyzed</span>
+      </div>
+      <div class="m-stat">
+        <span class="m-stat-n">Free</span>
+        <span class="m-stat-l">Always & Forever</span>
+      </div>
+    </div>
+    <p class="m-s4-copy">"Most astrology sites guess your Lagna from a table. We calculate it from <em>your exact latitude, longitude, and time zone</em> using Swiss Ephemeris — the same engine used by professional astrologers worldwide."</p>
+  </section>
+
+  <!-- ░░ SCREEN 5 — APP MOCKUP ░░ -->
+  <section class="m-screen m-s5">
+
+    <div class="m-s5-head">
+      <p class="m-s3-kicker" style="justify-content:center">See It In Action</p>
+      <h2 class="m-s3-h" style="text-align:center">Your Reading<br><em>Looks Like This</em></h2>
     </div>
 
-    <!-- Preload Progress Bar (top edge, hidden after load) -->
-    <div class="preload-progress" id="preloadProgress">
-        <div class="preload-progress__bar" id="preloadBar"></div>
-    </div>
+    <!-- Phone mockup -->
+    <div class="m-phone-shell" id="mPhoneShell">
+      <div class="m-phone-body">
+        <div class="m-phone-notch"></div>
+        <div class="m-phone-screen">
 
-    <!-- Ambient Background -->
-    <div class="ambient-bg" aria-hidden="true">
-        <div class="ambient-orb ambient-orb--1"></div>
-        <div class="ambient-orb ambient-orb--2"></div>
-        <div class="ambient-orb ambient-orb--3"></div>
-    </div>
+          <!-- App header -->
+          <div class="m-app-header">
+            <span class="m-app-logo">Celestial Arc</span>
+            <div class="m-app-dot"></div>
+          </div>
 
-    <!-- Scroll Progress -->
-    <div class="section-progress" aria-hidden="true">
-        <div class="section-progress__bar" id="scrollProgress"></div>
-    </div>
-
-    <!-- ═══ NAVIGATION ═══ -->
-    <nav class="nav" id="mainNav" role="navigation" aria-label="Main navigation">
-        <div class="nav__inner">
-            <a href="/" class="nav__logo" aria-label="Celestial Arc Home">
-                <div class="nav__logo-mark"></div>
-                <span class="nav__logo-text">Celestial Arc</span>
-            </a>
-
-
-
-            <div class="nav__actions">
-                <button class="nav__cta" onclick="scrollToApp()" id="navCtaBtn">Generate Reading</button>
-                <a id="authNavLink" href="/login" class="nav__auth">Login</a>
+          <!-- Big 3 reading -->
+          <div class="m-app-reading">
+            <div class="m-app-reading-label">Your Birth Chart</div>
+            <div class="m-app-big3">
+              <div class="m-app-b3">
+                <span class="m-app-b3-val">♊</span>
+                <span class="m-app-b3-lbl">Sun</span>
+              </div>
+              <div class="m-app-b3">
+                <span class="m-app-b3-val">♏</span>
+                <span class="m-app-b3-lbl">Moon</span>
+              </div>
+              <div class="m-app-b3">
+                <span class="m-app-b3-val" style="color:var(--gold2)">♌</span>
+                <span class="m-app-b3-lbl">Lagna</span>
+              </div>
             </div>
+          </div>
 
-            <button class="nav__toggle" id="navToggle" aria-label="Open menu">
-                <span></span>
-                <span></span>
-                <span></span>
-            </button>
+          <!-- Dasha -->
+          <div class="m-app-dasha">
+            <div class="m-app-dasha-dot"></div>
+            <span class="m-app-dasha-text">Saturn MD · Venus AD</span>
+            <span class="m-app-dasha-badge">Active</span>
+          </div>
+
+          <!-- AI Chat -->
+          <div class="m-app-chat" id="mAppChat">
+            <div class="m-chat-msg m-chat-guru">
+              <span class="m-chat-guru-name">Guru Arya</span>
+              Your Leo Lagna with Saturn in the 10th house — I see why work has felt like pushing against a wall.
+            </div>
+            <div class="m-chat-msg m-chat-user">
+              Will I finally get promoted this year?
+            </div>
+            <div class="m-typing" id="mTyping">
+              <span></span><span></span><span></span>
+            </div>
+            <div class="m-chat-msg m-chat-guru" id="mGuruReply" style="display:none">
+              <span class="m-chat-guru-name">Guru Arya</span>
+              Yes. Venus Antardasha activates your 11th house of gains from July. The struggle you felt was Saturn testing your patience — it's ending.
+            </div>
+          </div>
+
+          <!-- Input bar -->
+          <div class="m-app-input">
+            <div class="m-app-input-field">Ask Guru Arya...</div>
+            <div class="m-app-send">→</div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <!-- Ticker -->
+    <div class="m-ticker">
+      <div class="m-ticker-t">
+        <span class="m-tick-item"><span class="m-tick-sep"></span>Gemini Sun</span>
+        <span class="m-tick-item"><span class="m-tick-sep"></span>Scorpio Moon</span>
+        <span class="m-tick-item"><span class="m-tick-sep"></span>Leo Lagna</span>
+        <span class="m-tick-item"><span class="m-tick-sep"></span>Ardra Nakshatra</span>
+        <span class="m-tick-item"><span class="m-tick-sep"></span>Saturn Mahadasha</span>
+        <span class="m-tick-item"><span class="m-tick-sep"></span>Venus Antardasha</span>
+        <span class="m-tick-item"><span class="m-tick-sep"></span>Jupiter in 5th</span>
+        <span class="m-tick-item"><span class="m-tick-sep"></span>Rahu in 4th</span>
+        <span class="m-tick-item"><span class="m-tick-sep"></span>Gemini Sun</span>
+        <span class="m-tick-item"><span class="m-tick-sep"></span>Scorpio Moon</span>
+        <span class="m-tick-item"><span class="m-tick-sep"></span>Leo Lagna</span>
+        <span class="m-tick-item"><span class="m-tick-sep"></span>Ardra Nakshatra</span>
+        <span class="m-tick-item"><span class="m-tick-sep"></span>Saturn Mahadasha</span>
+        <span class="m-tick-item"><span class="m-tick-sep"></span>Venus Antardasha</span>
+        <span class="m-tick-item"><span class="m-tick-sep"></span>Jupiter in 5th</span>
+        <span class="m-tick-item"><span class="m-tick-sep"></span>Rahu in 4th</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ░░ SCREEN 6 — REVIEWS ░░ -->
+  <section class="m-screen m-s6">
+    <div style="margin-bottom:36px">
+      <p class="m-s3-kicker">Early Users</p>
+      <h2 class="m-s3-h">What They<br><em>Discovered</em></h2>
+    </div>
+    <div class="m-reviews-stack">
+      <div class="m-rev">
+        <div class="m-rev-stars">★★★★★</div>
+        <p class="m-rev-text">"I checked my Lagna on three different sites and got three different answers. This one matched what my family astrologer told me years ago. That's when I knew it was real."</p>
+        <span class="m-rev-author">— Verified User &nbsp;·&nbsp; Gemini Sun</span>
+      </div>
+      <div class="m-rev">
+        <div class="m-rev-stars">★★★★★</div>
+        <p class="m-rev-text">"I asked the AI why I keep getting passed over for promotions. It pointed to Saturn in my 10th house and said the block ends in 4 months. No human astrologer ever explained it that clearly."</p>
+        <span class="m-rev-author">— Verified User &nbsp;·&nbsp; Scorpio Moon</span>
+      </div>
+      <div class="m-rev">
+        <div class="m-rev-stars">★★★★★</div>
+        <p class="m-rev-text">"The Dasha timeline described my last 3 years perfectly — the job loss, the move, everything. And it showed me exactly when things start improving. I check it every week now."</p>
+        <span class="m-rev-author">— Verified User &nbsp;·&nbsp; Leo Lagna</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ░░ SCREEN 7 — FINAL CTA ░░ -->
+  <section class="m-screen m-s7">
+    <div class="m-s7-bg"><span class="m-s7-bg-text">☽</span></div>
+    <div class="m-s7-inner">
+      <h2 class="m-s7-h">
+        Your Birth Chart<br>
+        <span class="ital">Has Been Waiting</span>
+        <span class="sm">For this moment</span>
+      </h2>
+      <p class="m-s7-fine">Free · No Sign-Up · KP Sidereal · AI-Powered</p>
+      <button class="m-cta-big" onclick="location.href='/app'">✦ &nbsp;Decode My Birth Chart Now</button>
+      <button class="m-cta-ghost" onclick="location.href='/horoscope'">Read Today's Horoscope First →</button>
+      <p class="m-s7-micro">Most people are surprised by the first line. Takes 30 seconds.</p>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer style="position:relative;z-index:2;padding:28px 24px;border-top:1px solid rgba(255,255,255,0.05);display:flex;justify-content:space-between;align-items:center;background:#000;">
+    <span style="font-family:'Space Mono',monospace;font-size:0.52rem;color:rgba(245,243,239,0.2);letter-spacing:0.1em;">© 2026 CELESTIAL ARC</span>
+    <span style="font-family:'Space Mono',monospace;font-size:0.52rem;color:rgba(245,243,239,0.15);letter-spacing:0.06em;">VEDIC · KP SIDEREAL · AI</span>
+  </footer>
+
+</div><!-- /.m-root -->
+
+
+<!-- ════════════════════════════════════
+     DESKTOP LAYOUT — 100% UNCHANGED
+════════════════════════════════════ -->
+    <div class="page-loader" id="pageLoader">
+        <div class="skeleton-hero">
+            <div class="skeleton-nav"><div class="skeleton-logo pulse"></div><div class="skeleton-nav-links"><div class="skeleton-nav-link pulse"></div><div class="skeleton-nav-link pulse"></div></div><div class="skeleton-btn pulse"></div></div>
+            <div class="skeleton-content"><div class="skeleton-label pulse"></div><div class="skeleton-title pulse"></div><div class="skeleton-title pulse" style="width:70%"></div><div class="skeleton-subtitle pulse" style="margin-top:28px"></div><div class="skeleton-subtitle pulse" style="width:85%"></div><div class="skeleton-actions"><div class="skeleton-btn-main pulse"></div><div class="skeleton-btn-secondary pulse"></div></div></div>
+        </div>
+        <div class="skeleton-loader-text"><div class="skeleton-spinner"></div><span>Loading cosmic experience...</span></div>
+    </div>
+    <div class="preload-progress" id="preloadProgress"><div class="preload-progress__bar" id="preloadBar"></div></div>
+    <div class="ambient-bg" aria-hidden="true"><div class="ambient-orb ambient-orb--1"></div><div class="ambient-orb ambient-orb--2"></div><div class="ambient-orb ambient-orb--3"></div></div>
+    <div class="section-progress" aria-hidden="true"><div class="section-progress__bar" id="scrollProgress"></div></div>
+    <nav class="nav" id="mainNav" role="navigation">
+        <div class="nav__inner">
+            <a href="/" class="nav__logo"><div class="nav__logo-mark"></div><span class="nav__logo-text">Celestial Arc</span></a>
+            <div class="nav__actions"><button class="nav__cta" onclick="scrollToApp()">Generate Reading</button><a id="authNavLink" href="/login" class="nav__auth">Login</a></div>
+            <button class="nav__toggle" id="navToggle"><span></span><span></span><span></span></button>
         </div>
     </nav>
-
-    <!-- Mobile Menu -->
-    <div class="mobile-menu" id="mobileMenu">
-        <button class="mobile-menu__close" id="mobileMenuClose" aria-label="Close menu">&times;</button>
-
-        <button class="btn-primary" onclick="scrollToApp()" data-close-menu>
-            <span>Generate Reading</span>
-        </button>
-    </div>
-
-    <!-- Auth state check -->
-    <script>
-        (function(){
-            const t = localStorage.getItem('celestial_token');
-            const link = document.getElementById('authNavLink');
-            if (t && link) { link.href = '/dashboard'; link.textContent = 'Dashboard'; }
-        })();
-    </script>
-
-
-    <!-- ═══════════════════════════════════════════════════════ -->
-    <!-- CINEMATIC SCROLL-DRIVEN ANIMATION ENGINE               -->
-    <!-- ═══════════════════════════════════════════════════════ -->
+    <div class="mobile-menu" id="mobileMenu"><button class="mobile-menu__close" id="mobileMenuClose">&times;</button><button class="btn-primary" onclick="scrollToApp()"><span>Generate Reading</span></button></div>
+    <script>(function(){const t=localStorage.getItem('celestial_token');const l=document.getElementById('authNavLink');if(t&&l){l.href='/dashboard';l.textContent='Dashboard';}})();</script>
     <div class="cinematic-scroll" id="cinematicScroll">
-
-        <!-- Sticky viewport (stays pinned while user scrolls) -->
         <div class="cinematic-sticky">
-
-            <!-- Canvas: renders the 288-frame image sequence -->
-            <canvas class="cinematic-canvas" id="cinematicCanvas" aria-hidden="true"></canvas>
-
-            <!-- Dynamic overlay (changes gradient per active panel) -->
+            <canvas class="cinematic-canvas" id="cinematicCanvas"></canvas>
             <div class="cinematic-overlay overlay-hero" id="cinematicOverlay"></div>
-
-
-            <!-- ═══════════════════════════════════════════════ -->
-            <!-- PANEL 1 — HERO (0–20% scroll)                  -->
-            <!-- ═══════════════════════════════════════════════ -->
             <div class="story-panel panel-hero story-panel--active" id="panel-hero">
                 <div class="story-panel__inner">
                     <div class="hero__text">
-                        <div class="hero__label">Vedic Birth Chart Intelligence</div>
-                        <h1 class="hero__title">
-                            Your Birth Encoded<br>
-                            <span class="hero__title-accent">A Cosmic Blueprint</span>
-                        </h1>
-                        <p class="hero__subtitle">
-                            Every planet at the moment of your birth tells a story — about your career, your relationships, your timing. Most astrology gives you a paragraph. We give you the full picture, calculated to the arc-second and interpreted by AI.
-                        </p>
-                        <div class="hero__actions">
-                            <button class="btn-primary" onclick="scrollToApp()" id="heroCtaBtn">
-                                <span>Decode My Chart</span>
-                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <line x1="5" y1="12" x2="19" y2="12"></line>
-                                    <polyline points="12 5 19 12 12 19"></polyline>
-                                </svg>
-                            </button>
-                            <button class="btn-secondary" onclick="window.location.href='/horoscope'" style="padding: 0 2.5rem; height: 3.5rem; border-radius: 9999px;">
-                                <span>Today's Horoscope</span>
-                            </button>
-                        </div>
+                        <div class="hero__label">Free Online Kundli & AI Astrology</div>
+                        <h1 class="hero__title">Get Your Free<br><span class="hero__title-accent">Detailed Kundli</span></h1>
+                        <p class="hero__subtitle">Create your accurate Janam Kundli online. Let our AI astrologer read your chart and give you simple, personalized predictions about your life, career, and love.</p>
+                        <div class="hero__actions"><button class="btn-primary" onclick="scrollToApp()"><span>Generate Free Kundli</span><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg></button></div>
                     </div>
-                    <div class="hero__visual" aria-hidden="true">
-                        <!-- Celestial engine animation fills this space via canvas -->
-                    </div>
+                    <div class="hero__visual"></div>
                 </div>
-
-                <div class="scroll-indicator" aria-hidden="true">
-                    <div class="mouse-icon">
-                        <div class="mouse-wheel"></div>
-                    </div>
-                    <span class="scroll-indicator__text">Scroll to explore</span>
-                </div>
+                <div class="scroll-indicator"><div class="mouse-icon"><div class="mouse-wheel"></div></div><span class="scroll-indicator__text">Scroll to explore</span></div>
             </div>
-
-
-            <!-- ═══════════════════════════════════════════════ -->
-            <!-- PANEL 2 — ENGINE UNFOLDS (20–48% scroll)        -->
-            <!-- ═══════════════════════════════════════════════ -->
             <div class="story-panel panel-engine" id="panel-engine">
                 <div class="story-panel__inner">
-                    <div class="section-header">
-                        <div class="section-label">What Makes This Different</div>
-                        <h2 class="section-title">Not Your Typical<br>Astrology Site</h2>
-                        <div class="gold-accent-line gold-accent-line--center"></div>
-                        <p class="section-subtitle">
-                            We don't copy-paste horoscopes. Your chart is calculated from your exact coordinates using Swiss Ephemeris — then our AI reads it like a trained Jyotish.
-                        </p>
-                    </div>
-
+                    <div class="section-header"><div class="section-label">How It Works</div><h2 class="section-title">Accurate Kundli & Predictions</h2><div class="gold-accent-line gold-accent-line--center"></div><p class="section-subtitle">We calculate your exact birth chart and our AI astrologer explains it in simple words.</p></div>
                     <div class="engine-features">
-                        <div class="engine-card" data-card-reveal id="engineCard1">
-                            <div class="engine-card__icon">
-                                <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4"/><line x1="12" y1="3" x2="12" y2="1"/><line x1="12" y1="23" x2="12" y2="21"/><line x1="3" y1="12" x2="1" y2="12"/><line x1="23" y1="12" x2="21" y2="12"/></svg>
-                                <span class="engine-card__number">01</span>
-                            </div>
-                            <h3 class="engine-card__title">Your Real Birth Chart</h3>
-                            <p class="engine-card__desc">Not the simplified Western version. Full KP Sidereal Kundli with exact planetary degrees, Nakshatras, Dashas, and Yogas — the chart your family astrologer would draw.</p>
-                        </div>
-
-                        <div class="engine-card" data-card-reveal id="engineCard2">
-                            <div class="engine-card__icon">
-                                <svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-                                <span class="engine-card__number">02</span>
-                            </div>
-                            <h3 class="engine-card__title">AI That Reads Your Chart</h3>
-                            <p class="engine-card__desc">Ask "Why is my career stuck?" and get an answer citing your specific 10th house ruler, Saturn position, and current Dasha period — not a generic paragraph.</p>
-                        </div>
-
-                        <div class="engine-card" data-card-reveal id="engineCard4">
-                            <div class="engine-card__icon">
-                                <svg viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
-                                <span class="engine-card__number">03</span>
-                            </div>
-                            <h3 class="engine-card__title">Kundli Matching</h3>
-                            <p class="engine-card__desc">36-point Ashtakoota Guna Milan for marriage compatibility. See which areas score high and which need remedies — the same analysis a pandit would do.</p>
-                        </div>
+                        <div class="engine-card" data-card-reveal><div class="engine-card__icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4"/></svg><span class="engine-card__number">01</span></div><h3 class="engine-card__title">Free Janam Kundli</h3><p class="engine-card__desc">Get a highly accurate Vedic birth chart with exact planetary positions, dashas, and yogas.</p></div>
+                        <div class="engine-card" data-card-reveal><div class="engine-card__icon"><svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg><span class="engine-card__number">02</span></div><h3 class="engine-card__title">Chat with AI Astrologer</h3><p class="engine-card__desc">Ask any question about life, career, or marriage. AI reads your chart and answers instantly.</p></div>
+                        <div class="engine-card" data-card-reveal><div class="engine-card__icon"><svg viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg><span class="engine-card__number">03</span></div><h3 class="engine-card__title">Kundli Matching</h3><p class="engine-card__desc">Marriage compatibility with 36-point Guna Milan and detailed relationship analysis.</p></div>
                     </div>
                 </div>
             </div>
-
-
-            <!-- ═══════════════════════════════════════════════ -->
-            <!-- PANEL 3 — ASTROLOGY INTELLIGENCE (50–76% scroll)-->
-            <!-- ═══════════════════════════════════════════════ -->
             <div class="story-panel panel-intelligence" id="panel-intelligence">
                 <div class="story-panel__inner">
                     <div class="intelligence-content">
-                        <div class="section-label">Beyond Sun Signs</div>
-                        <h2 class="section-title">The Reading That<br>Changes Everything</h2>
-                        <div class="gold-accent-line"></div>
-                        <p class="section-subtitle">
-                            Not just predictions — explanations. Why you think the way you think. Why that relationship pattern keeps repeating. Why certain years feel harder.
-                        </p>
-
+                        <div class="section-label">Detailed Life Reports</div><h2 class="section-title">Your Complete AI<br>Life Reading</h2><div class="gold-accent-line"></div><p class="section-subtitle">Full breakdown of your life — past, present, and future.</p>
                         <div class="intelligence-cards">
-                            <div class="intel-card" data-card-reveal id="intelCard1">
-                                <div class="intel-card__marker">I</div>
-                                <div class="intel-card__body">
-                                    <h4>Personality, Career & Love</h4>
-                                    <p>AI-generated insights about your nature, professional path, and relationships — based on your specific planetary houses, not your Sun sign alone.</p>
-                                </div>
-                            </div>
-
-                            <div class="intel-card" data-card-reveal id="intelCard2">
-                                <div class="intel-card__marker">II</div>
-                                <div class="intel-card__body">
-                                    <h4>Visual Kundli Chart</h4>
-                                    <p>Your traditional North Indian style birth chart rendered with all planetary positions. See your Lagna, houses, and aspects at a glance.</p>
-                                </div>
-                            </div>
-
-                            <div class="intel-card" data-card-reveal id="intelCard3">
-                                <div class="intel-card__marker">III</div>
-                                <div class="intel-card__body">
-                                    <h4>Dasha Timeline & Remedies</h4>
-                                    <p>Know your current Mahadasha and Antardasha. Understand why life feels the way it does right now — and when the next shift begins.</p>
-                                </div>
-                            </div>
+                            <div class="intel-card" data-card-reveal><div class="intel-card__marker">I</div><div class="intel-card__body"><h4>Detailed Life Predictions</h4><p>Accurate predictions about personality, career, marriage, health, and wealth.</p></div></div>
+                            <div class="intel-card" data-card-reveal><div class="intel-card__marker">II</div><div class="intel-card__body"><h4>Visual Birth Chart</h4><p>North Indian or South Indian style Kundli chart.</p></div></div>
+                            <div class="intel-card" data-card-reveal><div class="intel-card__marker">III</div><div class="intel-card__body"><h4>Dasha & Remedies</h4><p>Current planetary periods and simple remedies for a better life.</p></div></div>
                         </div>
                     </div>
                 </div>
             </div>
-
-
-            <!-- ═══════════════════════════════════════════════ -->
-            <!-- PANEL 4 — AI CORE ACTIVATION (78–100% scroll)   -->
-            <!-- ═══════════════════════════════════════════════ -->
             <div class="story-panel panel-activation" id="panel-activation">
                 <div class="story-panel__inner">
-                    <div class="activation-badge" data-card-reveal>
-                        <div class="activation-badge__dot"></div>
-                        <span class="activation-badge__text">Swiss Ephemeris · KP Sidereal · Vedic AI Engine</span>
-                    </div>
-
-                    <h2 class="activation-title" data-card-reveal>People Don't Just Read Their Chart.<br>They Come Back Every Week.</h2>
+                    <div class="activation-badge" data-card-reveal><div class="activation-badge__dot"></div><span>AI Core Active</span></div>
+                    <h2 class="activation-title" data-card-reveal>Your Cosmic Dashboard</h2>
                     <div class="gold-accent-line gold-accent-line--center" data-card-reveal></div>
-
-                    <!-- Testimonial Strip -->
-                    <div class="activation-testimonials" data-card-reveal>
-                        <div class="activation-testimonial">
-                            <p class="activation-testimonial__text">&ldquo;I checked my Lagna on three sites and got three answers. This one matched my family astrologer. That's when I knew.&rdquo;</p>
-                            <span class="activation-testimonial__author">— Verified User · Gemini Sun</span>
-                        </div>
-                        <div class="activation-testimonial">
-                            <p class="activation-testimonial__text">&ldquo;The AI told me Saturn in my 10th house is why promotions stalled — and that the block ends in 4 months. Chills.&rdquo;</p>
-                            <span class="activation-testimonial__author">— Verified User · Scorpio Moon</span>
-                        </div>
-                        <div class="activation-testimonial">
-                            <p class="activation-testimonial__text">&ldquo;Dasha timeline described my last 3 years perfectly. I check it every week now.&rdquo;</p>
-                            <span class="activation-testimonial__author">— Verified User · Leo Lagna</span>
-                        </div>
-                    </div>
-
-                    <div class="activation-cta" data-card-reveal>
-                        <button class="btn-primary btn-primary--large btn-pulse" onclick="scrollToApp()" id="activationCtaBtn">
-                            <span>See What Your Stars Say</span>
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <line x1="5" y1="12" x2="19" y2="12"></line>
-                                <polyline points="12 5 19 12 12 19"></polyline>
-                            </svg>
-                        </button>
-                        <p class="activation-micro">Free · No sign-up required · Takes 30 seconds</p>
-                    </div>
+                    <p class="activation-quote" data-card-reveal>"Your entire astrological journey, saved and secured."</p>
+                    <p class="activation-desc" data-card-reveal>Log in to view past reports, continue with Guru Arya, and check your daily horoscope.</p>
+                    <div class="activation-cta" data-card-reveal><button class="btn-primary btn-primary--large" onclick="scrollToApp()"><span>Begin Your Reading</span><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg></button></div>
                 </div>
             </div>
-
-        </div><!-- /.cinematic-sticky -->
-    </div><!-- /.cinematic-scroll -->
-
-
-    <!-- ═══════════════════════════════════════════════════════ -->
-    <!-- FINAL CTA                                              -->
-    <!-- ═══════════════════════════════════════════════════════ -->
-    <section class="cta-section" id="ctaSection">
-        <div class="cta-container">
-            <div class="cta-divider reveal"></div>
-            <div class="section-label reveal reveal--delay-1">One Birth Chart. A Lifetime of Answers.</div>
-            <h2 class="cta-headline reveal reveal--delay-2">Your Stars Are Already Speaking.<br>Are You Listening?</h2>
-            <p class="cta-sub reveal reveal--delay-3">
-                Free Vedic birth chart with AI interpretation. No sign-up required. Most people are surprised by the first line.
-            </p>
-            <div class="cta-btn-wrap reveal reveal--delay-4">
-                <button class="btn-primary btn-primary--large btn-pulse" onclick="scrollToApp()" id="finalCtaBtn">
-                    <span>Decode My Birth Chart</span>
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <line x1="5" y1="12" x2="19" y2="12"></line>
-                        <polyline points="12 5 19 12 12 19"></polyline>
-                    </svg>
-                </button>
-                <button class="btn-secondary" onclick="window.location.href='/horoscope'" style="padding: 0 2.5rem; height: 3.5rem; border-radius: 9999px;">
-                    <span>Today's Horoscope</span>
-                </button>
-            </div>
-            <p class="cta-micro reveal reveal--delay-4">Takes 30 seconds · KP Sidereal · Swiss Ephemeris Precision</p>
-        </div>
-    </section>
-
-    <!-- ═══ FOOTER ═══ -->
-    <footer class="footer">
-        <div class="footer__inner">
-            <p class="footer__copy">&copy; 2026 Celestial Arc. Vedic · KP Sidereal · AI-Powered.</p>
-            <p class="footer__disclaimer">For guidance and self-reflection. Consult professionals for health, legal, or financial decisions.</p>
-        </div>
-    </footer>
-
-    <!-- ═══ CHAT WIDGET (Preserved) ═══ -->
-    <div id="chatWidget" class="chat-widget">
-        <div class="chat-header">
-            <h3>AI Guide</h3>
-            <button class="close-btn" onclick="chatWidget.close()">✕</button>
-        </div>
-        <div class="chat-messages" id="chatMessages">
-            <div class="chat-message guru">
-                <p>Hello. Ask a sample astrology question here, then open your full reading for personal chart details.</p>
-            </div>
-        </div>
-        <div class="chat-input-box">
-            <input type="text" id="chatWidgetInput" placeholder="Ask a sample astrology question..." class="chat-input">
-            <button id="chatWidgetSend" class="chat-send">Send</button>
         </div>
     </div>
+    <section class="cta-section" id="ctaSection">
+        <div class="cta-container"><div class="cta-divider reveal"></div><div class="section-label reveal">Your Cosmic Journey</div><h2 class="cta-headline reveal">Begin Your Reading</h2><p class="cta-sub reveal">Unlock your personalized cosmic analysis.</p><div class="cta-btn-wrap reveal"><button class="btn-primary btn-primary--large" onclick="scrollToApp()"><span>Start Reading</span></button><button class="btn-secondary" onclick="location.href='/horoscope'"><span>Daily Horoscope</span></button></div></div>
+    </section>
+    <footer class="footer"><div class="footer__inner"><p class="footer__copy">© 2026 Celestial Arc.</p><p class="footer__disclaimer">For guidance and reflection only.</p></div></footer>
 
-    <button id="chatToggle" class="chat-toggle" onclick="chatWidget.toggle()">
-        <span class="chat-icon">Chat</span>
-    </button>
+<!-- CHAT -->
+<div id="chatWidget" class="chat-widget">
+    <div class="chat-header"><h3>AI Guide</h3><button class="close-btn" onclick="chatWidget.close()">✕</button></div>
+    <div class="chat-messages" id="chatMessages"><div class="chat-message guru"><p>Ask a sample question here.</p></div></div>
+    <div class="chat-input-box"><input type="text" id="chatWidgetInput" placeholder="Ask..." class="chat-input"><button id="chatWidgetSend" class="chat-send">Send</button></div>
+</div>
+<button id="chatToggle" class="chat-toggle" onclick="chatWidget.toggle()"><span class="chat-icon">Chat</span></button>
+<script>
+const chatWidget={open(){document.getElementById("chatWidget").classList.add("active");document.getElementById("chatToggle").classList.add("hidden");},close(){document.getElementById("chatWidget").classList.remove("active");document.getElementById("chatToggle").classList.remove("hidden");},toggle(){document.getElementById("chatWidget").classList.toggle("active");document.getElementById("chatToggle").classList.toggle("hidden");}};
+document.addEventListener("DOMContentLoaded",()=>{
+  const inp=document.getElementById("chatWidgetInput"),btn=document.getElementById("chatWidgetSend"),msgs=document.getElementById("chatMessages");
+  function reply(){const l=document.createElement("div");l.className="chat-message guru loading";l.innerHTML='<div class="typing-indicator"><span></span><span></span><span></span></div>';msgs.appendChild(l);msgs.scrollTop=msgs.scrollHeight;setTimeout(()=>{l.remove();const g=document.createElement("div");g.className="chat-message guru";g.innerHTML="<p>Open your chart for a personal answer based on your birth details.</p>";msgs.appendChild(g);msgs.scrollTop=msgs.scrollHeight;},900);}
+  btn.addEventListener("click",()=>{const m=inp.value.trim();if(!m)return;const u=document.createElement("div");u.className="chat-message user";u.innerHTML="<p>"+m.replace(/</g,"&lt;")+"</p>";msgs.appendChild(u);inp.value="";reply();});
+  inp.addEventListener("keypress",e=>{if(e.key==="Enter")btn.click();});
+});
+</script>
 
-    <!-- Chat Widget Script -->
-    <script>
-        const chatWidget = {
-            open() {
-                document.getElementById("chatWidget").classList.add("active");
-                document.getElementById("chatToggle").classList.add("hidden");
-            },
-            close() {
-                document.getElementById("chatWidget").classList.remove("active");
-                document.getElementById("chatToggle").classList.remove("hidden");
-            },
-            toggle() {
-                const widget = document.getElementById("chatWidget");
-                widget.classList.toggle("active");
-                document.getElementById("chatToggle").classList.toggle("hidden");
-            }
-        };
+<!-- MOBILE JS -->
+<script>
+(function(){
+  if(window.innerWidth > 768) return;
 
-        document.addEventListener("DOMContentLoaded", () => {
-            const chatInput = document.getElementById("chatWidgetInput");
-            const chatSend = document.getElementById("chatWidgetSend");
-            const chatMessages = document.getElementById("chatMessages");
+  // ── STARFIELD ──
+  const cvs = document.getElementById('mStar');
+  const ctx = cvs.getContext('2d');
+  const DPR = Math.min(window.devicePixelRatio||1, 2);
+  let W, H, stars=[], nebulas=[];
 
-            function addSampleReply() {
-                const loadingMsg = document.createElement("div");
-                loadingMsg.className = "chat-message guru loading";
-                loadingMsg.innerHTML = "<div class=\"typing-indicator\"><span></span><span></span><span></span></div>";
-                chatMessages.appendChild(loadingMsg);
-                chatMessages.scrollTop = chatMessages.scrollHeight;
+  function resize(){
+    W = cvs.width  = window.innerWidth * DPR;
+    H = cvs.height = window.innerHeight * DPR;
+    cvs.style.width = window.innerWidth+'px';
+    cvs.style.height = window.innerHeight+'px';
+    mkStars();
+  }
 
-                setTimeout(() => {
-                    loadingMsg.remove();
-                    const guruMsg = document.createElement("div");
-                    guruMsg.className = "chat-message guru";
-                    guruMsg.innerHTML = "<p>Open your chart to get a personal answer based on your birth details. This sample chat is only a preview.</p>";
-                    chatMessages.appendChild(guruMsg);
-                    chatMessages.scrollTop = chatMessages.scrollHeight;
-                }, 900);
-            }
+  function mkStars(){
+    stars=[];
+    for(let i=0;i<90;i++) stars.push({
+      x:Math.random()*W, y:Math.random()*H,
+      r:Math.random()*1.0+0.3,
+      a:Math.random()*0.6+0.1,
+      ph:Math.random()*Math.PI*2,
+      sp:Math.random()*0.015+0.004,
+      c:Math.random()>0.85?'#c9a96e':Math.random()>0.6?'#a8b4c8':'#f5f3ef',
+    });
+    nebulas=[];
+    for(let i=0;i<3;i++) nebulas.push({
+      x:Math.random()*W, y:Math.random()*H,
+      r:Math.random()*120+80,
+      h:Math.random()>0.5?'90,50,200':'201,169,110',
+      a:Math.random()*0.03+0.01,
+      dx:(Math.random()-0.5)*0.1,
+      dy:(Math.random()-0.5)*0.07,
+    });
+  }
 
-            chatSend.addEventListener("click", () => {
-                const message = chatInput.value.trim();
-                if (!message) return;
-                const userMsg = document.createElement("div");
-                userMsg.className = "chat-message user";
-                userMsg.innerHTML = "<p>" + escapeHtml(message) + "</p>";
-                chatMessages.appendChild(userMsg);
-                chatInput.value = "";
-                addSampleReply();
-            });
+  let t=0;
+  function draw(){
+    ctx.clearRect(0,0,W,H);
+    t+=0.01;
+    nebulas.forEach(n=>{
+      n.x+=n.dx; n.y+=n.dy;
+      if(n.x<-n.r) n.x=W+n.r;
+      if(n.x>W+n.r) n.x=-n.r;
+      if(n.y<-n.r) n.y=H+n.r;
+      if(n.y>H+n.r) n.y=-n.r;
+      const g=ctx.createRadialGradient(n.x,n.y,0,n.x,n.y,n.r);
+      g.addColorStop(0,`rgba(${n.h},${n.a})`);
+      g.addColorStop(1,`rgba(${n.h},0)`);
+      ctx.beginPath(); ctx.arc(n.x,n.y,n.r,0,Math.PI*2);
+      ctx.fillStyle=g; ctx.fill();
+    });
+    stars.forEach(s=>{
+      const tw=Math.sin(t*s.sp*60+s.ph)*0.28+0.72;
+      ctx.beginPath(); ctx.arc(s.x,s.y,s.r*DPR*tw,0,Math.PI*2);
+      ctx.fillStyle=s.c; ctx.globalAlpha=s.a*tw; ctx.fill();
+    });
+    ctx.globalAlpha=1;
+    requestAnimationFrame(draw);
+  }
+  window.addEventListener('resize', resize, {passive:true});
+  resize(); draw();
 
-            chatInput.addEventListener("keypress", (e) => {
-                if (e.key === "Enter") chatSend.click();
-            });
-        });
+  // ── NAV DARK ON SCROLL ──
+  const nav = document.getElementById('mNav');
+  window.addEventListener('scroll',()=>{
+    nav.classList.toggle('dark', window.scrollY>60);
+  },{passive:true});
 
-        function escapeHtml(text) {
-            const div = document.createElement("div");
-            div.textContent = text;
-            return div.innerHTML;
-        }
-    </script>
+  // ── INTERSECTION OBSERVER ──
+  const ease = 'cubic-bezier(0.16,1,0.3,1)';
+  const io = new IntersectionObserver(entries=>{
+    entries.forEach(e=>{
+      if(e.isIntersecting){ e.target.classList.add('on'); io.unobserve(e.target); }
+    });
+  },{threshold:0.12, rootMargin:'0px 0px -30px 0px'});
 
-    <script src="{{ url_for('static', filename='js/landing.js') }}?v=37.0" defer></script>
+  document.querySelectorAll('.m-feat,.m-stat,.m-rev,#mPhoneShell').forEach(el=>io.observe(el));
+
+  // ── PHONE CHAT ANIMATION ──
+  const phoneObs = new IntersectionObserver(entries => {
+    if(entries[0].isIntersecting){
+      phoneObs.disconnect();
+      // Show messages sequentially
+      const msgs = document.querySelectorAll('.m-chat-msg');
+      msgs.forEach((m,i) => {
+        setTimeout(()=>{ m.classList.add('on'); }, i * 600);
+      });
+      // Show typing after first 2 messages
+      setTimeout(()=>{
+        const typing = document.getElementById('mTyping');
+        if(typing) typing.classList.add('on');
+      }, 1400);
+      // Replace typing with reply
+      setTimeout(()=>{
+        const typing = document.getElementById('mTyping');
+        const reply = document.getElementById('mGuruReply');
+        if(typing) typing.classList.remove('on');
+        if(reply){ reply.style.display=''; setTimeout(()=>reply.classList.add('on'), 50); }
+      }, 2800);
+    }
+  }, { threshold:0.3 });
+  const phoneShell = document.getElementById('mPhoneShell');
+  if(phoneShell) phoneObs.observe(phoneShell);
+
+  // Quote word-by-word reveal
+  const quoteObs = new IntersectionObserver(entries=>{
+    if(entries[0].isIntersecting){
+      const el = entries[0].target;
+      el.classList.add('vis');
+      el.querySelectorAll('.word').forEach((w,i)=>{
+        w.style.transitionDelay = (i*0.06)+'s';
+      });
+      quoteObs.unobserve(el);
+    }
+  },{threshold:0.4});
+  const quote = document.getElementById('mQuote');
+  if(quote) quoteObs.observe(quote);
+
+  // ── CARDS SCROLL DOTS ──
+  const track = document.getElementById('mCardsTrack');
+  const dots  = document.querySelectorAll('.m-dot');
+  if(track && dots.length){
+    track.addEventListener('scroll',()=>{
+      const idx = Math.round(track.scrollLeft / (track.clientWidth * 0.8));
+      dots.forEach((d,i)=>d.classList.toggle('active', i===idx));
+    },{passive:true});
+  }
+
+})();
+</script>
+
+<script src="{{ url_for('static', filename='js/landing.js') }}?v=33.0"></script>
 </body>
-
 </html>

@@ -157,13 +157,6 @@ def client_ip() -> str:
         if ip:
             return ip.strip()
             
-    # Fallback to X-Forwarded-For, but take the *right-most* (last) IP 
-    # as the first one can be easily spoofed by the client before hitting the proxy.
-    fwd = request.headers.get("X-Forwarded-For")
-    if fwd:
-        parts = [p.strip() for p in fwd.split(",")]
-        return parts[-1]
-        
     return request.remote_addr or "unknown"
 
 

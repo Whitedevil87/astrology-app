@@ -51,7 +51,7 @@ FROM_EMAIL = os.environ.get("FROM_EMAIL", "noreply@celestialarc.com").strip()
 SENTRY_DSN = os.environ.get("SENTRY_DSN", "").strip()
 
 # ── Astrology ─────────────────────────────────────────────────────────
-# Lahiri matches AstroSage / mainstream Indian Vedic software defaults.
+# Lahiri matches mainstream Indian Vedic software defaults.
 AYANAMSA = os.environ.get("AYANAMSA", "lahiri").strip().lower()
 
 # ── Feature Flags ─────────────────────────────────────────────────────
@@ -71,7 +71,7 @@ def configure_app(app):
     secret_key = os.environ.get("SECRET_KEY", "").strip()
     if not secret_key:
         if IS_PRODUCTION:
-            raise RuntimeError(
+            raise ValueError(
                 "SECRET_KEY must be set in production (FLASK_ENV=production). "
                 "Generate one with: python -c \"import secrets; print(secrets.token_hex(32))\""
             )

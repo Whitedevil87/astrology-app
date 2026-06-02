@@ -86,11 +86,11 @@ def api_csrf():
 
 @app.route("/landing")
 def landing():
-    return render_template("landing1.html")
+    return render_template("landing.html")
 
 @app.route("/")
 def index():
-    return render_template("landing1.html")
+    return render_template("landing.html")
 
 @app.route("/app")
 def app_view():

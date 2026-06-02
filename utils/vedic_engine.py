@@ -1,5 +1,5 @@
 """
-Vedic astrology engine — Lahiri sidereal system (AstroSage-compatible default).
+Vedic astrology engine — Lahiri sidereal system (traditional Vedic standard).
 Whole-sign houses, Vimshottari Dasha from Moon Nakshatra,
 sidereal planet positions via Swiss Ephemeris when available.
 

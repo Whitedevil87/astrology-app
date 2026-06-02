@@ -1,7 +1,7 @@
 """
 Celestial Arc — Analysis service.
 Computes Vedic (sidereal) Big Three, Nakshatra, blueprint, and predictions.
-All zodiac logic uses Lahiri (Chitrapaksha) sidereal positions — same default as AstroSage.
+All zodiac logic uses Lahiri (Chitrapaksha) sidereal positions — traditional Vedic default.
 Prediction text: Simple English + light Hinglish.
 
 Integrates:
@@ -148,7 +148,7 @@ def compute_hybrid_big_three(
     lat: float, lon: float, tz_name: str
 ) -> Tuple[Dict[str, str], Dict[str, Any]]:
     """
-    Compute sidereal Sun, Moon, Ascendant using Lahiri ayanamsa (AstroSage standard).
+    Compute sidereal Sun, Moon, Ascendant using Lahiri ayanamsa (mainstream Vedic standard).
 
     Uses Swiss Ephemeris when installed (arc-second accuracy); falls back to
     internal math only if pyswisseph is unavailable.
@@ -309,7 +309,7 @@ def simulate_palm_analysis(hand_choice: str) -> str:
     )
 
 
-# ── Chart-accurate predictions (AstroSage-style, unique per Kundli) ───
+# ── Chart-accurate predictions (traditional-style, unique per Kundli) ───
 
 _PLANET_LABELS = {
     "sun": "Sun", "moon": "Moon", "mars": "Mars", "mercury": "Mercury",
@@ -472,7 +472,7 @@ def build_vedic_prediction(
     transit_score = transit.get("transit_score")
 
     personality = (
-        f"{full_name}, your chart is calculated in Lahiri sidereal (same ayanamsa default as AstroSage). "
+        f"{full_name}, your chart is calculated in Lahiri sidereal (traditional Vedic default). "
         f"Lagna (Ascendant) is {lagna} — {_house_phrase(1)}. "
         f"Sun in {sun_sign} occupies the {sun_h}th house ({_house_phrase(sun_h or 1)}); "
         f"Moon in {moon_sign} sits in the {moon_h}th house ({_house_phrase(moon_h or 4)}). "

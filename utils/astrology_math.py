@@ -1,7 +1,7 @@
 """
 Celestial Arc — Core astronomical math engine.
 
-Uses Lahiri (Chitrapaksha) ayanamsa for sidereal calculations (AstroSage standard).
+Uses Lahiri (Chitrapaksha) ayanamsa for sidereal calculations (mainstream Vedic standard).
 All public functions return SIDEREAL longitudes suitable for Vedic astrology.
 """
 
